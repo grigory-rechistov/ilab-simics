@@ -6,4 +6,5 @@ config.mk
 doc/
 simics
 simics-gui
+linux64/
 
