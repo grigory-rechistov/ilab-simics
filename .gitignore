@@ -1,0 +1,9 @@
+.workspace-properties/
+GNUmakefile
+bin/
+compiler.mk
+config.mk
+doc/
+simics
+simics-gui
+
