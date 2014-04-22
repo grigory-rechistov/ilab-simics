@@ -21,32 +21,32 @@ void register_memory_attributes(conf_class_t *cls);
 void init_page_cache(sample_risc_t *sr);
 
 void check_virtual_breakpoints(sample_risc_t *sr,
-                               sample_risc_core_t *core,
+                               sample_risc_t *core,
                                access_t access,
                                logical_address_t virt_start,
                                generic_address_t len,
                                uint8 *data);
 
 bool write_memory(sample_risc_t *sr,
-                  sample_risc_core_t *core,
+                  sample_risc_t *core,
                   physical_address_t phys_address,
                   physical_address_t len,
                   uint8 *data, bool check_bp);
 
 bool read_memory(sample_risc_t *sr,
-                 sample_risc_core_t *core,
+                 sample_risc_t *core,
                  physical_address_t phys_address,
                  physical_address_t len,
                  uint8 *data, bool check_bp);
 
 bool fetch_instruction(sample_risc_t *sr,
-                       sample_risc_core_t *core,
+                       sample_risc_t *core,
                        physical_address_t phys_address,
                        physical_address_t len,
                        uint8 *data,
                        bool check_bp);
 
-void release_and_share(sample_risc_t *sr, sample_risc_core_t *core,
+void release_and_share(sample_risc_t *sr, sample_risc_t *core,
                        physical_address_t phys_address);
 
 mem_page_t *get_page(sample_risc_t *sr, conf_object_t *phys_mem_obj,

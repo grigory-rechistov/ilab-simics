@@ -5,15 +5,13 @@
 MODULE_CLASSES = sample-risc sample-risc-core
 
 SRC_FILES += sample-risc.c            \
-             sample-risc-core.c       \
              sample-risc-queue.c      \
              sample-risc-frequency.c  \
              sample-risc-step.c       \
              sample-risc-cycle.c      \
              sample-risc-memory.c     \
              sample-risc-exec.c       \
-             event-queue.c            \
-             toy-risc-core.c
+             event-queue.c
 
 EXTRA_MODULE_VPATH = cycle-common
 

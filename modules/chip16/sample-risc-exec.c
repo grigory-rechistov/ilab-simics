@@ -22,7 +22,7 @@ static void
 check_event_queues(sample_risc_t *sr)
 {
         handle_events(sr, &sr->cycle_queue);
-        if (sr->current_core->enabled != 0) {
+        if (sr->enabled != 0) {
                 handle_events(sr, &sr->step_queue);
         }
 }
@@ -33,7 +33,7 @@ exec_run(conf_object_t *obj)
         sample_risc_t *sr = conf_obj_to_sr(obj);
 
         sr->cell_iface->set_current_processor_obj(
-                sr->cell, sr_core_to_conf_obj(sr->current_core));
+                sr->cell, sr_core_to_conf_obj(sr));
         sr->cell_iface->set_current_step_obj(sr->cell, obj);
 
         SIM_LOG_INFO(2, sr_to_conf_obj(sr), 0, "running");
@@ -43,13 +43,13 @@ exec_run(conf_object_t *obj)
         check_event_queues(sr);
 
         while (sr->state == State_Running) {
-                if (sr->current_core->enabled != 0) {
+                if (sr->enabled != 0) {
                         sample_core_fetch_and_execute_instruction(
-                                sr->current_core);
+                                sr);
                 } else {
                         simtime_t delta = get_delta(&sr->cycle_queue);
                         if (delta > 0) {
-                                sample_core_increment_cycles(sr->current_core,
+                                sample_core_increment_cycles(sr,
                                                              delta);
                         }
                 }

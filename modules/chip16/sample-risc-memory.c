@@ -190,7 +190,7 @@ get_page(sample_risc_t *sr, conf_object_t *phys_mem_obj,
 }
 
 void
-check_virtual_breakpoints(sample_risc_t *sr, sample_risc_core_t *core,
+check_virtual_breakpoints(sample_risc_t *sr, sample_risc_t *core,
                           access_t access, logical_address_t virt_start,
                           generic_address_t len, uint8 *data)
 {
@@ -221,7 +221,7 @@ data_bp_match(breakpoint_info_t bpi,
 }
 
 static void
-check_page_breakpoints(sample_risc_t *sr, sample_risc_core_t *core,
+check_page_breakpoints(sample_risc_t *sr, sample_risc_t *core,
                        mem_page_t *page, access_t access,
                        physical_address_t phys_address, generic_address_t len,
                        uint8 *data)
@@ -276,7 +276,7 @@ create_generic_transaction(conf_object_t *initiator, mem_op_type_t type,
    access if it isn't cachable.
 */
 bool
-write_memory(sample_risc_t *sr, sample_risc_core_t *core,
+write_memory(sample_risc_t *sr, sample_risc_t *core,
              physical_address_t phys_address, physical_address_t len,
              uint8 *data, bool check_bp)
 {
@@ -315,7 +315,7 @@ write_memory(sample_risc_t *sr, sample_risc_core_t *core,
 }
 
 bool
-read_memory(sample_risc_t *sr, sample_risc_core_t *core,
+read_memory(sample_risc_t *sr, sample_risc_t *core,
             physical_address_t phys_address, physical_address_t len,
             uint8 *data, bool check_bp)
 {
@@ -353,7 +353,7 @@ read_memory(sample_risc_t *sr, sample_risc_core_t *core,
 }
 
 bool
-fetch_instruction(sample_risc_t *sr, sample_risc_core_t *core,
+fetch_instruction(sample_risc_t *sr, sample_risc_t *core,
                   physical_address_t phys_address, physical_address_t len,
                   uint8 *data, bool check_bp)
 {
@@ -392,7 +392,7 @@ fetch_instruction(sample_risc_t *sr, sample_risc_core_t *core,
 }
 
 void
-release_and_share(sample_risc_t *sr, sample_risc_core_t *core,
+release_and_share(sample_risc_t *sr, sample_risc_t *core,
                   physical_address_t phys_address)
 {
         conf_object_t *phys_mem_obj = core->phys_mem_obj;
