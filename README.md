@@ -12,7 +12,7 @@ Intel Corporation and the participating univercity. Please refer to the text
 of the agreement for terms and conditions.
 
 === Wiki contents ===
-[Wiki](home) contents is licensed under [CC-BY-NC-SA 4.0 Worldwide](http://creativecommons.org/licenses/by-nc-sa/4.0/).
+[Wiki](http://atakua.doesntexist.org/gitlab/ggg/simchip16/wikis/home) contents is licensed under [CC-BY-NC-SA 4.0 Worldwide](http://creativecommons.org/licenses/by-nc-sa/4.0/).
 
 [1] CHIP16 Machine Specification https://github.com/tykel/chip16/wiki/Machine-Specification
 [2] Wind River Simics http://www.windriver.com/simics/
