@@ -8,3 +8,11 @@ simics
 simics-gui
 linux64/
 
+.cproject
+.project
+targets/arc601-simple/
+targets/ppc-simple/
+targets/vacuum/
+targets/x86-440bx/
+targets/x86-simple/
+targets/x86-x58-ich10/
