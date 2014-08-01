@@ -14,7 +14,7 @@ of the agreement for terms and conditions.
 
 # Wiki contents
 
-[Wiki](http://atakua.doesntexist.org/gitlab/ggg/simchip16/wikis/home) contents is licensed under [CC-BY-NC-SA 4.0 Worldwide](http://creativecommons.org/licenses/by-nc-sa/4.0/).
+[Wiki](https://github.com/yulyugin/ilab-simics/wiki) contents is licensed under [CC-BY-NC-SA 4.0 Worldwide](http://creativecommons.org/licenses/by-nc-sa/4.0/).
 
 # Links
 
