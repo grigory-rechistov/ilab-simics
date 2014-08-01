@@ -1,5 +1,5 @@
 /*
-  sample-risc.h - sample code for a stand-alone RISC processor
+  chip16.h - sample code for a stand-alone RISC processor
 
   This Software is part of Wind River Simics. The rights to copy, distribute,
   modify, or otherwise make use of this Software may be licensed only
@@ -23,11 +23,11 @@
 #include <simics/model-iface/breakpoints.h>
 #include <simics/model-iface/memory-page.h>
 #include "event-queue.h"
-#include "sample-risc-exec.h"
+#include "chip16-exec.h"
 
 
 #include "event-queue-types.h"
-#include "sample-risc-exec.h"
+#include "chip16-exec.h"
 
 struct sample_risc;
 typedef struct sample_risc sample_risc_t;

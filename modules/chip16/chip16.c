@@ -1,5 +1,5 @@
 /*
-  sample-risc.c - sample code for a stand-alone RISC processor
+  chip16.c - sample code for a stand-alone RISC processor
 
   This Software is part of Wind River Simics. The rights to copy, distribute,
   modify, or otherwise make use of this Software may be licensed only
@@ -9,7 +9,7 @@
 
 */
 
-#include "sample-risc.h"
+#include "chip16.h"
 #include <simics/processor-api.h>
 #include <simics/util/strbuf.h>
 #include <simics/util/swabber.h>
@@ -24,19 +24,19 @@
 #include <simics/devs/signal.h>
 
 #include "event-queue.h"
-#include "sample-risc.h"
-#include "sample-risc-memory.h"
-#include "sample-risc-queue.h"
+#include "chip16.h"
+#include "chip16-memory.h"
+#include "chip16-queue.h"
 
 // TODO: should not be needed, violates the Processor API
 #include <simics/simulator/hap-consumer.h>
 
 #include "event-queue.h"
-#include "sample-risc-memory.h"
-#include "sample-risc-exec.h"
-#include "sample-risc-cycle.h"
-#include "sample-risc-step.h"
-#include "sample-risc-frequency.h"
+#include "chip16-memory.h"
+#include "chip16-exec.h"
+#include "chip16-cycle.h"
+#include "chip16-step.h"
+#include "chip16-frequency.h"
 
 /* fixed size instructions of 4 bytes */
 #define INSTR_SIZE 4
@@ -1074,7 +1074,7 @@ conf_class_t *
 cr_define_class(void)
 {
         return SIM_register_class(
-                "sample-risc-core", &(class_data_t){
+                "chip16-core", &(class_data_t){
                   .init_object = chip16_init_object,
                   .finalize_instance = chip16_finalize,
                   .description = "Sample RISC core."
@@ -1465,7 +1465,7 @@ conf_class_t *
 sr_define_class(void)
 {
         return SIM_register_class(
-                "sample-risc",
+                "chip16",
                 &(class_data_t){
                   .init_object = sr_init_object,
                   .finalize_instance = sr_finalize,

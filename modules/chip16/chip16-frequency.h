@@ -1,5 +1,5 @@
 /*
-  sample-risc-cycle.h - Supporting the cycle queue
+  chip16-frequency.h - sample code for frequency
 
   This Software is part of Wind River Simics. The rights to copy, distribute,
   modify, or otherwise make use of this Software may be licensed only
@@ -9,12 +9,13 @@
 
 */
 
-#ifndef SAMPLE_RISC_CYCLE_H
-#define SAMPLE_RISC_CYCLE_H
+#ifndef SAMPLE_RISC_FREQUENCY_H
+#define SAMPLE_RISC_FREQUENCY_H
 
-#include "sample-risc.h"
+#include "chip16.h"
 
-void instantiate_cycle_queue(sample_risc_t *sr);
-void register_cycle_queue(conf_class_t *cls);
+void register_frequency_interfaces(conf_class_t *cls);
+void instantiate_frequency(sample_risc_t *sr);
+void finalize_frequency(sample_risc_t *sr);
 
 #endif

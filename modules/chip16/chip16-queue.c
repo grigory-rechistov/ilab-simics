@@ -1,5 +1,5 @@
 /*
-  sample-risc-queue.c - sample risc queue implementation
+  chip16-queue.c - sample risc queue implementation
 
   This Software is part of Wind River Simics. The rights to copy, distribute,
   modify, or otherwise make use of this Software may be licensed only
@@ -9,10 +9,10 @@
 
 */
 
-#include "sample-risc-queue.h"
+#include "chip16-queue.h"
 #include "event-queue.h"
 #ifndef SAMPLE_RISC_HEADER
- #define SAMPLE_RISC_HEADER "sample-risc.h"
+ #define SAMPLE_RISC_HEADER "chip16.h"
 #endif
 #include SAMPLE_RISC_HEADER
 

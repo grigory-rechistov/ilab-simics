@@ -1,5 +1,5 @@
 /*
-  sample-risc-memory.c - sample code for memory access and page buffers
+  chip16-memory.c - sample code for memory access and page buffers
 
   This Software is part of Wind River Simics. The rights to copy, distribute,
   modify, or otherwise make use of this Software may be licensed only
@@ -9,7 +9,7 @@
 
 */
 
-#include "sample-risc-memory.h"
+#include "chip16-memory.h"
 #include <simics/processor-api.h>
 #include <simics/util/vect.h>
 
@@ -17,7 +17,7 @@
 #include <simics/model-iface/simulator-cache.h>
 
 #ifndef SAMPLE_RISC_HEADER
-#define SAMPLE_RISC_HEADER "sample-risc.h"
+#define SAMPLE_RISC_HEADER "chip16.h"
 #endif
 #include SAMPLE_RISC_HEADER
 

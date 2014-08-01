@@ -2,15 +2,15 @@
 # Simics module makefile
 #
 
-MODULE_CLASSES = sample-risc sample-risc-core
+MODULE_CLASSES = chip16 chip16-core
 
-SRC_FILES += sample-risc.c            \
-             sample-risc-queue.c      \
-             sample-risc-frequency.c  \
-             sample-risc-step.c       \
-             sample-risc-cycle.c      \
-             sample-risc-memory.c     \
-             sample-risc-exec.c       \
+SRC_FILES += chip16.c            \
+             chip16-queue.c      \
+             chip16-frequency.c  \
+             chip16-step.c       \
+             chip16-cycle.c      \
+             chip16-memory.c     \
+             chip16-exec.c       \
              event-queue.c
 
 EXTRA_MODULE_VPATH = cycle-common

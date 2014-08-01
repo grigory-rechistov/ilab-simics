@@ -1,5 +1,5 @@
 /*
-  sample-risc-memory.h - sample code for the page cache and memory interface
+  chip16-memory.h - sample code for the page cache and memory interface
 
   This Software is part of Wind River Simics. The rights to copy, distribute,
   modify, or otherwise make use of this Software may be licensed only
@@ -13,7 +13,7 @@
 #define SAMPLE_RISC_MEMORY_H
 
 #include <simics/model-iface/memory-page.h>
-#include "sample-risc.h"
+#include "chip16.h"
 
 void register_memory_interfaces(conf_class_t *cls);
 void register_memory_attributes(conf_class_t *cls);

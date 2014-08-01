@@ -1,5 +1,5 @@
 /*
-  sample-risc-step.h - sample code for the step queue
+  chip16-queue.h - sample risc queue implementation
 
   This Software is part of Wind River Simics. The rights to copy, distribute,
   modify, or otherwise make use of this Software may be licensed only
@@ -9,12 +9,11 @@
 
 */
 
-#ifndef SAMPLE_RISC_STEP_H
-#define SAMPLE_RISC_STEP_H
+#ifndef SAMPLE_RISC_QUEUE_H
+#define SAMPLE_RISC_QUEUE_H
 
-#include "sample-risc.h"
+#include "chip16.h"
 
-void instantiate_step_queue(sample_risc_t *sr);
-void register_step_queue(conf_class_t *cls);
+void handle_events(sample_risc_t *sr, event_queue_t *queue);
 
 #endif

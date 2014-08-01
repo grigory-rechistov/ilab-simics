@@ -1,5 +1,5 @@
 /*
-  sample-risc-exec.c - sample code for executing instructions
+  chip16-exec.c - sample code for executing instructions
 
   This Software is part of Wind River Simics. The rights to copy, distribute,
   modify, or otherwise make use of this Software may be licensed only
@@ -9,13 +9,13 @@
 
 */
 
-#include "sample-risc-exec.h"
+#include "chip16-exec.h"
 #include "event-queue.h"
 #ifndef SAMPLE_RISC_HEADER
-#define SAMPLE_RISC_HEADER "sample-risc.h"
+#define SAMPLE_RISC_HEADER "chip16.h"
 #endif
 #include SAMPLE_RISC_HEADER
-#include "sample-risc-queue.h"
+#include "chip16-queue.h"
 #include <simics/processor-api.h>
 
 static void

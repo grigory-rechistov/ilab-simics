@@ -15,8 +15,8 @@ def get_sample_cosimulator_info(obj):
 def get_sample_cosimulator_status(obj):
     return []
 
-new_info_command('sample-risc', get_sample_cosimulator_info)
-new_status_command('sample-risc', get_sample_cosimulator_status)
+new_info_command('chip16', get_sample_cosimulator_info)
+new_status_command('chip16', get_sample_cosimulator_status)
 
 def get_chip16_info(obj):
     return []
@@ -24,8 +24,8 @@ def get_chip16_info(obj):
 def get_chip16_status(obj):
     return []
 
-new_info_command("sample-risc-core", get_chip16_info)
-new_status_command("sample-risc-core", get_chip16_status)
+new_info_command("chip16-core", get_chip16_info)
+new_status_command("chip16-core", get_chip16_status)
 
 # Function called by the 'pregs' command. Print common registers if
 # all is false, and print more registers if all is true.
@@ -48,7 +48,7 @@ processor_cli_iface.get_diff_regs = local_diff_regs
 processor_cli_iface.get_pending_exception_string = local_pending_exception
 processor_cli_iface.get_address_prefix = None
 processor_cli_iface.translate_to_physical = None
-SIM_register_interface(SIM_get_class('sample-risc-core'), 'processor_cli',
+SIM_register_interface(SIM_get_class('chip16-core'), 'processor_cli',
                        processor_cli_iface)
 
 
@@ -99,12 +99,12 @@ if have_wx:
                   ]
         win.create_register_view(pages, *groups)
 
-    install_register_class('sample-risc-core', risc_register_window)
+    install_register_class('chip16-core', risc_register_window)
 
 opcode_info = opcode_length_info_t(min_alignment = 4,
                                    max_length = 4,
                                    avg_length = 4)
 
-SIM_register_interface(SIM_get_class('sample-risc-core'), 'opcode_info',
+SIM_register_interface(SIM_get_class('chip16-core'), 'opcode_info',
                        opcode_info_interface_t(get_opcode_length_info
                                                = lambda cpu: opcode_info))

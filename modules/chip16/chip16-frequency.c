@@ -1,5 +1,5 @@
 /*
-  sample-risc-frequency.c - sample implementation of CPU frequency interfaces
+  chip16-frequency.c - sample implementation of CPU frequency interfaces
 
   This Software is part of Wind River Simics. The rights to copy, distribute,
   modify, or otherwise make use of this Software may be licensed only
@@ -13,13 +13,13 @@
   Copyright (c) 1991-1997 SICS
 */
 
-#include "sample-risc-frequency.h"
+#include "chip16-frequency.h"
 #include <simics/processor-api.h>
 #include <simics/base/log.h>
 
 #include "generic-cycle-iface.h"
 #ifndef SAMPLE_RISC_HEADER
- #define SAMPLE_RISC_HEADER "sample-risc.h"
+ #define SAMPLE_RISC_HEADER "chip16.h"
 #endif
 #include SAMPLE_RISC_HEADER
 
