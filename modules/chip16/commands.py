@@ -18,14 +18,14 @@ def get_sample_cosimulator_status(obj):
 new_info_command('sample-risc', get_sample_cosimulator_info)
 new_status_command('sample-risc', get_sample_cosimulator_status)
 
-def get_sample_core_info(obj):
+def get_chip16_info(obj):
     return []
 
-def get_sample_core_status(obj):
+def get_chip16_status(obj):
     return []
 
-new_info_command("sample-risc-core", get_sample_core_info)
-new_status_command("sample-risc-core", get_sample_core_status)
+new_info_command("sample-risc-core", get_chip16_info)
+new_status_command("sample-risc-core", get_chip16_status)
 
 # Function called by the 'pregs' command. Print common registers if
 # all is false, and print more registers if all is true.

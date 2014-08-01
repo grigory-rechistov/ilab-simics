@@ -44,12 +44,12 @@ exec_run(conf_object_t *obj)
 
         while (sr->state == State_Running) {
                 if (sr->enabled != 0) {
-                        sample_core_fetch_and_execute_instruction(
+                        chip16_fetch_and_execute_instruction(
                                 sr);
                 } else {
                         simtime_t delta = get_delta(&sr->cycle_queue);
                         if (delta > 0) {
-                                sample_core_increment_cycles(sr,
+                                chip16_increment_cycles(sr,
                                                              delta);
                         }
                 }
