@@ -826,12 +826,13 @@ chip16_architecture(conf_object_t *obj)
  * the register table with the Simics Vector type.
  */
 
-static void
-init_register_table(sample_risc_t *crc)
-{
-        register_table *rt = &(crc->reg_table);
-        VINIT(*rt);
-}
+// TODO: is it needed?
+//static void
+//init_register_table(sample_risc_t *crc)
+//{
+//        register_table *rt = &(crc->reg_table);
+//        VINIT(*rt);
+//}
 
 
 int
@@ -1206,61 +1207,63 @@ cr_register_attributes(conf_class_t *cr_class)
                 "Number of idle cycles.");
 }
 
-static attr_value_t
-chip16_get_register_value(void *arg, conf_object_t *obj,
-                               attr_value_t *idx)
-{
-        sample_risc_t *core = conf_obj_to_sr_core(obj);
-        register_table *rt = associated_register_table(core);
-        register_description_t *rd;
+// TODO: is it needed?
+//static attr_value_t
+//chip16_get_register_value(void *arg, conf_object_t *obj,
+//                               attr_value_t *idx)
+//{
+//        sample_risc_t *core = conf_obj_to_sr_core(obj);
+//        register_table *rt = associated_register_table(core);
+//        register_description_t *rd;
+//
+//        if (arg != NULL) {
+//                rd = (register_description_t *)(arg);
+//        } else if (SIM_attr_is_integer(*idx)) {
+//                int n = SIM_attr_integer(*idx);
+//                if ((n < 0) || (n >= VLEN(*rt)))
+//                        return SIM_make_attr_invalid();
+//                rd = &VGET(*rt, n);
+//        } else
+//                return chip16_all_registers(obj);
+//
+//        /* return the value of register i */
+//        uint64 value = rd->get_reg_value(core, rd->reg_number);
+//        return SIM_make_attr_uint64(value);
+//}
 
-        if (arg != NULL) {
-                rd = (register_description_t *)(arg);
-        } else if (SIM_attr_is_integer(*idx)) {
-                int n = SIM_attr_integer(*idx);
-                if ((n < 0) || (n >= VLEN(*rt)))
-                        return SIM_make_attr_invalid();
-                rd = &VGET(*rt, n);
-        } else
-                return chip16_all_registers(obj);
-
-        /* return the value of register i */
-        uint64 value = rd->get_reg_value(core, rd->reg_number);
-        return SIM_make_attr_uint64(value);
-}
-
-static set_error_t
-chip16_set_register_value(void *arg, conf_object_t *obj,
-                               attr_value_t *val, attr_value_t *idx)
-{
-        sample_risc_t *core = conf_obj_to_sr_core(obj);
-        register_table *rt = associated_register_table(core);
-        register_description_t *rd;
-
-        if (arg != NULL) {
-                rd = (register_description_t *)(arg);
-        } else if (SIM_attr_is_nil(*idx)) {
-                /* force all the registers to one value? */
-                uint64 value = SIM_attr_integer(*val);
-                VFORI(*rt, i) {
-                        rd = &VGET(*rt, i);
-                        rd->set_reg_value(core, rd->reg_number, value);
-                }
-                return Sim_Set_Ok;
-        } else {
-                int n = SIM_attr_integer(*idx);
-                if ((n < 0) || (n >= VLEN(*rt))) {
-                        SIM_attribute_error("Index out of range");
-                        return Sim_Set_Object_Not_Found;
-                }
-                rd = &VGET(*rt, n);
-        }
-
-        /* set the value of register i to the "val" parameter */
-        uint64 value = SIM_attr_integer(*val);
-        rd->set_reg_value(core, rd->reg_number, value);
-        return Sim_Set_Ok;
-}
+// TODO: is it needed?
+//static set_error_t
+//chip16_set_register_value(void *arg, conf_object_t *obj,
+//                               attr_value_t *val, attr_value_t *idx)
+//{
+//        sample_risc_t *core = conf_obj_to_sr_core(obj);
+//        register_table *rt = associated_register_table(core);
+//        register_description_t *rd;
+//
+//        if (arg != NULL) {
+//                rd = (register_description_t *)(arg);
+//        } else if (SIM_attr_is_nil(*idx)) {
+//                /* force all the registers to one value? */
+//                uint64 value = SIM_attr_integer(*val);
+//                VFORI(*rt, i) {
+//                        rd = &VGET(*rt, i);
+//                        rd->set_reg_value(core, rd->reg_number, value);
+//                }
+//                return Sim_Set_Ok;
+//        } else {
+//                int n = SIM_attr_integer(*idx);
+//                if ((n < 0) || (n >= VLEN(*rt))) {
+//                        SIM_attribute_error("Index out of range");
+//                        return Sim_Set_Object_Not_Found;
+//                }
+//                rd = &VGET(*rt, n);
+//        }
+//
+//        /* set the value of register i to the "val" parameter */
+//        uint64 value = SIM_attr_integer(*val);
+//        rd->set_reg_value(core, rd->reg_number, value);
+//        return Sim_Set_Ok;
+//}
 
 /* functions that interface between a call by the core
    and the actual function in the processor */
