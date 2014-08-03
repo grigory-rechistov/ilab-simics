@@ -229,7 +229,6 @@ toy_init_registers(void *crc)
          */
 }
 
-
 /* access_type is Sim_Access_Read, Sim_Access_Write, Sim_Access_Execute */
 /* returns boolean */
 int
@@ -543,7 +542,7 @@ chip16_iface_get_enabled(conf_object_t *obj)
 static cpu_endian_t
 chip16_get_endian(conf_object_t *obj)
 {
-        return Sim_Endian_Big;
+        return Sim_Endian_Little;
 }
 
 static conf_object_t *
@@ -556,19 +555,19 @@ chip16_get_physical_memory_iface(conf_object_t *obj)
 static int
 chip16_get_logical_address_width(conf_object_t *obj)
 {
-        return 64;
+        return 16;
 }
 
 static int
 chip16_get_physical_address_width(conf_object_t *obj)
 {
-        return 64;
+        return 16;
 }
 
 static const char *
 chip16_architecture(conf_object_t *obj)
 {
-        return "sample";
+        return "chip16";
 }
 
 /*
