@@ -41,56 +41,24 @@
 /* fixed size instructions of 4 bytes */
 #define INSTR_SIZE 4
 
-
 /*
+ * TODO: Expand me
+ *
  *           31   28 27   24 23   20 19   16 15   12 11    8 7     4 3     0
  *          |-------|-------|-------|-------|-------|-------|-------|-------|
- *
- *
- *   nop    |   0   |                ---                                    |
- *
- *   branch |   1   |  mode |
- *                      imm |  ---  |  ---  |   imm_value                   |
- *                      ind |  src  |            ---                        |
- *
- *   load   |   2   |  mode |
- *                     imm  |  ---  |  dst  |  (imm_value)                  |
- *                     ind  | (src) |  dst  |   ---                         |
- *
- *   store  |   3   |  mode |
- *                     imm  |  src  |  ---  |  (imm_value)                  |
- *                     ind  |  src  | (dst) |   ---                         |
- *
- *   idle   |   4   |      ---              |  imm_value                    |
- *
- *   magic  |   5   |                ---                                    |
- *
- *   add    |   6   |  ---- |  src  |  dst  |  imm_value                    |
- *
+ *               opcode     |   Y   |   X   |      LL       |      HH       |
  */
 
+#define INSTR_OP(i)       (((i) >> 24) & 0xff)
+#define INSTR_SRC_REG(i)  (((i) >> 20) & 0xf)
+#define INSTR_DST_REG(i)  (((i) >> 16) & 0xf)
+#define INSTR_LL          (((i) >> 8) & 0xff)
+#define INSTR_HH          ((i) & 0xff)
 
-#define INSTR_OP(i) (((i) >> 28) & 0xf)
-#define INSTR_MODE(i) (((i) >> 24) & 0xf)
-#define INSTR_SRC_REG(i) (((i) >> 20) & 0xf)
-#define INSTR_DST_REG(i) (((i) >> 16) & 0xf)
-#define INSTR_IMMEDIATE(i) ((i) & 0xffff)
-
+// TODO: Expand me
 typedef enum {
         Instr_Op_Nop    = 0,
-        Instr_Op_Branch = 1,
-        Instr_Op_Load   = 2,
-        Instr_Op_Store  = 3,
-        Instr_Op_Idle   = 4,
-        Instr_Op_Magic  = 5,
-        Instr_Op_Add    = 6
 } instr_op_t;
-
-typedef enum {
-        Instr_Mode_Immediate = 0,
-        Instr_Mode_Indirect  = 1
-} instr_mode_t;
-
 
 /* THREAD_SAFE_GLOBAL: hap_Control_Register_Read init */
 hap_type_t hap_Control_Register_Read;
@@ -322,51 +290,10 @@ chip16_write_memory32(chip16_t *core, logical_address_t la,
 char *
 toy_string_decode(chip16_t *core, uint32 instr)
 {
-        strbuf_t b = SB_INIT;
         switch (INSTR_OP(instr)) {
+
         case Instr_Op_Nop:
                 return MM_STRDUP("nop");
-
-        case Instr_Op_Branch:
-                sb_addstr(&b, "branch");
-                if (INSTR_MODE(instr) == Instr_Mode_Immediate)
-                        sb_addfmt(&b, " 0x%x", INSTR_IMMEDIATE(instr));
-                else
-                        sb_addfmt(&b, " r%d", INSTR_SRC_REG(instr));
-                return sb_detach(&b);
-
-        case Instr_Op_Load:
-                sb_addstr(&b, "load");
-                if (INSTR_MODE(instr) == Instr_Mode_Immediate)
-                        sb_addfmt(&b, " (0x%x) -> r%d",
-                                  INSTR_IMMEDIATE(instr), INSTR_DST_REG(instr));
-                else
-                        sb_addfmt(&b, " (r%d) -> r%d",
-                                  INSTR_SRC_REG(instr), INSTR_DST_REG(instr));
-                return sb_detach(&b);
-
-        case Instr_Op_Store:
-                sb_addstr(&b, "store");
-                if (INSTR_MODE(instr) == Instr_Mode_Immediate)
-                        sb_addfmt(&b, " r%d -> (0x%x)",
-                                  INSTR_SRC_REG(instr), INSTR_IMMEDIATE(instr));
-                else
-                        sb_addfmt(&b, " r%d -> (r%d)",
-                                  INSTR_SRC_REG(instr), INSTR_DST_REG(instr));
-                return sb_detach(&b);
-
-        case Instr_Op_Idle:
-                sb_addfmt(&b, "idle 0x%x", INSTR_IMMEDIATE(instr));
-                return sb_detach(&b);
-
-        case Instr_Op_Magic:
-                return MM_STRDUP("magic");
-
-        case Instr_Op_Add:
-                sb_addfmt(&b, "add r%d + r%d + 0x%x -> r%d",
-                          INSTR_SRC_REG(instr), INSTR_DST_REG(instr),
-                          INSTR_IMMEDIATE(instr), INSTR_DST_REG(instr));
-                return sb_detach(&b);
 
         default:
                 SIM_LOG_ERROR(core->obj, 0, "unknown instruction");
@@ -374,159 +301,17 @@ toy_string_decode(chip16_t *core, uint32 instr)
         }
 }
 
-
-#define INCREMENT_PC(core) toy_set_pc(core, toy_get_pc(core)+ INSTR_SIZE)
+#define INCREMENT_PC(core) toy_set_pc(core, toy_get_pc(core) + INSTR_SIZE)
 
 void
 toy_execute(chip16_t *core, uint32 instr)
 {
-        cycles_t stall_cycles = 0;
-        cycles_t cycles_left = 0;
-
-        /* execute instruction */
         switch (INSTR_OP(instr)) {
 
         case Instr_Op_Nop:
                 chip16_increment_cycles(core, 1);
                 chip16_increment_steps(core, 1);
                 INCREMENT_PC(core);
-                break;
-
-        case Instr_Op_Branch:
-                chip16_increment_cycles(core, 1);
-                chip16_increment_steps(core, 1);
-                INCREMENT_PC(core);
-                switch (INSTR_MODE(instr)) {
-                case Instr_Mode_Immediate:
-                        toy_set_pc(core, INSTR_IMMEDIATE(instr));
-                        break;
-                case Instr_Mode_Indirect:
-                        toy_set_pc(core,
-                                   toy_get_gpr(core, INSTR_SRC_REG(instr)));
-                        break;
-                default:
-                        SIM_LOG_ERROR(core->obj, 0,
-                                      "unknown instruction mode");
-                }
-
-                break;
-
-        case Instr_Op_Load:
-                chip16_increment_cycles(core, 1);
-                chip16_increment_steps(core, 1);
-                INCREMENT_PC(core);
-                switch (INSTR_MODE(instr)) {
-                case Instr_Mode_Immediate: {
-                        logical_address_t la = INSTR_IMMEDIATE(instr);
-                        physical_address_t pa;
-                        bool ok = toy_logical_to_physical(core, la, &pa,
-                                                          Sim_Access_Read);
-                        if (ok) {
-                                uint32 value = chip16_read_memory32(
-                                        core, la, pa);
-                                toy_set_gpr(core, INSTR_DST_REG(instr), value);
-                        }
-                        break;
-                }
-
-                case Instr_Mode_Indirect: {
-                        logical_address_t la =
-                                toy_get_gpr(core, INSTR_SRC_REG(instr));
-                        physical_address_t pa;
-                        bool ok = toy_logical_to_physical(core, la, &pa,
-                                                          Sim_Access_Read);
-                        if (ok) {
-                                uint32 value = chip16_read_memory32(
-                                        core, la, pa);
-                                toy_set_gpr(core, INSTR_DST_REG(instr), value);
-                        }
-                        break;
-                }
-
-                default:
-                        SIM_LOG_ERROR(core->obj, 0,
-                                      "unknown instruction mode");
-                        break;
-                }
-                break;
-
-        case Instr_Op_Store:
-                chip16_increment_cycles(core, 1);
-                chip16_increment_steps(core, 1);
-                INCREMENT_PC(core);
-                switch (INSTR_MODE(instr)) {
-                case Instr_Mode_Immediate: {
-                        logical_address_t la = INSTR_IMMEDIATE(instr);
-                        physical_address_t pa;
-                        bool ok = toy_logical_to_physical(core, la, &pa,
-                                                          Sim_Access_Write);
-                        if (ok) {
-                                uint32 value = toy_get_gpr(core,
-                                                         INSTR_SRC_REG(instr));
-                                chip16_write_memory32(core, la, pa,
-                                                           value);
-                        }
-                        break;
-                }
-
-                case Instr_Mode_Indirect: {
-                        logical_address_t la =
-                                toy_get_gpr(core, INSTR_DST_REG(instr));
-                        physical_address_t pa;
-                        bool ok = toy_logical_to_physical(core, la, &pa,
-                                                          Sim_Access_Write);
-                        if (ok) {
-                                uint32 value = toy_get_gpr(core,
-                                                         INSTR_SRC_REG(instr));
-                                chip16_write_memory32(core, la, pa,
-                                                           value);
-                        }
-                        break;
-                }
-
-                default:
-                        SIM_LOG_ERROR(core->obj, 0,
-                                      "unknown instruction mode");
-                        break;
-                }
-                break;
-
-        case Instr_Op_Idle:
-                if (core->idle_cycles) {
-                        stall_cycles = core->idle_cycles;
-                } else {
-                        stall_cycles = INSTR_IMMEDIATE(instr) + 1;
-                }
-                cycles_left = chip16_next_cycle_event(core);
-                if (stall_cycles > cycles_left) {
-                        core->idle_cycles = stall_cycles - cycles_left;
-                        chip16_increment_cycles(core, cycles_left);
-                } else {
-                        core->idle_cycles = 0;
-                        chip16_increment_cycles(core, stall_cycles);
-                        chip16_increment_steps(core, 1);
-                        INCREMENT_PC(core);
-                }
-                break;
-
-        case Instr_Op_Magic:
-                chip16_increment_cycles(core, 1);
-                chip16_increment_steps(core, 1);
-                INCREMENT_PC(core);
-                SIM_c_hap_occurred(hap_Magic_Instruction,
-                                   core->obj,
-                                   (unsigned long)0,
-                                   (int64)0);
-                break;
-
-        case Instr_Op_Add:
-                chip16_increment_cycles(core, 1);
-                chip16_increment_steps(core, 1);
-                INCREMENT_PC(core);
-                toy_set_gpr(core, INSTR_DST_REG(instr),
-                            (toy_get_gpr(core, INSTR_SRC_REG(instr))
-                             + toy_get_gpr(core, INSTR_DST_REG(instr))
-                             + INSTR_IMMEDIATE(instr)));
                 break;
 
         default:
@@ -559,7 +344,6 @@ toy_fetch_and_execute_instruction(chip16_t *core)
         }
 }
 
-
 static inline chip16_t * // FIXME remove
 associated_queue(chip16_t *core)
 {
@@ -571,7 +355,6 @@ associated_memory(chip16_t *core) // FIXME remove
 {
         return core;
 }
-
 
 static register_table *
 associated_register_table(chip16_t *core)
@@ -630,7 +413,6 @@ chip16_get_enabled(void *arg, conf_object_t *obj, attr_value_t *idx)
         chip16_t *core = conf_to_chip16(obj);
         return SIM_make_attr_boolean(core->enabled);
 }
-
 
 static set_error_t
 chip16_set_enabled(void *arg, conf_object_t *obj,
@@ -723,7 +505,6 @@ chip16_get_program_counter(conf_object_t *obj)
         chip16_t *core = conf_to_chip16(obj);
         return chip16_get_pc(core);
 }
-
 
 static physical_block_t
 chip16_logical_to_physical_block(conf_object_t *obj,
@@ -833,7 +614,6 @@ chip16_architecture(conf_object_t *obj)
 //        register_table *rt = &(crc->reg_table);
 //        VINIT(*rt);
 //}
-
 
 int
 search_register_table(chip16_t *crc, const char *name)
