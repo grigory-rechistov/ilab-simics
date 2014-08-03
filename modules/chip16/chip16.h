@@ -9,8 +9,8 @@
 
 */
 
-#ifndef SAMPLE_RISC_H
-#define SAMPLE_RISC_H
+#ifndef CHIP16_H
+#define CHIP16_H
 
 #include <simics/base/types.h>
 #include <simics/base/log.h>
@@ -229,5 +229,4 @@ conf_obj_to_sr_core(conf_object_t *obj)
         return SIM_object_data(obj);
 }
 
-
-#endif
+#endif /* CHIP16 */

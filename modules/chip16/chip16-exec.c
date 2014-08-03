@@ -11,10 +11,10 @@
 
 #include "chip16-exec.h"
 #include "event-queue.h"
-#ifndef SAMPLE_RISC_HEADER
-#define SAMPLE_RISC_HEADER "chip16.h"
+#ifndef CHIP16_HEADER
+#define CHIP16_HEADER "chip16.h"
 #endif
-#include SAMPLE_RISC_HEADER
+#include CHIP16_HEADER
 #include "chip16-queue.h"
 #include <simics/processor-api.h>
 

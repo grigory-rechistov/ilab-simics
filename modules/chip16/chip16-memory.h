@@ -9,8 +9,8 @@
 
 */
 
-#ifndef SAMPLE_RISC_MEMORY_H
-#define SAMPLE_RISC_MEMORY_H
+#ifndef CHIP16_MEMORY_H
+#define CHIP16_MEMORY_H
 
 #include <simics/model-iface/memory-page.h>
 #include "chip16.h"

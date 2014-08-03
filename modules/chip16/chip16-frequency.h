@@ -9,8 +9,8 @@
 
 */
 
-#ifndef SAMPLE_RISC_FREQUENCY_H
-#define SAMPLE_RISC_FREQUENCY_H
+#ifndef CHIP16_FREQUENCY_H
+#define CHIP16_FREQUENCY_H
 
 #include "chip16.h"
 

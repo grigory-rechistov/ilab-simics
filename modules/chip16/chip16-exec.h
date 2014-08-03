@@ -9,8 +9,8 @@
 
 */
 
-#ifndef SAMPLE_RISC_EXEC_H
-#define SAMPLE_RISC_EXEC_H
+#ifndef CHIP16_EXEC_H
+#define CHIP16_EXEC_H
 
 #include <simics/base/conf-object.h>
 

@@ -9,8 +9,8 @@
 
 */
 
-#ifndef SAMPLE_RISC_QUEUE_H
-#define SAMPLE_RISC_QUEUE_H
+#ifndef CHIP16_QUEUE_H
+#define CHIP16_QUEUE_H
 
 #include "chip16.h"
 

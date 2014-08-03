@@ -18,10 +18,10 @@
 #include <simics/base/log.h>
 
 #include "generic-cycle-iface.h"
-#ifndef SAMPLE_RISC_HEADER
- #define SAMPLE_RISC_HEADER "chip16.h"
+#ifndef CHIP16_HEADER
+ #define CHIP16_HEADER "chip16.h"
 #endif
-#include SAMPLE_RISC_HEADER
+#include CHIP16_HEADER
 
 static void
 cpu_set_freq_hz(chip16_t *sr, uint64 new_freq)

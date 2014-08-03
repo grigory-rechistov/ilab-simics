@@ -9,8 +9,8 @@
 
 */
 
-#ifndef SAMPLE_RISC_STEP_H
-#define SAMPLE_RISC_STEP_H
+#ifndef CHIP16_STEP_H
+#define CHIP16_STEP_H
 
 #include "chip16.h"
 
