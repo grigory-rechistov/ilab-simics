@@ -315,12 +315,6 @@ chip16_fetch_and_execute_instruction(chip16_t *core)
         }
 }
 
-static inline chip16_t * // FIXME remove
-associated_queue(chip16_t *core)
-{
-        return core;
-}
-
 static chip16_t *
 associated_memory(chip16_t *core) // FIXME remove
 {
@@ -1046,37 +1040,32 @@ queue_next_event(event_queue_t *queue)
 void
 chip16_increment_cycles(chip16_t *core, int cycles)
 {
-        chip16_t *sr = associated_queue(core);
         if (cycles > 0) {
-                queue_decrement(&(sr->cycle_queue), cycles);
-                sr->current_cycle += cycles;
+                queue_decrement(&(core->cycle_queue), cycles);
+                core->current_cycle += cycles;
         }
 }
 
 void
 chip16_increment_steps(chip16_t *core, int steps)
 {
-        chip16_t *sr = associated_queue(core);
         if (steps > 0) {
-                queue_decrement(&(sr->step_queue), steps);
-                sr->current_step += steps;
+                queue_decrement(&(core->step_queue), steps);
+                core->current_step += steps;
         }
 }
 
 int
 chip16_next_cycle_event(chip16_t *core)
 {
-        chip16_t *sr = associated_queue(core);
-        int cycles = queue_next_event(&sr->cycle_queue);
+        int cycles = queue_next_event(&core->cycle_queue);
         return cycles;
 }
 
 int
 chip16_next_step_event(chip16_t *core)
 {
-        chip16_t *sr = associated_queue(core);
-        int steps;
-        steps = queue_next_event(&sr->step_queue);
+        int steps = queue_next_event(&core->step_queue);
         return steps;
 }
 
@@ -1084,8 +1073,7 @@ chip16_next_step_event(chip16_t *core)
 execute_state_t
 chip16_state(chip16_t *core)
 {
-        chip16_t *sr = associated_queue(core);
-        return sr->state;
+        return core->state;
 }
 
 void
