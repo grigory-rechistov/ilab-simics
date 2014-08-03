@@ -168,21 +168,6 @@ chip16_set_msr(chip16_t *core, uint32 msr)
         core->chip16_msr = msr;
 }
 
-/* get pc for the core */
-uint64
-chip16_read_pc(chip16_t *core, int i)
-{
-        return chip16_get_pc(core);
-}
-
-/* set pc for the core */
-void
-chip16_write_pc(chip16_t *core, int i, uint64 value)
-{
-        chip16_set_pc(core,value);
-}
-
-
 /* get msr for the core */
 uint64
 chip16_read_msr(chip16_t *core, int i)
@@ -204,7 +189,6 @@ chip16_write_msr(chip16_t *core, int i, uint64 value)
                                   value);
         chip16_set_msr(core,value);
 }
-
 
 /* get gpr[i] for the core */
 uint64
@@ -291,7 +275,6 @@ chip16_execute(chip16_t *core, uint32 instr)
                 break;
         }
 }
-
 
 void
 chip16_fetch_and_execute_instruction(chip16_t *core)
@@ -815,7 +798,6 @@ chip16_finalize(conf_object_t *obj)
         // do nothing
 }
 
-
 conf_class_t *
 cr_define_class(void)
 {
@@ -826,7 +808,6 @@ cr_define_class(void)
                   .description = "Sample RISC core."
                });
 }
-
 
 void
 cr_register_interfaces(conf_class_t *cr_class)
@@ -1069,7 +1050,6 @@ chip16_next_step_event(chip16_t *core)
         return steps;
 }
 
-
 execute_state_t
 chip16_state(chip16_t *core)
 {
@@ -1087,7 +1067,6 @@ chip16_check_virtual_breakpoints(chip16_t *core,
         check_virtual_breakpoints(sr, core, access, virt_start, len, data);
 }
 
-
 bool
 chip16_fetch_instruction(chip16_t *core,
                               physical_address_t pa, physical_address_t len,
@@ -1096,7 +1075,6 @@ chip16_fetch_instruction(chip16_t *core,
         chip16_t *sr = associated_memory(core);
         return fetch_instruction(sr, core, pa, len, data, check_bp);
 }
-
 
 bool
 chip16_write_memory(chip16_t *core,
