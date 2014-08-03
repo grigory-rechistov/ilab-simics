@@ -91,17 +91,10 @@ typedef enum {
         Reg_Idx_Msr,
 } register_index_t;
 
-static chip16_t *
-associated_toy(chip16_t *core) // FIXME  remove
-{
-        return core;
-}
-
 static attr_value_t
 toy_get_registers(void *arg, conf_object_t *obj, attr_value_t *idx)
 {
         chip16_t *core = conf_to_chip16(obj);
-        chip16_t *toy = associated_toy(core);
         attr_value_t ret = SIM_alloc_attr_list(16 + 2);
 
         /*
@@ -109,10 +102,10 @@ toy_get_registers(void *arg, conf_object_t *obj, attr_value_t *idx)
          */
         for (unsigned i = 0; i < 16; i++)
                 SIM_attr_list_set_item(
-                        &ret, i, SIM_make_attr_uint64(toy->toy_reg[i]));
+                        &ret, i, SIM_make_attr_uint64(core->toy_reg[i]));
 
-        SIM_attr_list_set_item(&ret, 16, SIM_make_attr_uint64(toy->toy_pc));
-        SIM_attr_list_set_item(&ret, 17, SIM_make_attr_uint64(toy->toy_msr));
+        SIM_attr_list_set_item(&ret, 16, SIM_make_attr_uint64(core->toy_pc));
+        SIM_attr_list_set_item(&ret, 17, SIM_make_attr_uint64(core->toy_msr));
         return ret;
 }
 
@@ -121,7 +114,6 @@ toy_set_registers(void *arg, conf_object_t *obj,
                   attr_value_t *val, attr_value_t *idx)
 {
         chip16_t *core = conf_to_chip16(obj);
-        chip16_t *toy = associated_toy(core);
 
         /*
          * keep in sync with toy_init_registers
@@ -129,10 +121,10 @@ toy_set_registers(void *arg, conf_object_t *obj,
         if (SIM_attr_list_size(*val) < 18)
                 return Sim_Set_Illegal_Value;
         for (unsigned i = 0; i < 16; i++)
-                toy->toy_reg[i] =
+                core->toy_reg[i] =
                         SIM_attr_integer(SIM_attr_list_item(*val, i));
-        toy->toy_pc = SIM_attr_integer(SIM_attr_list_item(*val, 16));
-        toy->toy_msr = SIM_attr_integer(SIM_attr_list_item(*val, 17));
+        core->toy_pc = SIM_attr_integer(SIM_attr_list_item(*val, 16));
+        core->toy_msr = SIM_attr_integer(SIM_attr_list_item(*val, 17));
         return Sim_Set_Ok;
 }
 
@@ -140,8 +132,7 @@ static attr_value_t
 toy_get_freq_mhz(void *arg, conf_object_t *obj, attr_value_t *idx)
 {
         chip16_t *core = conf_to_chip16(obj);
-        chip16_t *toy = associated_toy(core);
-        return SIM_make_attr_floating(toy->toy_freq_mhz);
+        return SIM_make_attr_floating(core->toy_freq_mhz);
 }
 
 static set_error_t
@@ -149,38 +140,33 @@ toy_set_freq_mhz(void *arg, conf_object_t *obj,
                  attr_value_t *val, attr_value_t *idx)
 {
         chip16_t *core = conf_to_chip16(obj);
-        chip16_t *toy = associated_toy(core);
-        toy->toy_freq_mhz = SIM_attr_floating(*val);
+        core->toy_freq_mhz = SIM_attr_floating(*val);
         return Sim_Set_Ok;
 }
 
 logical_address_t
 toy_get_pc(chip16_t *core)
 {
-        chip16_t *toy = associated_toy(core);
-        return toy->toy_pc;
+        return core->toy_pc;
 }
 
 void
 toy_set_pc(chip16_t *core, logical_address_t pc)
 {
-        chip16_t *toy = associated_toy(core);
-        toy->toy_pc = pc;
+        core->toy_pc = pc;
 }
 
 
 uint32
 toy_get_msr(chip16_t *core)
 {
-        chip16_t *toy = associated_toy(core);
-        return toy->toy_msr;
+        return core->toy_msr;
 }
 
 void
 toy_set_msr(chip16_t *core, uint32 msr)
 {
-        chip16_t *toy = associated_toy(core);
-        toy->toy_msr = msr;
+        core->toy_msr = msr;
 }
 
 /* get pc for the core */
@@ -225,16 +211,14 @@ toy_write_msr(chip16_t *core, int i, uint64 value)
 uint64
 toy_get_gpr(chip16_t *core, int i)
 {
-        chip16_t *toy = associated_toy(core);
-        return toy->toy_reg[i];
+        return core->toy_reg[i];
 }
 
 /* set gpr[i] for the core */
 void
 toy_set_gpr(chip16_t *core, int i, uint64 value)
 {
-        chip16_t *toy = associated_toy(core);
-        toy->toy_reg[i] = value;
+        core->toy_reg[i] = value;
 }
 
 void
