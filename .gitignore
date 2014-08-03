@@ -10,6 +10,7 @@ linux64/
 
 .cproject
 .project
+.modcache
 targets/arc601-simple/
 targets/ppc-simple/
 targets/vacuum/
