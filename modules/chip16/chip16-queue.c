@@ -17,7 +17,7 @@
 #include SAMPLE_RISC_HEADER
 
 void
-handle_events(sample_risc_t *sr, event_queue_t *queue)
+handle_events(chip16_t *sr, event_queue_t *queue)
 {
         while (!queue_is_empty(queue)
                && get_delta(queue) == 0

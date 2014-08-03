@@ -123,8 +123,8 @@ typedef enum {
         Reg_Idx_Msr,
 } register_index_t;
 
-static sample_risc_t *
-associated_toy(sample_risc_t *core) // FIXME  remove
+static chip16_t *
+associated_toy(chip16_t *core) // FIXME  remove
 {
         return core;
 }
@@ -132,8 +132,8 @@ associated_toy(sample_risc_t *core) // FIXME  remove
 static attr_value_t
 toy_get_registers(void *arg, conf_object_t *obj, attr_value_t *idx)
 {
-        sample_risc_t *core = conf_obj_to_sr_core(obj);
-        sample_risc_t *toy = associated_toy(core);
+        chip16_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *toy = associated_toy(core);
         attr_value_t ret = SIM_alloc_attr_list(16 + 2);
 
         /*
@@ -152,8 +152,8 @@ static set_error_t
 toy_set_registers(void *arg, conf_object_t *obj,
                   attr_value_t *val, attr_value_t *idx)
 {
-        sample_risc_t *core = conf_obj_to_sr_core(obj);
-        sample_risc_t *toy = associated_toy(core);
+        chip16_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *toy = associated_toy(core);
 
         /*
          * keep in sync with toy_init_registers
@@ -171,8 +171,8 @@ toy_set_registers(void *arg, conf_object_t *obj,
 static attr_value_t
 toy_get_freq_mhz(void *arg, conf_object_t *obj, attr_value_t *idx)
 {
-        sample_risc_t *core = conf_obj_to_sr_core(obj);
-        sample_risc_t *toy = associated_toy(core);
+        chip16_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *toy = associated_toy(core);
         return SIM_make_attr_floating(toy->toy_freq_mhz);
 }
 
@@ -180,51 +180,51 @@ static set_error_t
 toy_set_freq_mhz(void *arg, conf_object_t *obj,
                  attr_value_t *val, attr_value_t *idx)
 {
-        sample_risc_t *core = conf_obj_to_sr_core(obj);
-        sample_risc_t *toy = associated_toy(core);
+        chip16_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *toy = associated_toy(core);
         toy->toy_freq_mhz = SIM_attr_floating(*val);
         return Sim_Set_Ok;
 }
 
 logical_address_t
-toy_get_pc(sample_risc_t *core)
+toy_get_pc(chip16_t *core)
 {
-        sample_risc_t *toy = associated_toy(core);
+        chip16_t *toy = associated_toy(core);
         return toy->toy_pc;
 }
 
 void
-toy_set_pc(sample_risc_t *core, logical_address_t pc)
+toy_set_pc(chip16_t *core, logical_address_t pc)
 {
-        sample_risc_t *toy = associated_toy(core);
+        chip16_t *toy = associated_toy(core);
         toy->toy_pc = pc;
 }
 
 
 uint32
-toy_get_msr(sample_risc_t *core)
+toy_get_msr(chip16_t *core)
 {
-        sample_risc_t *toy = associated_toy(core);
+        chip16_t *toy = associated_toy(core);
         return toy->toy_msr;
 }
 
 void
-toy_set_msr(sample_risc_t *core, uint32 msr)
+toy_set_msr(chip16_t *core, uint32 msr)
 {
-        sample_risc_t *toy = associated_toy(core);
+        chip16_t *toy = associated_toy(core);
         toy->toy_msr = msr;
 }
 
 /* get pc for the core */
 uint64
-toy_read_pc(sample_risc_t *core, int i)
+toy_read_pc(chip16_t *core, int i)
 {
         return toy_get_pc(core);
 }
 
 /* set pc for the core */
 void
-toy_write_pc(sample_risc_t *core, int i, uint64 value)
+toy_write_pc(chip16_t *core, int i, uint64 value)
 {
         toy_set_pc(core,value);
 }
@@ -232,7 +232,7 @@ toy_write_pc(sample_risc_t *core, int i, uint64 value)
 
 /* get msr for the core */
 uint64
-toy_read_msr(sample_risc_t *core, int i)
+toy_read_msr(chip16_t *core, int i)
 {
         SIM_c_hap_occurred_always(hap_Control_Register_Read,
                                   core->obj,
@@ -243,7 +243,7 @@ toy_read_msr(sample_risc_t *core, int i)
 
 /* set msr for the core */
 void
-toy_write_msr(sample_risc_t *core, int i, uint64 value)
+toy_write_msr(chip16_t *core, int i, uint64 value)
 {
         SIM_c_hap_occurred_always(hap_Control_Register_Write,
                                   core->obj,
@@ -255,17 +255,17 @@ toy_write_msr(sample_risc_t *core, int i, uint64 value)
 
 /* get gpr[i] for the core */
 uint64
-toy_get_gpr(sample_risc_t *core, int i)
+toy_get_gpr(chip16_t *core, int i)
 {
-        sample_risc_t *toy = associated_toy(core);
+        chip16_t *toy = associated_toy(core);
         return toy->toy_reg[i];
 }
 
 /* set gpr[i] for the core */
 void
-toy_set_gpr(sample_risc_t *core, int i, uint64 value)
+toy_set_gpr(chip16_t *core, int i, uint64 value)
 {
-        sample_risc_t *toy = associated_toy(core);
+        chip16_t *toy = associated_toy(core);
         toy->toy_reg[i] = value;
 }
 
@@ -281,7 +281,7 @@ toy_init_registers(void *crc)
 /* access_type is Sim_Access_Read, Sim_Access_Write, Sim_Access_Execute */
 /* returns boolean */
 int
-toy_logical_to_physical(sample_risc_t *core, logical_address_t ea,
+toy_logical_to_physical(chip16_t *core, logical_address_t ea,
                         physical_address_t *pa, access_t access_type)
 {
         /* no address mapping for the toy system */
@@ -290,7 +290,7 @@ toy_logical_to_physical(sample_risc_t *core, logical_address_t ea,
 }
 
 uint32
-chip16_read_memory32(sample_risc_t *core, logical_address_t la,
+chip16_read_memory32(chip16_t *core, logical_address_t la,
                           physical_address_t pa)
 {
         uint32 data = 0;
@@ -301,7 +301,7 @@ chip16_read_memory32(sample_risc_t *core, logical_address_t la,
 }
 
 void
-chip16_write_memory32(sample_risc_t *core, logical_address_t la,
+chip16_write_memory32(chip16_t *core, logical_address_t la,
                            physical_address_t pa, uint32 value)
 {
         uint32 data;
@@ -320,7 +320,7 @@ chip16_write_memory32(sample_risc_t *core, logical_address_t la,
 }
 
 char *
-toy_string_decode(sample_risc_t *core, uint32 instr)
+toy_string_decode(chip16_t *core, uint32 instr)
 {
         strbuf_t b = SB_INIT;
         switch (INSTR_OP(instr)) {
@@ -378,7 +378,7 @@ toy_string_decode(sample_risc_t *core, uint32 instr)
 #define INCREMENT_PC(core) toy_set_pc(core, toy_get_pc(core)+ INSTR_SIZE)
 
 void
-toy_execute(sample_risc_t *core, uint32 instr)
+toy_execute(chip16_t *core, uint32 instr)
 {
         cycles_t stall_cycles = 0;
         cycles_t cycles_left = 0;
@@ -538,7 +538,7 @@ toy_execute(sample_risc_t *core, uint32 instr)
 
 
 void
-toy_fetch_and_execute_instruction(sample_risc_t *core)
+toy_fetch_and_execute_instruction(chip16_t *core)
 {
         /* get instruction */
         logical_address_t pc = toy_get_pc(core);
@@ -560,21 +560,21 @@ toy_fetch_and_execute_instruction(sample_risc_t *core)
 }
 
 
-static inline sample_risc_t * // FIXME remove
-associated_queue(sample_risc_t *core)
+static inline chip16_t * // FIXME remove
+associated_queue(chip16_t *core)
 {
         return core;
 }
 
-static sample_risc_t *
-associated_memory(sample_risc_t *core) // FIXME remove
+static chip16_t *
+associated_memory(chip16_t *core) // FIXME remove
 {
         return core;
 }
 
 
 static register_table *
-associated_register_table(sample_risc_t *core)
+associated_register_table(chip16_t *core)
 {
         register_table *rt = &(core->reg_table);
         return rt;
@@ -587,7 +587,7 @@ static attr_value_t
 chip16_get_physical_memory(void *arg, conf_object_t *obj,
                                 attr_value_t *idx)
 {
-        sample_risc_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_obj_to_sr_core(obj);
         return SIM_make_attr_object(core->phys_mem_obj);
 }
 
@@ -595,7 +595,7 @@ static set_error_t
 chip16_set_physical_memory(void *arg, conf_object_t *obj,
                                 attr_value_t *val, attr_value_t *idx)
 {
-        sample_risc_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_obj_to_sr_core(obj);
         const memory_space_interface_t *mem_space_iface;
         conf_object_t *oval = SIM_attr_object(*val);
         mem_space_iface = (memory_space_interface_t *)SIM_c_get_interface(
@@ -627,7 +627,7 @@ chip16_set_physical_memory(void *arg, conf_object_t *obj,
 static attr_value_t
 chip16_get_enabled(void *arg, conf_object_t *obj, attr_value_t *idx)
 {
-        sample_risc_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_obj_to_sr_core(obj);
         return SIM_make_attr_boolean(core->enabled);
 }
 
@@ -636,7 +636,7 @@ static set_error_t
 chip16_set_enabled(void *arg, conf_object_t *obj,
                         attr_value_t *val, attr_value_t *idx)
 {
-        sample_risc_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_obj_to_sr_core(obj);
         core->enabled = SIM_attr_boolean(*val);
         return Sim_Set_Ok;
 }
@@ -647,7 +647,7 @@ chip16_set_enabled(void *arg, conf_object_t *obj,
 static attr_value_t
 get_idle_cycles(void *arg, conf_object_t *obj, attr_value_t *idx)
 {
-        sample_risc_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_obj_to_sr_core(obj);
         return SIM_make_attr_uint64(core->idle_cycles);
 }
 
@@ -655,7 +655,7 @@ static set_error_t
 set_idle_cycles(void *arg, conf_object_t *obj,
                 attr_value_t *val, attr_value_t *idx)
 {
-        sample_risc_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_obj_to_sr_core(obj);
         core->idle_cycles = SIM_attr_integer(*val);
         return Sim_Set_Ok;
 }
@@ -666,14 +666,14 @@ set_idle_cycles(void *arg, conf_object_t *obj,
 static conf_object_t *
 get_current_context(conf_object_t *obj)
 {
-        sample_risc_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_obj_to_sr_core(obj);
         return core->current_context;
 }
 
 static int
 set_current_context(conf_object_t *obj, conf_object_t *ctx)
 {
-        sample_risc_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_obj_to_sr_core(obj);
         core->current_context = ctx;
         core->context_bp_query_iface = SIM_c_get_interface(
                 core->current_context, BREAKPOINT_QUERY_INTERFACE);
@@ -690,7 +690,7 @@ tuple_int_string_t
 chip16_disassemble(conf_object_t *obj, generic_address_t address,
                         attr_value_t instruction_data, int sub_operation)
 {
-        sample_risc_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_obj_to_sr_core(obj);
 
         SIM_LOG_INFO(2, core->obj, 0,
                      "disassembling instruction at address 0x%llx", address);
@@ -711,7 +711,7 @@ static void
 chip16_set_program_counter(conf_object_t *obj,
                                 logical_address_t pc)
 {
-        sample_risc_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_obj_to_sr_core(obj);
         SIM_LOG_INFO(2, core->obj, 0,
                      "setting program counter to 0x%llx", pc);
         toy_set_pc(core, pc);
@@ -720,7 +720,7 @@ chip16_set_program_counter(conf_object_t *obj,
 static logical_address_t
 chip16_get_program_counter(conf_object_t *obj)
 {
-        sample_risc_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_obj_to_sr_core(obj);
         return chip16_get_pc(core);
 }
 
@@ -730,7 +730,7 @@ chip16_logical_to_physical_block(conf_object_t *obj,
                                       logical_address_t address,
                                       access_t access_type)
 {
-        sample_risc_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_obj_to_sr_core(obj);
         physical_block_t ret;
         ret.valid = chip16_logical_to_physical(core, address, access_type,
                                                     &ret.address);
@@ -751,7 +751,7 @@ chip16_get_processor_mode(conf_object_t *obj)
 static int
 chip16_enable_processor(conf_object_t *obj)
 {
-        sample_risc_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_obj_to_sr_core(obj);
         if (core->enabled)
                 return 1;
         core->enabled = 1;
@@ -761,7 +761,7 @@ chip16_enable_processor(conf_object_t *obj)
 static int
 chip16_disable_processor(conf_object_t *obj)
 {
-        sample_risc_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_obj_to_sr_core(obj);
         if (!core->enabled)
                 return 1;
         core->enabled = 0;
@@ -771,7 +771,7 @@ chip16_disable_processor(conf_object_t *obj)
 static int
 chip16_iface_get_enabled(conf_object_t *obj)
 {
-        sample_risc_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_obj_to_sr_core(obj);
         return core->enabled;
 }
 
@@ -784,7 +784,7 @@ chip16_get_endian(conf_object_t *obj)
 static conf_object_t *
 chip16_get_physical_memory_iface(conf_object_t *obj)
 {
-        sample_risc_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_obj_to_sr_core(obj);
         return core->phys_mem_obj;
 }
 
@@ -828,7 +828,7 @@ chip16_architecture(conf_object_t *obj)
 
 // TODO: is it needed?
 //static void
-//init_register_table(sample_risc_t *crc)
+//init_register_table(chip16_t *crc)
 //{
 //        register_table *rt = &(crc->reg_table);
 //        VINIT(*rt);
@@ -836,7 +836,7 @@ chip16_architecture(conf_object_t *obj)
 
 
 int
-search_register_table(sample_risc_t *crc, const char *name)
+search_register_table(chip16_t *crc, const char *name)
 {
         register_table *rt = &(crc->reg_table);
         VFORI(*rt, i) {
@@ -851,7 +851,7 @@ search_register_table(sample_risc_t *crc, const char *name)
 }
 
 int
-chip16_add_register_declaration(sample_risc_t *core,
+chip16_add_register_declaration(chip16_t *core,
                                      const char *name, int reg_number,
                                      reg_get_function_ptr get,
                                      reg_set_function_ptr set,
@@ -888,7 +888,7 @@ chip16_add_register_declaration(sample_risc_t *core,
 static int
 chip16_get_register_number(conf_object_t *obj, const char *name)
 {
-        sample_risc_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_obj_to_sr_core(obj);
         int i = search_register_table(core, name);
 
         if (i == -1) {
@@ -901,7 +901,7 @@ chip16_get_register_number(conf_object_t *obj, const char *name)
 static const char *
 chip16_get_register_name(conf_object_t *obj, int reg)
 {
-        sample_risc_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_obj_to_sr_core(obj);
         register_table *rt = associated_register_table(core);
 
         if (reg < 0 || reg >= VLEN(*rt)) {
@@ -917,7 +917,7 @@ chip16_get_register_name(conf_object_t *obj, int reg)
 static uint64
 chip16_read_register(conf_object_t *obj, int reg)
 {
-        sample_risc_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_obj_to_sr_core(obj);
         register_table *rt = associated_register_table(core);
 
         if (reg < 0 || reg >= VLEN(*rt)) {
@@ -932,7 +932,7 @@ chip16_read_register(conf_object_t *obj, int reg)
 static void
 chip16_write_register(conf_object_t *obj, int reg, uint64 val)
 {
-        sample_risc_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_obj_to_sr_core(obj);
         register_table *rt = associated_register_table(core);
 
         if (reg < 0 || reg >= VLEN(*rt)) {
@@ -948,7 +948,7 @@ chip16_write_register(conf_object_t *obj, int reg, uint64 val)
 static attr_value_t
 chip16_all_registers(conf_object_t *obj)
 {
-        sample_risc_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_obj_to_sr_core(obj);
         register_table *rt = associated_register_table(core);
 
         /* The chip16_all_registers should return a list of
@@ -967,7 +967,7 @@ static int
 chip16_register_info(conf_object_t *obj, int reg,
                           ireg_info_t info)
 {
-        sample_risc_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_obj_to_sr_core(obj);
         register_table *rt = associated_register_table(core);
         if (reg < 0 || reg >= VLEN(*rt)) {
                 SIM_LOG_ERROR(core->obj, 0,
@@ -1040,7 +1040,7 @@ chip16_all_exceptions(conf_object_t *NOTNULL obj)
 static void
 chip16_ext_irq_raise(conf_object_t *obj)
 {
-        sample_risc_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_obj_to_sr_core(obj);
         SIM_LOG_INFO(2, core->obj, 0,
                      "EXTERNAL_INTERRUPT raised.");
 }
@@ -1048,7 +1048,7 @@ chip16_ext_irq_raise(conf_object_t *obj)
 static void
 chip16_ext_irq_lower(conf_object_t *obj)
 {
-        sample_risc_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_obj_to_sr_core(obj);
         SIM_LOG_INFO(2, core->obj, 0,
                      "EXTERNAL_INTERRUPT lowered.");
 }
@@ -1056,7 +1056,7 @@ chip16_ext_irq_lower(conf_object_t *obj)
 static void *
 chip16_init_object(conf_object_t *obj, void *data)
 {
-        sample_risc_t *core = MM_ZALLOC(1, sample_risc_t);
+        chip16_t *core = MM_ZALLOC(1, chip16_t);
         core->obj = obj;
 
         core->enabled = 1;
@@ -1212,7 +1212,7 @@ cr_register_attributes(conf_class_t *cr_class)
 //chip16_get_register_value(void *arg, conf_object_t *obj,
 //                               attr_value_t *idx)
 //{
-//        sample_risc_t *core = conf_obj_to_sr_core(obj);
+//        chip16_t *core = conf_obj_to_sr_core(obj);
 //        register_table *rt = associated_register_table(core);
 //        register_description_t *rd;
 //
@@ -1236,7 +1236,7 @@ cr_register_attributes(conf_class_t *cr_class)
 //chip16_set_register_value(void *arg, conf_object_t *obj,
 //                               attr_value_t *val, attr_value_t *idx)
 //{
-//        sample_risc_t *core = conf_obj_to_sr_core(obj);
+//        chip16_t *core = conf_obj_to_sr_core(obj);
 //        register_table *rt = associated_register_table(core);
 //        register_description_t *rd;
 //
@@ -1268,7 +1268,7 @@ cr_register_attributes(conf_class_t *cr_class)
 /* functions that interface between a call by the core
    and the actual function in the processor */
 int
-chip16_logical_to_physical(sample_risc_t *core,
+chip16_logical_to_physical(chip16_t *core,
                                 logical_address_t la_addr,
                                 access_t access_type,
                                 physical_address_t *pa_addr)
@@ -1289,20 +1289,20 @@ chip16_logical_to_physical(sample_risc_t *core,
 
 /* get the current program counter for the core */
 logical_address_t
-chip16_get_pc(sample_risc_t *core)
+chip16_get_pc(chip16_t *core)
 {
         return toy_get_pc(core);
 }
 
 /* set the current program counter for the core */
 void
-chip16_set_pc(sample_risc_t *core, logical_address_t value)
+chip16_set_pc(chip16_t *core, logical_address_t value)
 {
         toy_set_pc(core, value);
 }
 
 void
-chip16_fetch_and_execute_instruction(sample_risc_t *core)
+chip16_fetch_and_execute_instruction(chip16_t *core)
 {
         toy_fetch_and_execute_instruction(core);
 }
@@ -1319,9 +1319,9 @@ queue_next_event(event_queue_t *queue)
 }
 
 void
-chip16_increment_cycles(sample_risc_t *core, int cycles)
+chip16_increment_cycles(chip16_t *core, int cycles)
 {
-        sample_risc_t *sr = associated_queue(core);
+        chip16_t *sr = associated_queue(core);
         if (cycles > 0) {
                 queue_decrement(&(sr->cycle_queue), cycles);
                 sr->current_cycle += cycles;
@@ -1329,9 +1329,9 @@ chip16_increment_cycles(sample_risc_t *core, int cycles)
 }
 
 void
-chip16_increment_steps(sample_risc_t *core, int steps)
+chip16_increment_steps(chip16_t *core, int steps)
 {
-        sample_risc_t *sr = associated_queue(core);
+        chip16_t *sr = associated_queue(core);
         if (steps > 0) {
                 queue_decrement(&(sr->step_queue), steps);
                 sr->current_step += steps;
@@ -1339,17 +1339,17 @@ chip16_increment_steps(sample_risc_t *core, int steps)
 }
 
 int
-chip16_next_cycle_event(sample_risc_t *core)
+chip16_next_cycle_event(chip16_t *core)
 {
-        sample_risc_t *sr = associated_queue(core);
+        chip16_t *sr = associated_queue(core);
         int cycles = queue_next_event(&sr->cycle_queue);
         return cycles;
 }
 
 int
-chip16_next_step_event(sample_risc_t *core)
+chip16_next_step_event(chip16_t *core)
 {
-        sample_risc_t *sr = associated_queue(core);
+        chip16_t *sr = associated_queue(core);
         int steps;
         steps = queue_next_event(&sr->step_queue);
         return steps;
@@ -1357,57 +1357,57 @@ chip16_next_step_event(sample_risc_t *core)
 
 
 execute_state_t
-chip16_state(sample_risc_t *core)
+chip16_state(chip16_t *core)
 {
-        sample_risc_t *sr = associated_queue(core);
+        chip16_t *sr = associated_queue(core);
         return sr->state;
 }
 
 void
-chip16_check_virtual_breakpoints(sample_risc_t *core,
+chip16_check_virtual_breakpoints(chip16_t *core,
                                       access_t access,
                                       logical_address_t virt_start,
                                       generic_address_t len,
                                       uint8 *data)
 {
-        sample_risc_t *sr = associated_memory(core);
+        chip16_t *sr = associated_memory(core);
         check_virtual_breakpoints(sr, core, access, virt_start, len, data);
 }
 
 
 bool
-chip16_fetch_instruction(sample_risc_t *core,
+chip16_fetch_instruction(chip16_t *core,
                               physical_address_t pa, physical_address_t len,
                               uint8 *data, int check_bp)
 {
-        sample_risc_t *sr = associated_memory(core);
+        chip16_t *sr = associated_memory(core);
         return fetch_instruction(sr, core, pa, len, data, check_bp);
 }
 
 
 bool
-chip16_write_memory(sample_risc_t *core,
+chip16_write_memory(chip16_t *core,
                          physical_address_t pa, physical_address_t len,
                          uint8 *data, int check_bp)
 {
-        sample_risc_t *sr = associated_memory(core);
+        chip16_t *sr = associated_memory(core);
         return write_memory(sr, core, pa, len, data, check_bp);
 }
 
 bool
-chip16_read_memory(sample_risc_t *core,
+chip16_read_memory(chip16_t *core,
                         physical_address_t pa, physical_address_t len,
                         uint8 *data, int check_bp)
 {
-        sample_risc_t *sr = associated_memory(core);
+        chip16_t *sr = associated_memory(core);
         return read_memory(sr, core, pa, len, data, check_bp);
 }
 
 void
-chip16_release_and_share(sample_risc_t *core,
+chip16_release_and_share(chip16_t *core,
                               physical_address_t phys_address)
 {
-        sample_risc_t *sr = associated_memory(core);
+        chip16_t *sr = associated_memory(core);
         release_and_share(sr, core, phys_address);
 }
 
@@ -1415,7 +1415,7 @@ static void
 sr_cell_change(lang_void *callback_data, conf_object_t *obj,
                conf_object_t *old_cell, conf_object_t *new_cell)
 {
-        sample_risc_t *sr = conf_obj_to_sr(obj);
+        chip16_t *sr = conf_obj_to_sr(obj);
         if (sr->cell) {
                 const simple_dispatcher_interface_t *iface =
                         SIM_c_get_port_interface(sr->cell,
@@ -1444,7 +1444,7 @@ sr_cell_change(lang_void *callback_data, conf_object_t *obj,
 static void *
 sr_init_object(conf_object_t *obj, void *data)
 {
-        sample_risc_t *sr = MM_ZALLOC(1, sample_risc_t);
+        chip16_t *sr = MM_ZALLOC(1, chip16_t);
         sr->obj = obj;
         VINIT(sr->cached_pages);
         instantiate_step_queue(sr);
@@ -1460,7 +1460,7 @@ sr_init_object(conf_object_t *obj, void *data)
 static void
 sr_finalize(conf_object_t *obj)
 {
-        sample_risc_t *sr = conf_obj_to_sr(obj);
+        chip16_t *sr = conf_obj_to_sr(obj);
         finalize_frequency(sr);
 }
 
@@ -1485,14 +1485,14 @@ sr_register_attributes(conf_class_t *sr_class)
 }
 
 void
-sample_risc_cycle_event_posted(sample_risc_t *sr)
+chip16_cycle_event_posted(chip16_t *sr)
 {
         /* An event has been posted. We only single step, so we don't need to
            bother. */
 }
 
 void
-sample_risc_step_event_posted(sample_risc_t *sr)
+chip16_step_event_posted(chip16_t *sr)
 {
         /* An event has been posted. We only single step, so we don't need to
            bother. */

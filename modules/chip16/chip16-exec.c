@@ -19,7 +19,7 @@
 #include <simics/processor-api.h>
 
 static void
-check_event_queues(sample_risc_t *sr)
+check_event_queues(chip16_t *sr)
 {
         handle_events(sr, &sr->cycle_queue);
         if (sr->enabled != 0) {
@@ -30,7 +30,7 @@ check_event_queues(sample_risc_t *sr)
 static void
 exec_run(conf_object_t *obj)
 {
-        sample_risc_t *sr = conf_obj_to_sr(obj);
+        chip16_t *sr = conf_obj_to_sr(obj);
 
         sr->cell_iface->set_current_processor_obj(
                 sr->cell, sr_core_to_conf_obj(sr));
@@ -68,7 +68,7 @@ exec_run(conf_object_t *obj)
 static void
 exec_stop(conf_object_t *obj)
 {
-        sample_risc_t *sr = conf_obj_to_sr(obj);
+        chip16_t *sr = conf_obj_to_sr(obj);
         SIM_LOG_INFO(2, sr_to_conf_obj(sr), 0, "stop");
         sr->state = State_Stopped;
 }

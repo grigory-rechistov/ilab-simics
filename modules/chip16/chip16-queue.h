@@ -14,6 +14,6 @@
 
 #include "chip16.h"
 
-void handle_events(sample_risc_t *sr, event_queue_t *queue);
+void handle_events(chip16_t *sr, event_queue_t *queue);
 
 #endif

@@ -72,14 +72,14 @@ format_page_for_output(mem_page_t *p)
 
 /* The actual page cache */
 void
-init_page_cache(sample_risc_t *sr)
+init_page_cache(chip16_t *sr)
 {
         VINIT(sr->cached_pages);
         sr->number_of_cached_pages = 0;
 }
 
 static void
-clear_page_cache(sample_risc_t *sr)
+clear_page_cache(chip16_t *sr)
 {
         VFORI(sr->cached_pages, i) {
                 mem_page_t *p = &VGET(sr->cached_pages, i);
@@ -93,7 +93,7 @@ clear_page_cache(sample_risc_t *sr)
 }
 
 static mem_page_t *
-search_page_cache(sample_risc_t *sr, conf_object_t *phys_mem_obj,
+search_page_cache(chip16_t *sr, conf_object_t *phys_mem_obj,
                   physical_address_t address, access_t access)
 {
         VFORI(sr->cached_pages, i) {
@@ -110,7 +110,7 @@ search_page_cache(sample_risc_t *sr, conf_object_t *phys_mem_obj,
 }
 
 static mem_page_t *
-add_to_page_cache(sample_risc_t *sr, conf_object_t *phys_mem_obj,
+add_to_page_cache(chip16_t *sr, conf_object_t *phys_mem_obj,
                   mem_page_t *p)
 {
         VADD(sr->cached_pages, *p);
@@ -121,7 +121,7 @@ add_to_page_cache(sample_risc_t *sr, conf_object_t *phys_mem_obj,
 static attr_value_t
 get_page_cache(void *arg, conf_object_t *obj, attr_value_t *idx)
 {
-        sample_risc_t *sr = conf_obj_to_sr(obj);
+        chip16_t *sr = conf_obj_to_sr(obj);
         attr_value_t ret = SIM_alloc_attr_list(VLEN(sr->cached_pages));
         VFORI(sr->cached_pages, p_idx) {
                 mem_page_t *p = &VGET(sr->cached_pages, p_idx);
@@ -136,7 +136,7 @@ get_page_cache(void *arg, conf_object_t *obj, attr_value_t *idx)
    we will save the page in the page cache.  If the page is
    not cachable, we just return NULL. */
 mem_page_t *
-get_page(sample_risc_t *sr, conf_object_t *phys_mem_obj,
+get_page(chip16_t *sr, conf_object_t *phys_mem_obj,
          const memory_page_interface_t *memp_iface,
          physical_address_t address, access_t access)
 {
@@ -190,7 +190,7 @@ get_page(sample_risc_t *sr, conf_object_t *phys_mem_obj,
 }
 
 void
-check_virtual_breakpoints(sample_risc_t *sr, sample_risc_t *core,
+check_virtual_breakpoints(chip16_t *sr, chip16_t *core,
                           access_t access, logical_address_t virt_start,
                           generic_address_t len, uint8 *data)
 {
@@ -221,7 +221,7 @@ data_bp_match(breakpoint_info_t bpi,
 }
 
 static void
-check_page_breakpoints(sample_risc_t *sr, sample_risc_t *core,
+check_page_breakpoints(chip16_t *sr, chip16_t *core,
                        mem_page_t *page, access_t access,
                        physical_address_t phys_address, generic_address_t len,
                        uint8 *data)
@@ -276,7 +276,7 @@ create_generic_transaction(conf_object_t *initiator, mem_op_type_t type,
    access if it isn't cachable.
 */
 bool
-write_memory(sample_risc_t *sr, sample_risc_t *core,
+write_memory(chip16_t *sr, chip16_t *core,
              physical_address_t phys_address, physical_address_t len,
              uint8 *data, bool check_bp)
 {
@@ -315,7 +315,7 @@ write_memory(sample_risc_t *sr, sample_risc_t *core,
 }
 
 bool
-read_memory(sample_risc_t *sr, sample_risc_t *core,
+read_memory(chip16_t *sr, chip16_t *core,
             physical_address_t phys_address, physical_address_t len,
             uint8 *data, bool check_bp)
 {
@@ -353,7 +353,7 @@ read_memory(sample_risc_t *sr, sample_risc_t *core,
 }
 
 bool
-fetch_instruction(sample_risc_t *sr, sample_risc_t *core,
+fetch_instruction(chip16_t *sr, chip16_t *core,
                   physical_address_t phys_address, physical_address_t len,
                   uint8 *data, bool check_bp)
 {
@@ -392,7 +392,7 @@ fetch_instruction(sample_risc_t *sr, sample_risc_t *core,
 }
 
 void
-release_and_share(sample_risc_t *sr, sample_risc_t *core,
+release_and_share(chip16_t *sr, chip16_t *core,
                   physical_address_t phys_address)
 {
         conf_object_t *phys_mem_obj = core->phys_mem_obj;
@@ -409,7 +409,7 @@ release_and_share(sample_risc_t *sr, sample_risc_t *core,
 static void
 release_all_pages(conf_object_t *obj)
 {
-        sample_risc_t *sr = conf_obj_to_sr(obj);
+        chip16_t *sr = conf_obj_to_sr(obj);
         SIM_LOG_INFO(2, sr_to_conf_obj(sr), 0, "release_all_pages");
         clear_page_cache(sr);
 }
@@ -417,7 +417,7 @@ release_all_pages(conf_object_t *obj)
 static void
 write_protect_all_pages(conf_object_t *obj)
 {
-        sample_risc_t *sr = conf_obj_to_sr(obj);
+        chip16_t *sr = conf_obj_to_sr(obj);
         SIM_LOG_INFO(2, sr_to_conf_obj(sr), 0, "write_protect_all_pages");
         clear_page_cache(sr);
 }
@@ -426,7 +426,7 @@ static void
 protect_host_page(conf_object_t *obj, uint8 *host_addr, size_t size,
                   access_t protect)
 {
-        sample_risc_t *sr = conf_obj_to_sr(obj);
+        chip16_t *sr = conf_obj_to_sr(obj);
         SIM_LOG_INFO(2, sr_to_conf_obj(sr), 0, "protect_host_page");
         clear_page_cache(sr);
 }
@@ -438,7 +438,7 @@ static void
 page_modified(conf_object_t *obj, conf_object_t *img, uint64 offset,
               uint8 *page_data, image_spage_t *spage)
 {
-        sample_risc_t *sr = conf_obj_to_sr(obj);
+        chip16_t *sr = conf_obj_to_sr(obj);
         SIM_LOG_UNIMPLEMENTED(1, sr_to_conf_obj(sr), 0, "page_modified");
 }
 
@@ -448,7 +448,7 @@ page_modified(conf_object_t *obj, conf_object_t *img, uint64 offset,
 static void
 simulator_cache_flush(conf_object_t *obj)
 {
-        sample_risc_t *sr = conf_obj_to_sr(obj);
+        chip16_t *sr = conf_obj_to_sr(obj);
         SIM_LOG_INFO(2, sr_to_conf_obj(sr), 0, "simulator_cache_flush");
         clear_page_cache(sr);
 }
@@ -462,7 +462,7 @@ breakpoint_added(conf_object_t *obj,
            information in the page cache to become stale. We would request more
            information about the added breakpoint here and do something clever,
            but we instead simply clear the entire page cache. */
-        sample_risc_t *sr = conf_obj_to_sr(obj);
+        chip16_t *sr = conf_obj_to_sr(obj);
         SIM_LOG_INFO(2, sr_to_conf_obj(sr), 0, "breakpoint_added");
         clear_page_cache(sr);
 }
@@ -476,7 +476,7 @@ breakpoint_removed(conf_object_t *obj,
            information in the page cache to become stale. We would request more
            information about the removed breakpoint here and do something 
            clever, but we instead simply clear the entire page cache. */
-        sample_risc_t *sr = conf_obj_to_sr(obj);
+        chip16_t *sr = conf_obj_to_sr(obj);
         SIM_LOG_INFO(2, sr_to_conf_obj(sr), 0, "breakpoint_removed");
         clear_page_cache(sr);
 }

@@ -18,38 +18,38 @@
 void register_memory_interfaces(conf_class_t *cls);
 void register_memory_attributes(conf_class_t *cls);
 
-void init_page_cache(sample_risc_t *sr);
+void init_page_cache(chip16_t *sr);
 
-void check_virtual_breakpoints(sample_risc_t *sr,
-                               sample_risc_t *core,
+void check_virtual_breakpoints(chip16_t *sr,
+                               chip16_t *core,
                                access_t access,
                                logical_address_t virt_start,
                                generic_address_t len,
                                uint8 *data);
 
-bool write_memory(sample_risc_t *sr,
-                  sample_risc_t *core,
+bool write_memory(chip16_t *sr,
+                  chip16_t *core,
                   physical_address_t phys_address,
                   physical_address_t len,
                   uint8 *data, bool check_bp);
 
-bool read_memory(sample_risc_t *sr,
-                 sample_risc_t *core,
+bool read_memory(chip16_t *sr,
+                 chip16_t *core,
                  physical_address_t phys_address,
                  physical_address_t len,
                  uint8 *data, bool check_bp);
 
-bool fetch_instruction(sample_risc_t *sr,
-                       sample_risc_t *core,
+bool fetch_instruction(chip16_t *sr,
+                       chip16_t *core,
                        physical_address_t phys_address,
                        physical_address_t len,
                        uint8 *data,
                        bool check_bp);
 
-void release_and_share(sample_risc_t *sr, sample_risc_t *core,
+void release_and_share(chip16_t *sr, chip16_t *core,
                        physical_address_t phys_address);
 
-mem_page_t *get_page(sample_risc_t *sr, conf_object_t *phys_mem_obj,
+mem_page_t *get_page(chip16_t *sr, conf_object_t *phys_mem_obj,
                      const memory_page_interface_t *memp_iface,
                      physical_address_t address, access_t access);
 

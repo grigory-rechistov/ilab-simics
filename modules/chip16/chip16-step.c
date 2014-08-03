@@ -32,7 +32,7 @@ match_all(lang_void *data, lang_void *match_data)
 static pc_step_t
 get_step_count(conf_object_t *NOTNULL queue_obj)
 {
-        sample_risc_t *sr = conf_obj_to_sr(queue_obj);
+        chip16_t *sr = conf_obj_to_sr(queue_obj);
         return sr->current_step;
 }
 
@@ -43,14 +43,14 @@ post_step(conf_object_t *NOTNULL queue_obj,
           pc_step_t steps,
           lang_void *user_data)
 {
-        sample_risc_t *sr = conf_obj_to_sr(queue_obj);
+        chip16_t *sr = conf_obj_to_sr(queue_obj);
         if (steps < 0) {
                 SIM_LOG_ERROR(sr_to_conf_obj(sr), 0,
                               "can not post on step < 0");
                 return;
         }
         post_to_queue(&sr->step_queue, steps, evclass, poster_obj, user_data);
-        sample_risc_step_event_posted(sr);
+        chip16_step_event_posted(sr);
 }
 
 static void
@@ -60,7 +60,7 @@ cancel_step(conf_object_t *NOTNULL queue_obj,
             int (*pred)(lang_void *data, lang_void *match_data),
             lang_void *match_data)
 {
-        sample_risc_t *sr = conf_obj_to_sr(queue_obj);
+        chip16_t *sr = conf_obj_to_sr(queue_obj);
         remove_events(&sr->step_queue, evclass, poster_obj,
                       pred == NULL ? match_all : pred, match_data);
 }
@@ -72,7 +72,7 @@ find_next_step(conf_object_t *NOTNULL queue_obj,
                int (*pred)(lang_void *data, lang_void *match_data),
                lang_void *match_data)
 {
-        sample_risc_t *sr = conf_obj_to_sr(queue_obj);
+        chip16_t *sr = conf_obj_to_sr(queue_obj);
         return next_occurrence(&sr->step_queue, evclass, poster_obj,
                                pred == NULL ? match_all : pred, match_data);
 }
@@ -80,7 +80,7 @@ find_next_step(conf_object_t *NOTNULL queue_obj,
 static attr_value_t
 step_events(conf_object_t *NOTNULL queue_obj)
 {
-        sample_risc_t *sr = conf_obj_to_sr(queue_obj);
+        chip16_t *sr = conf_obj_to_sr(queue_obj);
 
         VECT(attr_value_t) evs = VNULL;
 
@@ -122,14 +122,14 @@ static set_error_t
 set_step_queue(void *param, conf_object_t *queue_obj, attr_value_t *val,
                attr_value_t *idx)
 {
-        sample_risc_t *sr = conf_obj_to_sr(queue_obj);
+        chip16_t *sr = conf_obj_to_sr(queue_obj);
         return set_event_queue(&sr->step_queue, val);
 }
 
 static attr_value_t
 get_step_queue(void *param, conf_object_t *queue_obj, attr_value_t *idx)
 {
-        sample_risc_t *sr = conf_obj_to_sr(queue_obj);
+        chip16_t *sr = conf_obj_to_sr(queue_obj);
         return events_to_attr_list(&sr->step_queue, 0);
 }
 
@@ -140,7 +140,7 @@ static set_error_t
 set_steps(void *param, conf_object_t *queue_obj, attr_value_t *val,
           attr_value_t *idx)
 {
-        sample_risc_t *sr = conf_obj_to_sr(queue_obj);
+        chip16_t *sr = conf_obj_to_sr(queue_obj);
         if (!SIM_attr_is_integer(*val) || SIM_attr_integer(*val) < 0) {
                 return Sim_Set_Illegal_Value; /* should not happen */
         }
@@ -151,12 +151,12 @@ set_steps(void *param, conf_object_t *queue_obj, attr_value_t *val,
 static attr_value_t
 get_steps(void *param, conf_object_t *queue_obj, attr_value_t *idx)
 {
-        const sample_risc_t *sr = conf_obj_to_sr(queue_obj);
+        const chip16_t *sr = conf_obj_to_sr(queue_obj);
         return SIM_make_attr_uint64(sr->current_step);
 }
 
 void
-instantiate_step_queue(sample_risc_t *sr)
+instantiate_step_queue(chip16_t *sr)
 {
         init_event_queue(&sr->step_queue, "step");
 }

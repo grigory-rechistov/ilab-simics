@@ -24,7 +24,7 @@
 #include SAMPLE_RISC_HEADER
 
 static void
-cpu_set_freq_hz(sample_risc_t *sr, uint64 new_freq)
+cpu_set_freq_hz(chip16_t *sr, uint64 new_freq)
 {
         uint64 old_freq = sr->freq_hz;
         if (new_freq != old_freq) {
@@ -46,7 +46,7 @@ cpu_set_freq_hz(sample_risc_t *sr, uint64 new_freq)
 }
 
 static void
-set_freq_hz_rational(sample_risc_t *cpu, uint64 numerator, uint64 denominator)
+set_freq_hz_rational(chip16_t *cpu, uint64 numerator, uint64 denominator)
 {
         uint64 freq = 1;
         if (numerator == 0 || denominator == 0) {
@@ -71,7 +71,7 @@ static set_error_t
 set_frequency(void *dont_care, conf_object_t *obj, attr_value_t *val,
               attr_value_t *idx)
 {
-        sample_risc_t *cpu = conf_obj_to_sr(obj);
+        chip16_t *cpu = conf_obj_to_sr(obj);
         conf_object_t *new_source;
         const char *new_port;
 
@@ -148,7 +148,7 @@ set_frequency(void *dont_care, conf_object_t *obj, attr_value_t *val,
 static attr_value_t
 get_frequency(void *dont_care, conf_object_t *obj, attr_value_t *idx)
 {
-        sample_risc_t *cpu = conf_obj_to_sr(obj);
+        chip16_t *cpu = conf_obj_to_sr(obj);
         conf_object_t *source = cpu->frequency_dispatcher;
         const char *port = cpu->frequency_dispatcher_port;
         if (source == NULL) {
@@ -171,7 +171,7 @@ static set_error_t
 set_freq_mhz(void *dont_care, conf_object_t *obj, attr_value_t *val,
              attr_value_t *idx)
 {
-        sample_risc_t *cpu = conf_obj_to_sr(obj);
+        chip16_t *cpu = conf_obj_to_sr(obj);
 
         uint64 freq;
         if (SIM_attr_is_integer(*val))
@@ -202,7 +202,7 @@ set_freq_mhz(void *dont_care, conf_object_t *obj, attr_value_t *val,
 static attr_value_t
 get_freq_mhz(void *dont_care, conf_object_t *obj, attr_value_t *idx)
 {
-        sample_risc_t *cpu = conf_obj_to_sr(obj);
+        chip16_t *cpu = conf_obj_to_sr(obj);
         if (cpu->freq_hz % 1000000 == 0)
                 return SIM_make_attr_uint64(cpu->freq_hz / 1000000);
         return SIM_make_attr_floating(cpu->freq_hz / 1000000.0);
@@ -246,7 +246,7 @@ frequency_dispatcher_subscribe(conf_object_t *obj,
                                conf_object_t *target,
                                const char *port)
 {
-        sample_risc_t *cpu = conf_obj_to_sr(obj);
+        chip16_t *cpu = conf_obj_to_sr(obj);
 
         int dup = find_frequency_target(&cpu->frequency_targets,
                                         target, port);
@@ -283,7 +283,7 @@ frequency_dispatcher_unsubscribe(conf_object_t *obj,
                                  conf_object_t *target,
                                  const char *port)
 {
-        sample_risc_t *cpu = conf_obj_to_sr(obj);
+        chip16_t *cpu = conf_obj_to_sr(obj);
 
         frequency_target_list_t *tgts = &cpu->frequency_targets;
         int dup = find_frequency_target(tgts,
@@ -307,12 +307,12 @@ static void
 frequency_listener_set(conf_object_t *obj,
                        uint64 numerator, uint64 denominator)
 {
-        sample_risc_t *cpu = conf_obj_to_sr(obj);
+        chip16_t *cpu = conf_obj_to_sr(obj);
         set_freq_hz_rational(cpu, numerator, denominator);
 }
 
 void
-instantiate_frequency(sample_risc_t *sr)
+instantiate_frequency(chip16_t *sr)
 {
         VINIT(sr->frequency_targets);
         sr->frequency_dispatcher = NULL;
@@ -320,7 +320,7 @@ instantiate_frequency(sample_risc_t *sr)
 }
 
 void
-finalize_frequency(sample_risc_t *sr)
+finalize_frequency(chip16_t *sr)
 {
         conf_object_t *dispatcher = sr->frequency_dispatcher;
         if (dispatcher != NULL) {
@@ -355,7 +355,7 @@ static set_error_t
 set_time_offset(void *ptr, conf_object_t *obj, attr_value_t *val,
                 attr_value_t *idx)
 {
-        sample_risc_t *sr = conf_obj_to_sr(obj);
+        chip16_t *sr = conf_obj_to_sr(obj);
         sr->time_offset = time_offset_from_attr(*val);
         return Sim_Set_Ok;
 }
@@ -363,7 +363,7 @@ set_time_offset(void *ptr, conf_object_t *obj, attr_value_t *val,
 static attr_value_t
 get_time_offset(void *ptr, conf_object_t *obj, attr_value_t *idx)
 {
-        const sample_risc_t *sr = conf_obj_to_sr(obj);
+        const chip16_t *sr = conf_obj_to_sr(obj);
         return time_offset_as_attr(sr->time_offset);
 }
 

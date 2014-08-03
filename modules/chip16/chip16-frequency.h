@@ -15,7 +15,7 @@
 #include "chip16.h"
 
 void register_frequency_interfaces(conf_class_t *cls);
-void instantiate_frequency(sample_risc_t *sr);
-void finalize_frequency(sample_risc_t *sr);
+void instantiate_frequency(chip16_t *sr);
+void finalize_frequency(chip16_t *sr);
 
 #endif

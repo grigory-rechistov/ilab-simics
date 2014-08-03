@@ -14,7 +14,7 @@
 
 #include "chip16.h"
 
-void instantiate_cycle_queue(sample_risc_t *sr);
+void instantiate_cycle_queue(chip16_t *sr);
 void register_cycle_queue(conf_class_t *cls);
 
 #endif

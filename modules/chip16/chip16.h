@@ -29,22 +29,22 @@
 #include "event-queue-types.h"
 #include "chip16-exec.h"
 
-struct sample_risc;
-typedef struct sample_risc sample_risc_t;
+struct chip16;
+typedef struct chip16 chip16_t;
 
 typedef short sample_reg_number_t;
-typedef uint64 (*reg_get_function_ptr)(sample_risc_t *core, int n);
-typedef void (*reg_set_function_ptr)(sample_risc_t *core, int n, uint64 value);
+typedef uint64 (*reg_get_function_ptr)(chip16_t *core, int n);
+typedef void (*reg_set_function_ptr)(chip16_t *core, int n, uint64 value);
 
 
 /* get the current program counter for the core */
-logical_address_t chip16_get_pc(sample_risc_t *core);
+logical_address_t chip16_get_pc(chip16_t *core);
 
 /* set the current program counter for the core */
-void chip16_set_pc(sample_risc_t *core, logical_address_t value);
+void chip16_set_pc(chip16_t *core, logical_address_t value);
 
 /* convert a logical address to physical address */
-int chip16_logical_to_physical(sample_risc_t *core,
+int chip16_logical_to_physical(chip16_t *core,
                                     logical_address_t la_addr,
                                     access_t access_type,
                                     physical_address_t *pa_addr);
@@ -56,14 +56,14 @@ tuple_int_string_t chip16_disassemble(conf_object_t *obj,
                                            attr_value_t instruction_data,
                                            int sub_operation);
 
-void chip16_fetch_and_execute_instruction(sample_risc_t *core);
+void chip16_fetch_and_execute_instruction(chip16_t *core);
 
 /*
  * Services provided to the processor
  */
 /* to declare a register */
 /* registers have to be declared for each core */
-int chip16_add_register_declaration(sample_risc_t *core,
+int chip16_add_register_declaration(chip16_t *core,
                                          const char *name,
                                          int reg_number,
                                          reg_get_function_ptr get,
@@ -71,43 +71,43 @@ int chip16_add_register_declaration(sample_risc_t *core,
                                          int catchable);
 
 /* check a virtual breakpoint */
-void chip16_check_virtual_breakpoints(sample_risc_t *core,
+void chip16_check_virtual_breakpoints(chip16_t *core,
                                            access_t access,
                                            logical_address_t virt_start,
                                            generic_address_t len,
                                            uint8 *data);
 
 /* fetch an instruction from memory */
-bool chip16_fetch_instruction(sample_risc_t *core,
+bool chip16_fetch_instruction(chip16_t *core,
                                    physical_address_t pa,
                                    physical_address_t len,
                                    uint8 *data,
                                    int check_bp);
 
 /* read and write generally */
-bool chip16_write_memory(sample_risc_t *core,
+bool chip16_write_memory(chip16_t *core,
                               physical_address_t pa,
                               physical_address_t len,
                               uint8 *data,
                               int check_bp);
 
-bool chip16_read_memory(sample_risc_t *core,
+bool chip16_read_memory(chip16_t *core,
                              physical_address_t pa,
                              physical_address_t len,
                              uint8 *data,
                              int check_bp);
 
-void chip16_release_and_share(sample_risc_t *core,
+void chip16_release_and_share(chip16_t *core,
                                    physical_address_t pa);
 
 /* get the running/stopped state of the core */
-execute_state_t chip16_state(sample_risc_t *core);
+execute_state_t chip16_state(chip16_t *core);
 
 /* increment the number of steps, cycles, or check the next event */
-void chip16_increment_cycles(sample_risc_t *core, int n);
-void chip16_increment_steps(sample_risc_t *core, int n);
-int  chip16_next_cycle_event(sample_risc_t *core);
-int  chip16_next_step_event(sample_risc_t *core);
+void chip16_increment_cycles(chip16_t *core, int n);
+void chip16_increment_steps(chip16_t *core, int n);
+int  chip16_next_cycle_event(chip16_t *core);
+int  chip16_next_step_event(chip16_t *core);
 
 typedef struct {
         conf_object_t *object;
@@ -140,9 +140,9 @@ typedef struct register_description {
 typedef VECT(register_description_t) register_table;
 
 /*
- * The main sample_risc class
+ * The main chip16 class
  */
-typedef struct sample_risc {
+typedef struct chip16 {
         /* pointer to the corresponding Simics object */
         conf_object_t *obj;
 
@@ -200,30 +200,30 @@ typedef struct sample_risc {
         char *frequency_dispatcher_port;
         const simple_dispatcher_interface_t *frequency_dispatcher_iface;
         frequency_target_list_t frequency_targets;
-} sample_risc_t;
+} chip16_t;
 
 static inline conf_object_t *
-sr_to_conf_obj(sample_risc_t *sr)
+sr_to_conf_obj(chip16_t *sr)
 {
         return sr->obj;
 }
 
-static inline sample_risc_t *
+static inline chip16_t *
 conf_obj_to_sr(conf_object_t *obj)
 {
         return SIM_object_data(obj);
 }
 
-void sample_risc_cycle_event_posted(sample_risc_t *sr);
-void sample_risc_step_event_posted(sample_risc_t *sr);
+void chip16_cycle_event_posted(chip16_t *sr);
+void chip16_step_event_posted(chip16_t *sr);
 
 static inline conf_object_t *
-sr_core_to_conf_obj(sample_risc_t *sr)
+sr_core_to_conf_obj(chip16_t *sr)
 {
         return sr->obj;
 }
 
-static inline sample_risc_t *
+static inline chip16_t *
 conf_obj_to_sr_core(conf_object_t *obj)
 {
         return SIM_object_data(obj);
