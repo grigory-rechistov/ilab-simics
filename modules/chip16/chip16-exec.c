@@ -30,13 +30,13 @@ check_event_queues(chip16_t *sr)
 static void
 exec_run(conf_object_t *obj)
 {
-        chip16_t *sr = conf_obj_to_sr(obj);
+        chip16_t *sr = conf_to_chip16(obj);
 
         sr->cell_iface->set_current_processor_obj(
-                sr->cell, sr_core_to_conf_obj(sr));
+                sr->cell, chip16_to_conf(sr));
         sr->cell_iface->set_current_step_obj(sr->cell, obj);
 
-        SIM_LOG_INFO(2, sr_to_conf_obj(sr), 0, "running");
+        SIM_LOG_INFO(2, chip16_to_conf(sr), 0, "running");
         sr->state = State_Running;
 
         /* handle all events on the current step and cycle */
@@ -62,14 +62,14 @@ exec_run(conf_object_t *obj)
 
         /* simulator has been requested to stop */
         if (sr->state == State_Stopped)
-                SIM_LOG_INFO(2, sr_to_conf_obj(sr), 0, "stop execution");
+                SIM_LOG_INFO(2, chip16_to_conf(sr), 0, "stop execution");
 }
 
 static void
 exec_stop(conf_object_t *obj)
 {
-        chip16_t *sr = conf_obj_to_sr(obj);
-        SIM_LOG_INFO(2, sr_to_conf_obj(sr), 0, "stop");
+        chip16_t *sr = conf_to_chip16(obj);
+        SIM_LOG_INFO(2, chip16_to_conf(sr), 0, "stop");
         sr->state = State_Stopped;
 }
 

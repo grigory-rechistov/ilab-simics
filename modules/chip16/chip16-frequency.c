@@ -37,7 +37,7 @@ cpu_set_freq_hz(chip16_t *sr, uint64 new_freq)
                                             old_freq, new_freq);
                 }
                 sr->freq_hz = new_freq;
-                VT_clock_frequency_change(sr_to_conf_obj(sr), sr->freq_hz);
+                VT_clock_frequency_change(chip16_to_conf(sr), sr->freq_hz);
                 frequency_target_t *tgt;
                 VFOREACH(sr->frequency_targets, tgt) {
                         tgt->iface->set(tgt->object, new_freq, 1);
@@ -50,7 +50,7 @@ set_freq_hz_rational(chip16_t *cpu, uint64 numerator, uint64 denominator)
 {
         uint64 freq = 1;
         if (numerator == 0 || denominator == 0) {
-                SIM_LOG_ERROR(sr_to_conf_obj(cpu), 0,
+                SIM_LOG_ERROR(chip16_to_conf(cpu), 0,
                             "Got invalid frequency from bus, setting to 1 Hz");
         } else {
                 freq = (numerator + (denominator / 2)) / denominator;
@@ -71,7 +71,7 @@ static set_error_t
 set_frequency(void *dont_care, conf_object_t *obj, attr_value_t *val,
               attr_value_t *idx)
 {
-        chip16_t *cpu = conf_obj_to_sr(obj);
+        chip16_t *cpu = conf_to_chip16(obj);
         conf_object_t *new_source;
         const char *new_port;
 
@@ -117,7 +117,7 @@ set_frequency(void *dont_care, conf_object_t *obj, attr_value_t *val,
 
                         if (iface == NULL) {
                                 SIM_LOG_ERROR(
-                                        sr_to_conf_obj(cpu), 0,
+                                        chip16_to_conf(cpu), 0,
                                         "Object '%s' does not implement the "
                                         SIMPLE_DISPATCHER_INTERFACE
                                         " interface", 
@@ -148,7 +148,7 @@ set_frequency(void *dont_care, conf_object_t *obj, attr_value_t *val,
 static attr_value_t
 get_frequency(void *dont_care, conf_object_t *obj, attr_value_t *idx)
 {
-        chip16_t *cpu = conf_obj_to_sr(obj);
+        chip16_t *cpu = conf_to_chip16(obj);
         conf_object_t *source = cpu->frequency_dispatcher;
         const char *port = cpu->frequency_dispatcher_port;
         if (source == NULL) {
@@ -171,7 +171,7 @@ static set_error_t
 set_freq_mhz(void *dont_care, conf_object_t *obj, attr_value_t *val,
              attr_value_t *idx)
 {
-        chip16_t *cpu = conf_obj_to_sr(obj);
+        chip16_t *cpu = conf_to_chip16(obj);
 
         uint64 freq;
         if (SIM_attr_is_integer(*val))
@@ -182,7 +182,7 @@ set_freq_mhz(void *dont_care, conf_object_t *obj, attr_value_t *val,
                 return Sim_Set_Illegal_Value; /* should not happen */
 
         if (freq <= 0) {
-                SIM_LOG_ERROR(sr_to_conf_obj(cpu), 0,
+                SIM_LOG_ERROR(chip16_to_conf(cpu), 0,
                               "CPU frequency must be positive");
                 return Sim_Set_Illegal_Value;
         }
@@ -202,7 +202,7 @@ set_freq_mhz(void *dont_care, conf_object_t *obj, attr_value_t *val,
 static attr_value_t
 get_freq_mhz(void *dont_care, conf_object_t *obj, attr_value_t *idx)
 {
-        chip16_t *cpu = conf_obj_to_sr(obj);
+        chip16_t *cpu = conf_to_chip16(obj);
         if (cpu->freq_hz % 1000000 == 0)
                 return SIM_make_attr_uint64(cpu->freq_hz / 1000000);
         return SIM_make_attr_floating(cpu->freq_hz / 1000000.0);
@@ -246,12 +246,12 @@ frequency_dispatcher_subscribe(conf_object_t *obj,
                                conf_object_t *target,
                                const char *port)
 {
-        chip16_t *cpu = conf_obj_to_sr(obj);
+        chip16_t *cpu = conf_to_chip16(obj);
 
         int dup = find_frequency_target(&cpu->frequency_targets,
                                         target, port);
         if (dup >= 0) {
-                SIM_LOG_ERROR(sr_to_conf_obj(cpu), 0,
+                SIM_LOG_ERROR(chip16_to_conf(cpu), 0,
                               "simple_dispatcher.subscribe:"
                               " Object '%s' registered twice on the same port",
                               SIM_object_name(target));
@@ -262,7 +262,7 @@ frequency_dispatcher_subscribe(conf_object_t *obj,
                                          port);
         if (iface == NULL) {
                 SIM_LOG_ERROR(
-                        sr_to_conf_obj(cpu), 0,
+                        chip16_to_conf(cpu), 0,
                         "simple_dispatcher.subscribe:"
                         " Object '%s' does not implement the %s interface",
                         SIM_object_name(target), FREQUENCY_LISTENER_INTERFACE);
@@ -283,13 +283,13 @@ frequency_dispatcher_unsubscribe(conf_object_t *obj,
                                  conf_object_t *target,
                                  const char *port)
 {
-        chip16_t *cpu = conf_obj_to_sr(obj);
+        chip16_t *cpu = conf_to_chip16(obj);
 
         frequency_target_list_t *tgts = &cpu->frequency_targets;
         int dup = find_frequency_target(tgts,
                                         target, port);
         if (dup < 0) {
-                SIM_LOG_ERROR(sr_to_conf_obj(cpu), 0,
+                SIM_LOG_ERROR(chip16_to_conf(cpu), 0,
                               "simple_dispatcher.unsubscribe:"
                               " Object %s port %s doesn't currently listen",
                               SIM_object_name(target), 
@@ -307,7 +307,7 @@ static void
 frequency_listener_set(conf_object_t *obj,
                        uint64 numerator, uint64 denominator)
 {
-        chip16_t *cpu = conf_obj_to_sr(obj);
+        chip16_t *cpu = conf_to_chip16(obj);
         set_freq_hz_rational(cpu, numerator, denominator);
 }
 
@@ -328,9 +328,9 @@ finalize_frequency(chip16_t *sr)
                         = sr->frequency_dispatcher_iface;
                 SIM_require_object(dispatcher);
                 sr->freq_hz = 0;
-                iface->subscribe(dispatcher, sr_to_conf_obj(sr), NULL);
+                iface->subscribe(dispatcher, chip16_to_conf(sr), NULL);
                 if (sr->freq_hz == 0) {
-                        SIM_LOG_ERROR(sr_to_conf_obj(sr), 0,
+                        SIM_LOG_ERROR(chip16_to_conf(sr), 0,
                                       "Frequency dispatcher %s did not set"
                                       " a frequency immediately upon"
                                       " subscription."
@@ -339,7 +339,7 @@ finalize_frequency(chip16_t *sr)
                         sr->freq_hz = 1000000;
                 }
         } else if (sr->freq_hz == 0) {
-                SIM_LOG_ERROR(sr_to_conf_obj(sr), 0,
+                SIM_LOG_ERROR(chip16_to_conf(sr), 0,
                               "Neither the freq_mhz attribute nor the"
                               " frequency attribute was set in the"
                               " configuration. Either one must be defined."
@@ -355,7 +355,7 @@ static set_error_t
 set_time_offset(void *ptr, conf_object_t *obj, attr_value_t *val,
                 attr_value_t *idx)
 {
-        chip16_t *sr = conf_obj_to_sr(obj);
+        chip16_t *sr = conf_to_chip16(obj);
         sr->time_offset = time_offset_from_attr(*val);
         return Sim_Set_Ok;
 }
@@ -363,7 +363,7 @@ set_time_offset(void *ptr, conf_object_t *obj, attr_value_t *val,
 static attr_value_t
 get_time_offset(void *ptr, conf_object_t *obj, attr_value_t *idx)
 {
-        const chip16_t *sr = conf_obj_to_sr(obj);
+        const chip16_t *sr = conf_to_chip16(obj);
         return time_offset_as_attr(sr->time_offset);
 }
 

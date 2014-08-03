@@ -121,7 +121,7 @@ add_to_page_cache(chip16_t *sr, conf_object_t *phys_mem_obj,
 static attr_value_t
 get_page_cache(void *arg, conf_object_t *obj, attr_value_t *idx)
 {
-        chip16_t *sr = conf_obj_to_sr(obj);
+        chip16_t *sr = conf_to_chip16(obj);
         attr_value_t ret = SIM_alloc_attr_list(VLEN(sr->cached_pages));
         VFORI(sr->cached_pages, p_idx) {
                 mem_page_t *p = &VGET(sr->cached_pages, p_idx);
@@ -156,13 +156,13 @@ get_page(chip16_t *sr, conf_object_t *phys_mem_obj,
 
         mem_page_t p =
                 memp_iface->request_page(phys_mem_obj,
-                                         sr_to_conf_obj(sr),
+                                         chip16_to_conf(sr),
                                          address,
                                          access);
 
         if (p.size_log2 == 0) {
                 /* No page was found */
-                SIM_LOG_INFO(3, sr_to_conf_obj(sr), 0,
+                SIM_LOG_INFO(3, chip16_to_conf(sr), 0,
                              "failed to cache page at 0x%llx",
                              address);
                 return NULL;
@@ -172,7 +172,7 @@ get_page(chip16_t *sr, conf_object_t *phys_mem_obj,
         // TODO make sure all fields are correct
 
         if (update_access_bits) {
-                SIM_LOG_INFO(3, sr_to_conf_obj(sr), 0,
+                SIM_LOG_INFO(3, chip16_to_conf(sr), 0,
                              "%d: updated access bits for page at 0x%llx",
                              sr->number_of_cached_pages, p.paddr);
                 /* free the data structures from our last call to get_page */
@@ -180,7 +180,7 @@ get_page(chip16_t *sr, conf_object_t *phys_mem_obj,
                 /* remember the new data structures */
                 *ret = p;
         } else {
-                SIM_LOG_INFO(3, sr_to_conf_obj(sr), 0,
+                SIM_LOG_INFO(3, chip16_to_conf(sr), 0,
                              "%d: fetched new page at 0x%016llx",
                              sr->number_of_cached_pages, p.paddr);
                 ret = add_to_page_cache(sr, phys_mem_obj, &p);
@@ -201,7 +201,7 @@ check_virtual_breakpoints(chip16_t *sr, chip16_t *core,
         for (int i = 0; i < bp_set.num_breakpoints; i++) {
                 core->context_bp_trig_iface->trigger_breakpoint(
                         core->current_context,
-                        sr_core_to_conf_obj(core),
+                        chip16_to_conf(core),
                         bp_set.breakpoints[i].handle,
                         virt_start,
                         len,
@@ -234,7 +234,7 @@ check_page_breakpoints(chip16_t *sr, chip16_t *core,
                 if (data_bp_match(*bi, phys_address, phys_address + len - 1))
                         core->phys_mem_bp_trig_iface->trigger_breakpoint(
                                 core->phys_mem_obj,
-                                sr_core_to_conf_obj(core),
+                                chip16_to_conf(core),
                                 bi->handle, phys_address, len, access, data);
         }
 }
@@ -295,7 +295,7 @@ write_memory(chip16_t *sr, chip16_t *core,
                                                phys_address, len, data);
         } else {
                 generic_transaction_t mem_op = create_generic_transaction(
-                        sr_core_to_conf_obj(core),
+                        chip16_to_conf(core),
                         Sim_Trans_Store,
                         phys_address, len,
                         data,
@@ -304,7 +304,7 @@ write_memory(chip16_t *sr, chip16_t *core,
                      core->phys_mem_space_iface->access(phys_mem_obj, &mem_op);
 
                 if (exc != Sim_PE_No_Exception) {
-                        SIM_LOG_ERROR(sr_to_conf_obj(sr), 0,
+                        SIM_LOG_ERROR(chip16_to_conf(sr), 0,
                                       "write error to physical address 0x%llx",
                                       phys_address);
                         return false;
@@ -333,7 +333,7 @@ read_memory(chip16_t *sr, chip16_t *core,
                                                phys_address, len, data);
         } else {
                 generic_transaction_t mem_op = create_generic_transaction(
-                        sr_core_to_conf_obj(core),
+                        chip16_to_conf(core),
                         Sim_Trans_Load,
                         phys_address, len,
                         data,
@@ -342,7 +342,7 @@ read_memory(chip16_t *sr, chip16_t *core,
                      core->phys_mem_space_iface->access(phys_mem_obj, &mem_op);
 
                 if (exc != Sim_PE_No_Exception) {
-                        SIM_LOG_ERROR(sr_to_conf_obj(sr), 0,
+                        SIM_LOG_ERROR(chip16_to_conf(sr), 0,
                                      "read error from physical address 0x%llx",
                                       phys_address);
                         return false;
@@ -372,7 +372,7 @@ fetch_instruction(chip16_t *sr, chip16_t *core,
                 memcpy(data, ma, len);
         } else {
                 generic_transaction_t mem_op = create_generic_transaction(
-                        sr_core_to_conf_obj(core),
+                        chip16_to_conf(core),
                         Sim_Trans_Instr_Fetch,
                         phys_address, len,
                         data,
@@ -381,7 +381,7 @@ fetch_instruction(chip16_t *sr, chip16_t *core,
                      core->phys_mem_space_iface->access(phys_mem_obj, &mem_op);
 
                 if (exc != Sim_PE_No_Exception) {
-                        SIM_LOG_ERROR(sr_to_conf_obj(sr), 0,
+                        SIM_LOG_ERROR(chip16_to_conf(sr), 0,
                                     "fetch error from physical address 0x%llx",
                                     phys_address);
                         return false;
@@ -400,7 +400,7 @@ release_and_share(chip16_t *sr, chip16_t *core,
                 search_page_cache(sr, phys_mem_obj, phys_address, (access_t)0);
         if (page)
                 core->phys_mem_page_iface->release_page(
-                        core->phys_mem_obj, sr_core_to_conf_obj(core), page);
+                        core->phys_mem_obj, chip16_to_conf(core), page);
 }
 
 /*
@@ -409,16 +409,16 @@ release_and_share(chip16_t *sr, chip16_t *core,
 static void
 release_all_pages(conf_object_t *obj)
 {
-        chip16_t *sr = conf_obj_to_sr(obj);
-        SIM_LOG_INFO(2, sr_to_conf_obj(sr), 0, "release_all_pages");
+        chip16_t *sr = conf_to_chip16(obj);
+        SIM_LOG_INFO(2, chip16_to_conf(sr), 0, "release_all_pages");
         clear_page_cache(sr);
 }
 
 static void
 write_protect_all_pages(conf_object_t *obj)
 {
-        chip16_t *sr = conf_obj_to_sr(obj);
-        SIM_LOG_INFO(2, sr_to_conf_obj(sr), 0, "write_protect_all_pages");
+        chip16_t *sr = conf_to_chip16(obj);
+        SIM_LOG_INFO(2, chip16_to_conf(sr), 0, "write_protect_all_pages");
         clear_page_cache(sr);
 }
 
@@ -426,8 +426,8 @@ static void
 protect_host_page(conf_object_t *obj, uint8 *host_addr, size_t size,
                   access_t protect)
 {
-        chip16_t *sr = conf_obj_to_sr(obj);
-        SIM_LOG_INFO(2, sr_to_conf_obj(sr), 0, "protect_host_page");
+        chip16_t *sr = conf_to_chip16(obj);
+        SIM_LOG_INFO(2, chip16_to_conf(sr), 0, "protect_host_page");
         clear_page_cache(sr);
 }
 
@@ -438,8 +438,8 @@ static void
 page_modified(conf_object_t *obj, conf_object_t *img, uint64 offset,
               uint8 *page_data, image_spage_t *spage)
 {
-        chip16_t *sr = conf_obj_to_sr(obj);
-        SIM_LOG_UNIMPLEMENTED(1, sr_to_conf_obj(sr), 0, "page_modified");
+        chip16_t *sr = conf_to_chip16(obj);
+        SIM_LOG_UNIMPLEMENTED(1, chip16_to_conf(sr), 0, "page_modified");
 }
 
 /*
@@ -448,8 +448,8 @@ page_modified(conf_object_t *obj, conf_object_t *img, uint64 offset,
 static void
 simulator_cache_flush(conf_object_t *obj)
 {
-        chip16_t *sr = conf_obj_to_sr(obj);
-        SIM_LOG_INFO(2, sr_to_conf_obj(sr), 0, "simulator_cache_flush");
+        chip16_t *sr = conf_to_chip16(obj);
+        SIM_LOG_INFO(2, chip16_to_conf(sr), 0, "simulator_cache_flush");
         clear_page_cache(sr);
 }
 
@@ -462,8 +462,8 @@ breakpoint_added(conf_object_t *obj,
            information in the page cache to become stale. We would request more
            information about the added breakpoint here and do something clever,
            but we instead simply clear the entire page cache. */
-        chip16_t *sr = conf_obj_to_sr(obj);
-        SIM_LOG_INFO(2, sr_to_conf_obj(sr), 0, "breakpoint_added");
+        chip16_t *sr = conf_to_chip16(obj);
+        SIM_LOG_INFO(2, chip16_to_conf(sr), 0, "breakpoint_added");
         clear_page_cache(sr);
 }
 
@@ -476,8 +476,8 @@ breakpoint_removed(conf_object_t *obj,
            information in the page cache to become stale. We would request more
            information about the removed breakpoint here and do something 
            clever, but we instead simply clear the entire page cache. */
-        chip16_t *sr = conf_obj_to_sr(obj);
-        SIM_LOG_INFO(2, sr_to_conf_obj(sr), 0, "breakpoint_removed");
+        chip16_t *sr = conf_to_chip16(obj);
+        SIM_LOG_INFO(2, chip16_to_conf(sr), 0, "breakpoint_removed");
         clear_page_cache(sr);
 }
 

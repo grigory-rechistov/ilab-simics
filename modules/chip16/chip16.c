@@ -132,7 +132,7 @@ associated_toy(chip16_t *core) // FIXME  remove
 static attr_value_t
 toy_get_registers(void *arg, conf_object_t *obj, attr_value_t *idx)
 {
-        chip16_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_to_chip16(obj);
         chip16_t *toy = associated_toy(core);
         attr_value_t ret = SIM_alloc_attr_list(16 + 2);
 
@@ -152,7 +152,7 @@ static set_error_t
 toy_set_registers(void *arg, conf_object_t *obj,
                   attr_value_t *val, attr_value_t *idx)
 {
-        chip16_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_to_chip16(obj);
         chip16_t *toy = associated_toy(core);
 
         /*
@@ -171,7 +171,7 @@ toy_set_registers(void *arg, conf_object_t *obj,
 static attr_value_t
 toy_get_freq_mhz(void *arg, conf_object_t *obj, attr_value_t *idx)
 {
-        chip16_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_to_chip16(obj);
         chip16_t *toy = associated_toy(core);
         return SIM_make_attr_floating(toy->toy_freq_mhz);
 }
@@ -180,7 +180,7 @@ static set_error_t
 toy_set_freq_mhz(void *arg, conf_object_t *obj,
                  attr_value_t *val, attr_value_t *idx)
 {
-        chip16_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_to_chip16(obj);
         chip16_t *toy = associated_toy(core);
         toy->toy_freq_mhz = SIM_attr_floating(*val);
         return Sim_Set_Ok;
@@ -587,7 +587,7 @@ static attr_value_t
 chip16_get_physical_memory(void *arg, conf_object_t *obj,
                                 attr_value_t *idx)
 {
-        chip16_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_to_chip16(obj);
         return SIM_make_attr_object(core->phys_mem_obj);
 }
 
@@ -595,7 +595,7 @@ static set_error_t
 chip16_set_physical_memory(void *arg, conf_object_t *obj,
                                 attr_value_t *val, attr_value_t *idx)
 {
-        chip16_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_to_chip16(obj);
         const memory_space_interface_t *mem_space_iface;
         conf_object_t *oval = SIM_attr_object(*val);
         mem_space_iface = (memory_space_interface_t *)SIM_c_get_interface(
@@ -627,7 +627,7 @@ chip16_set_physical_memory(void *arg, conf_object_t *obj,
 static attr_value_t
 chip16_get_enabled(void *arg, conf_object_t *obj, attr_value_t *idx)
 {
-        chip16_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_to_chip16(obj);
         return SIM_make_attr_boolean(core->enabled);
 }
 
@@ -636,7 +636,7 @@ static set_error_t
 chip16_set_enabled(void *arg, conf_object_t *obj,
                         attr_value_t *val, attr_value_t *idx)
 {
-        chip16_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_to_chip16(obj);
         core->enabled = SIM_attr_boolean(*val);
         return Sim_Set_Ok;
 }
@@ -647,7 +647,7 @@ chip16_set_enabled(void *arg, conf_object_t *obj,
 static attr_value_t
 get_idle_cycles(void *arg, conf_object_t *obj, attr_value_t *idx)
 {
-        chip16_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_to_chip16(obj);
         return SIM_make_attr_uint64(core->idle_cycles);
 }
 
@@ -655,7 +655,7 @@ static set_error_t
 set_idle_cycles(void *arg, conf_object_t *obj,
                 attr_value_t *val, attr_value_t *idx)
 {
-        chip16_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_to_chip16(obj);
         core->idle_cycles = SIM_attr_integer(*val);
         return Sim_Set_Ok;
 }
@@ -666,14 +666,14 @@ set_idle_cycles(void *arg, conf_object_t *obj,
 static conf_object_t *
 get_current_context(conf_object_t *obj)
 {
-        chip16_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_to_chip16(obj);
         return core->current_context;
 }
 
 static int
 set_current_context(conf_object_t *obj, conf_object_t *ctx)
 {
-        chip16_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_to_chip16(obj);
         core->current_context = ctx;
         core->context_bp_query_iface = SIM_c_get_interface(
                 core->current_context, BREAKPOINT_QUERY_INTERFACE);
@@ -690,7 +690,7 @@ tuple_int_string_t
 chip16_disassemble(conf_object_t *obj, generic_address_t address,
                         attr_value_t instruction_data, int sub_operation)
 {
-        chip16_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_to_chip16(obj);
 
         SIM_LOG_INFO(2, core->obj, 0,
                      "disassembling instruction at address 0x%llx", address);
@@ -711,7 +711,7 @@ static void
 chip16_set_program_counter(conf_object_t *obj,
                                 logical_address_t pc)
 {
-        chip16_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_to_chip16(obj);
         SIM_LOG_INFO(2, core->obj, 0,
                      "setting program counter to 0x%llx", pc);
         toy_set_pc(core, pc);
@@ -720,7 +720,7 @@ chip16_set_program_counter(conf_object_t *obj,
 static logical_address_t
 chip16_get_program_counter(conf_object_t *obj)
 {
-        chip16_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_to_chip16(obj);
         return chip16_get_pc(core);
 }
 
@@ -730,7 +730,7 @@ chip16_logical_to_physical_block(conf_object_t *obj,
                                       logical_address_t address,
                                       access_t access_type)
 {
-        chip16_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_to_chip16(obj);
         physical_block_t ret;
         ret.valid = chip16_logical_to_physical(core, address, access_type,
                                                     &ret.address);
@@ -751,7 +751,7 @@ chip16_get_processor_mode(conf_object_t *obj)
 static int
 chip16_enable_processor(conf_object_t *obj)
 {
-        chip16_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_to_chip16(obj);
         if (core->enabled)
                 return 1;
         core->enabled = 1;
@@ -761,7 +761,7 @@ chip16_enable_processor(conf_object_t *obj)
 static int
 chip16_disable_processor(conf_object_t *obj)
 {
-        chip16_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_to_chip16(obj);
         if (!core->enabled)
                 return 1;
         core->enabled = 0;
@@ -771,7 +771,7 @@ chip16_disable_processor(conf_object_t *obj)
 static int
 chip16_iface_get_enabled(conf_object_t *obj)
 {
-        chip16_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_to_chip16(obj);
         return core->enabled;
 }
 
@@ -784,7 +784,7 @@ chip16_get_endian(conf_object_t *obj)
 static conf_object_t *
 chip16_get_physical_memory_iface(conf_object_t *obj)
 {
-        chip16_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_to_chip16(obj);
         return core->phys_mem_obj;
 }
 
@@ -888,7 +888,7 @@ chip16_add_register_declaration(chip16_t *core,
 static int
 chip16_get_register_number(conf_object_t *obj, const char *name)
 {
-        chip16_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_to_chip16(obj);
         int i = search_register_table(core, name);
 
         if (i == -1) {
@@ -901,7 +901,7 @@ chip16_get_register_number(conf_object_t *obj, const char *name)
 static const char *
 chip16_get_register_name(conf_object_t *obj, int reg)
 {
-        chip16_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_to_chip16(obj);
         register_table *rt = associated_register_table(core);
 
         if (reg < 0 || reg >= VLEN(*rt)) {
@@ -917,7 +917,7 @@ chip16_get_register_name(conf_object_t *obj, int reg)
 static uint64
 chip16_read_register(conf_object_t *obj, int reg)
 {
-        chip16_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_to_chip16(obj);
         register_table *rt = associated_register_table(core);
 
         if (reg < 0 || reg >= VLEN(*rt)) {
@@ -932,7 +932,7 @@ chip16_read_register(conf_object_t *obj, int reg)
 static void
 chip16_write_register(conf_object_t *obj, int reg, uint64 val)
 {
-        chip16_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_to_chip16(obj);
         register_table *rt = associated_register_table(core);
 
         if (reg < 0 || reg >= VLEN(*rt)) {
@@ -948,7 +948,7 @@ chip16_write_register(conf_object_t *obj, int reg, uint64 val)
 static attr_value_t
 chip16_all_registers(conf_object_t *obj)
 {
-        chip16_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_to_chip16(obj);
         register_table *rt = associated_register_table(core);
 
         /* The chip16_all_registers should return a list of
@@ -967,7 +967,7 @@ static int
 chip16_register_info(conf_object_t *obj, int reg,
                           ireg_info_t info)
 {
-        chip16_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_to_chip16(obj);
         register_table *rt = associated_register_table(core);
         if (reg < 0 || reg >= VLEN(*rt)) {
                 SIM_LOG_ERROR(core->obj, 0,
@@ -1040,7 +1040,7 @@ chip16_all_exceptions(conf_object_t *NOTNULL obj)
 static void
 chip16_ext_irq_raise(conf_object_t *obj)
 {
-        chip16_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_to_chip16(obj);
         SIM_LOG_INFO(2, core->obj, 0,
                      "EXTERNAL_INTERRUPT raised.");
 }
@@ -1048,7 +1048,7 @@ chip16_ext_irq_raise(conf_object_t *obj)
 static void
 chip16_ext_irq_lower(conf_object_t *obj)
 {
-        chip16_t *core = conf_obj_to_sr_core(obj);
+        chip16_t *core = conf_to_chip16(obj);
         SIM_LOG_INFO(2, core->obj, 0,
                      "EXTERNAL_INTERRUPT lowered.");
 }
@@ -1212,7 +1212,7 @@ cr_register_attributes(conf_class_t *cr_class)
 //chip16_get_register_value(void *arg, conf_object_t *obj,
 //                               attr_value_t *idx)
 //{
-//        chip16_t *core = conf_obj_to_sr_core(obj);
+//        chip16_t *core = conf_to_chip16(obj);
 //        register_table *rt = associated_register_table(core);
 //        register_description_t *rd;
 //
@@ -1236,7 +1236,7 @@ cr_register_attributes(conf_class_t *cr_class)
 //chip16_set_register_value(void *arg, conf_object_t *obj,
 //                               attr_value_t *val, attr_value_t *idx)
 //{
-//        chip16_t *core = conf_obj_to_sr_core(obj);
+//        chip16_t *core = conf_to_chip16(obj);
 //        register_table *rt = associated_register_table(core);
 //        register_description_t *rd;
 //
@@ -1415,7 +1415,7 @@ static void
 sr_cell_change(lang_void *callback_data, conf_object_t *obj,
                conf_object_t *old_cell, conf_object_t *new_cell)
 {
-        chip16_t *sr = conf_obj_to_sr(obj);
+        chip16_t *sr = conf_to_chip16(obj);
         if (sr->cell) {
                 const simple_dispatcher_interface_t *iface =
                         SIM_c_get_port_interface(sr->cell,
@@ -1460,7 +1460,7 @@ sr_init_object(conf_object_t *obj, void *data)
 static void
 sr_finalize(conf_object_t *obj)
 {
-        chip16_t *sr = conf_obj_to_sr(obj);
+        chip16_t *sr = conf_to_chip16(obj);
         finalize_frequency(sr);
 }
 

@@ -34,14 +34,14 @@ match_all(lang_void *data, lang_void *match_data)
 static cycles_t
 get_cycle_count(conf_object_t *queue_obj)
 {
-        chip16_t *sr = conf_obj_to_sr(queue_obj);
+        chip16_t *sr = conf_to_chip16(queue_obj);
         return sr->current_cycle;
 }
 
 static local_time_t
 get_time_in_ps(conf_object_t *queue_obj)
 {
-        chip16_t *sr = conf_obj_to_sr(queue_obj);
+        chip16_t *sr = conf_to_chip16(queue_obj);
         return generic_get_time_in_ps(queue_obj, sr->time_offset,
                                       sr->current_cycle, sr->freq_hz);
 }
@@ -55,7 +55,7 @@ get_time(conf_object_t *queue_obj)
 static cycles_t
 cycles_delta_from_ps(conf_object_t *queue_obj, local_time_t when)
 {
-        chip16_t *sr = conf_obj_to_sr(queue_obj);
+        chip16_t *sr = conf_to_chip16(queue_obj);
         cycles_t delta;
         if (!generic_delta_from_ps(when, sr->time_offset,
                                    sr->current_cycle, sr->freq_hz,
@@ -81,7 +81,7 @@ cycles_delta(conf_object_t *queue_obj, double when)
 static uint64
 get_frequency(conf_object_t *queue_obj)
 {
-        chip16_t *sr = conf_obj_to_sr(queue_obj);
+        chip16_t *sr = conf_to_chip16(queue_obj);
         return sr->freq_hz;
 }
 
@@ -92,7 +92,7 @@ post_cycle(conf_object_t *NOTNULL queue_obj,
            cycles_t cycles,
            lang_void *user_data)
 {
-        chip16_t *sr = conf_obj_to_sr(queue_obj);
+        chip16_t *sr = conf_to_chip16(queue_obj);
         const char *err = check_post_cycle_params(cycles, evclass);
         if (err) {
                 SIM_log_error(queue_obj, 0, "%s", err);
@@ -110,7 +110,7 @@ post_time(conf_object_t *NOTNULL queue_obj,
           double seconds,
           lang_void *user_data)
 {
-        chip16_t *sr = conf_obj_to_sr(queue_obj);
+        chip16_t *sr = conf_to_chip16(queue_obj);
         const char *err = generic_post_time(queue_obj, evclass, poster_obj,
                                             seconds, user_data,
                                             &post_cycle, sr->freq_hz);
@@ -126,7 +126,7 @@ post_time_in_ps(conf_object_t *NOTNULL queue_obj,
                 duration_t picoseconds,
                 lang_void *user_data)
 {
-        chip16_t *sr = conf_obj_to_sr(queue_obj);
+        chip16_t *sr = conf_to_chip16(queue_obj);
         const char *err = generic_post_time_in_ps(queue_obj, evclass, 
                                                   poster_obj,
                                                   picoseconds, user_data,
@@ -143,7 +143,7 @@ cancel(conf_object_t *NOTNULL queue_obj,
        int (*pred)(lang_void *data, lang_void *match_data),
        lang_void *match_data)
 {
-        chip16_t *sr = conf_obj_to_sr(queue_obj);
+        chip16_t *sr = conf_to_chip16(queue_obj);
         remove_events(&sr->cycle_queue, evclass, poster_obj,
                       pred == NULL ? match_all : pred, match_data);
 }
@@ -155,7 +155,7 @@ find_next_cycle(conf_object_t *NOTNULL queue_obj,
                 int (*pred)(lang_void *data, lang_void *match_data),
                 lang_void *match_data)
 {
-        chip16_t *sr = conf_obj_to_sr(queue_obj);
+        chip16_t *sr = conf_to_chip16(queue_obj);
         cycles_t ret;
         ret = next_occurrence(&sr->cycle_queue, evclass, poster_obj,
                                pred == NULL ? match_all :pred, match_data);
@@ -169,7 +169,7 @@ find_next_time(conf_object_t *NOTNULL queue,
                int (*pred)(lang_void *data, lang_void *match_data),
                lang_void *match_data)
 {
-        const chip16_t *sr = conf_obj_to_sr(queue);
+        const chip16_t *sr = conf_to_chip16(queue);
         return generic_find_next_time(queue, evclass, obj, pred,
                                       match_data, &find_next_cycle, 
                                       sr->freq_hz);
@@ -183,7 +183,7 @@ find_next_time_in_ps(conf_object_t *NOTNULL queue,
                                  lang_void *match_data),
                      lang_void *match_data)
 {
-        const chip16_t *sr = conf_obj_to_sr(queue);
+        const chip16_t *sr = conf_to_chip16(queue);
         return generic_find_next_time_in_ps(queue, evclass, obj, pred,
                                             match_data, &find_next_cycle,
                                             sr->freq_hz);
@@ -192,7 +192,7 @@ find_next_time_in_ps(conf_object_t *NOTNULL queue,
 static attr_value_t
 cycle_events(conf_object_t *NOTNULL queue_obj)
 {
-        chip16_t *sr = conf_obj_to_sr(queue_obj);
+        chip16_t *sr = conf_to_chip16(queue_obj);
 
         VECT(attr_value_t) evs = VNULL;
 
@@ -227,14 +227,14 @@ static set_error_t
 set_cycle_queue(void *param, conf_object_t *queue_obj, attr_value_t *val,
                attr_value_t *idx)
 {
-        chip16_t *sr = conf_obj_to_sr(queue_obj);
+        chip16_t *sr = conf_to_chip16(queue_obj);
         return set_event_queue(&sr->cycle_queue, val);
 }
 
 static attr_value_t
 get_cycle_queue(void *param, conf_object_t *queue_obj, attr_value_t *idx)
 {
-        chip16_t *sr = conf_obj_to_sr(queue_obj);
+        chip16_t *sr = conf_to_chip16(queue_obj);
         return events_to_attr_list(&sr->cycle_queue, 0);
 }
 
@@ -248,7 +248,7 @@ set_cycles(void *param, conf_object_t *queue_obj, attr_value_t *val,
         if (!SIM_attr_is_integer(*val) || SIM_attr_integer(*val) < 0) {
                 return Sim_Set_Illegal_Value; /* should not happen */
         }
-        chip16_t *sr = conf_obj_to_sr(queue_obj);
+        chip16_t *sr = conf_to_chip16(queue_obj);
         sr->current_cycle = SIM_attr_integer(*val);
         return Sim_Set_Ok;
 }
@@ -256,7 +256,7 @@ set_cycles(void *param, conf_object_t *queue_obj, attr_value_t *val,
 static attr_value_t
 get_cycles(void *param, conf_object_t *queue_obj, attr_value_t *idx)
 {
-        const chip16_t *sr = conf_obj_to_sr(queue_obj);
+        const chip16_t *sr = conf_to_chip16(queue_obj);
         return SIM_make_attr_uint64(sr->current_cycle);
 }
 

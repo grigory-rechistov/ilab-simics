@@ -203,30 +203,18 @@ typedef struct chip16 {
 } chip16_t;
 
 static inline conf_object_t *
-sr_to_conf_obj(chip16_t *sr)
+chip16_to_conf(chip16_t *sr)
 {
         return sr->obj;
 }
 
 static inline chip16_t *
-conf_obj_to_sr(conf_object_t *obj)
+conf_to_chip16(conf_object_t *obj)
 {
         return SIM_object_data(obj);
 }
 
 void chip16_cycle_event_posted(chip16_t *sr);
 void chip16_step_event_posted(chip16_t *sr);
-
-static inline conf_object_t *
-sr_core_to_conf_obj(chip16_t *sr)
-{
-        return sr->obj;
-}
-
-static inline chip16_t *
-conf_obj_to_sr_core(conf_object_t *obj)
-{
-        return SIM_object_data(obj);
-}
 
 #endif /* CHIP16 */
