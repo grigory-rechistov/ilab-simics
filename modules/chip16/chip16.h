@@ -25,7 +25,6 @@
 #include "event-queue.h"
 #include "chip16-exec.h"
 
-
 #include "event-queue-types.h"
 #include "chip16-exec.h"
 
@@ -36,7 +35,6 @@ typedef short sample_reg_number_t;
 typedef uint64 (*reg_get_function_ptr)(chip16_t *core, int n);
 typedef void (*reg_set_function_ptr)(chip16_t *core, int n, uint64 value);
 
-
 /* get the current program counter for the core */
 logical_address_t chip16_get_pc(chip16_t *core);
 
@@ -45,9 +43,9 @@ void chip16_set_pc(chip16_t *core, logical_address_t value);
 
 /* convert a logical address to physical address */
 int chip16_logical_to_physical(chip16_t *core,
-                                    logical_address_t la_addr,
-                                    access_t access_type,
-                                    physical_address_t *pa_addr);
+                               logical_address_t la_addr,
+                               access_t access_type,
+                               physical_address_t *pa_addr);
 
 /* disassemble a string into (a) a boolean success code,
    and (b) a string (if successful) */
@@ -98,7 +96,7 @@ bool chip16_read_memory(chip16_t *core,
                              int check_bp);
 
 void chip16_release_and_share(chip16_t *core,
-                                   physical_address_t pa);
+                              physical_address_t pa);
 
 /* get the running/stopped state of the core */
 execute_state_t chip16_state(chip16_t *core);

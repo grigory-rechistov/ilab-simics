@@ -229,17 +229,6 @@ toy_init_registers(void *crc)
          */
 }
 
-/* access_type is Sim_Access_Read, Sim_Access_Write, Sim_Access_Execute */
-/* returns boolean */
-int
-toy_logical_to_physical(chip16_t *core, logical_address_t ea,
-                        physical_address_t *pa, access_t access_type)
-{
-        /* no address mapping for the toy system */
-        *pa = ea;
-        return 1;
-}
-
 uint32
 chip16_read_memory32(chip16_t *core, logical_address_t la,
                           physical_address_t pa)
@@ -312,7 +301,7 @@ toy_fetch_and_execute_instruction(chip16_t *core)
         logical_address_t pc = toy_get_pc(core);
         physical_address_t pa;
 
-        int ok = toy_logical_to_physical(core, pc, &pa, Sim_Access_Execute);
+        int ok = chip16_logical_to_physical(core, pc, Sim_Access_Execute, &pa);
         if (ok) {
                 uint32 instr;
                 chip16_fetch_instruction(core, pa, INSTR_SIZE,
@@ -1028,25 +1017,20 @@ cr_register_attributes(conf_class_t *cr_class)
 //        return Sim_Set_Ok;
 //}
 
-/* functions that interface between a call by the core
-   and the actual function in the processor */
+/* access_type is Sim_Access_Read, Sim_Access_Write, Sim_Access_Execute */
+/* returns boolean */
 int
 chip16_logical_to_physical(chip16_t *core,
-                                logical_address_t la_addr,
-                                access_t access_type,
-                                physical_address_t *pa_addr)
+                           logical_address_t la_addr,
+                           access_t access_type,
+                           physical_address_t *pa_addr)
 {
-        int rc = toy_logical_to_physical(core, la_addr, pa_addr, access_type);
-        if (!rc) {
-                SIM_LOG_ERROR(core->obj, 0,
-                              "logical address 0x%llx to physical address"
-                              " failed", la_addr);
-        } else {
-                SIM_LOG_INFO(2, core->obj, 0,
-                             "logical address 0x%llx to physical address"
-                             " 0x%llx", la_addr, *pa_addr);
-        }
-        return rc;
+        /* no address mapping for the toy system */
+        *pa_addr = la_addr;
+        SIM_LOG_INFO(4, core->obj, 0,
+                     "logical address 0x%llx to physical address"
+                     " 0x%llx", la_addr, *pa_addr);
+        return 1;
 }
 
 
