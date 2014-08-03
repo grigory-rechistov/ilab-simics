@@ -163,10 +163,10 @@ typedef struct chip16 {
 
         cycles_t idle_cycles;
 
-        logical_address_t toy_pc;
-        uint32 toy_msr;
-        uint32 toy_reg[16];
-        double toy_freq_mhz;
+        logical_address_t chip16_pc;
+        uint32 chip16_msr;
+        uint32 chip16_reg[16];
+        double chip16_freq_mhz;
 
 
         /* The list of registers for this class of cores */

@@ -68,7 +68,7 @@ hap_type_t hap_Control_Register_Write;
 hap_type_t hap_Magic_Instruction;
 
 /*
- * keep in sync with toy_init_registers
+ * keep in sync with chip16_init_registers
  */
 typedef enum {
         Reg_Idx_R0,
@@ -92,140 +92,139 @@ typedef enum {
 } register_index_t;
 
 static attr_value_t
-toy_get_registers(void *arg, conf_object_t *obj, attr_value_t *idx)
+chip16_get_registers(void *arg, conf_object_t *obj, attr_value_t *idx)
 {
         chip16_t *core = conf_to_chip16(obj);
         attr_value_t ret = SIM_alloc_attr_list(16 + 2);
 
         /*
-         * keep in sync with toy_init_registers
+         * keep in sync with chip16_init_registers
          */
         for (unsigned i = 0; i < 16; i++)
                 SIM_attr_list_set_item(
-                        &ret, i, SIM_make_attr_uint64(core->toy_reg[i]));
+                        &ret, i, SIM_make_attr_uint64(core->chip16_reg[i]));
 
-        SIM_attr_list_set_item(&ret, 16, SIM_make_attr_uint64(core->toy_pc));
-        SIM_attr_list_set_item(&ret, 17, SIM_make_attr_uint64(core->toy_msr));
+        SIM_attr_list_set_item(&ret, 16, SIM_make_attr_uint64(core->chip16_pc));
+        SIM_attr_list_set_item(&ret, 17, SIM_make_attr_uint64(core->chip16_msr));
         return ret;
 }
 
 static set_error_t
-toy_set_registers(void *arg, conf_object_t *obj,
+chip16_set_registers(void *arg, conf_object_t *obj,
                   attr_value_t *val, attr_value_t *idx)
 {
         chip16_t *core = conf_to_chip16(obj);
 
         /*
-         * keep in sync with toy_init_registers
+         * keep in sync with chip16_init_registers
          */
         if (SIM_attr_list_size(*val) < 18)
                 return Sim_Set_Illegal_Value;
         for (unsigned i = 0; i < 16; i++)
-                core->toy_reg[i] =
+                core->chip16_reg[i] =
                         SIM_attr_integer(SIM_attr_list_item(*val, i));
-        core->toy_pc = SIM_attr_integer(SIM_attr_list_item(*val, 16));
-        core->toy_msr = SIM_attr_integer(SIM_attr_list_item(*val, 17));
+        core->chip16_pc = SIM_attr_integer(SIM_attr_list_item(*val, 16));
+        core->chip16_msr = SIM_attr_integer(SIM_attr_list_item(*val, 17));
         return Sim_Set_Ok;
 }
 
 static attr_value_t
-toy_get_freq_mhz(void *arg, conf_object_t *obj, attr_value_t *idx)
+chip16_get_freq_mhz(void *arg, conf_object_t *obj, attr_value_t *idx)
 {
         chip16_t *core = conf_to_chip16(obj);
-        return SIM_make_attr_floating(core->toy_freq_mhz);
+        return SIM_make_attr_floating(core->chip16_freq_mhz);
 }
 
 static set_error_t
-toy_set_freq_mhz(void *arg, conf_object_t *obj,
+chip16_set_freq_mhz(void *arg, conf_object_t *obj,
                  attr_value_t *val, attr_value_t *idx)
 {
         chip16_t *core = conf_to_chip16(obj);
-        core->toy_freq_mhz = SIM_attr_floating(*val);
+        core->chip16_freq_mhz = SIM_attr_floating(*val);
         return Sim_Set_Ok;
 }
 
 logical_address_t
-toy_get_pc(chip16_t *core)
+chip16_get_pc(chip16_t *core)
 {
-        return core->toy_pc;
+        return core->chip16_pc;
 }
 
 void
-toy_set_pc(chip16_t *core, logical_address_t pc)
+chip16_set_pc(chip16_t *core, logical_address_t pc)
 {
-        core->toy_pc = pc;
+        core->chip16_pc = pc;
 }
-
 
 uint32
-toy_get_msr(chip16_t *core)
+chip16_get_msr(chip16_t *core)
 {
-        return core->toy_msr;
+        return core->chip16_msr;
 }
 
 void
-toy_set_msr(chip16_t *core, uint32 msr)
+chip16_set_msr(chip16_t *core, uint32 msr)
 {
-        core->toy_msr = msr;
+        core->chip16_msr = msr;
 }
 
 /* get pc for the core */
 uint64
-toy_read_pc(chip16_t *core, int i)
+chip16_read_pc(chip16_t *core, int i)
 {
-        return toy_get_pc(core);
+        return chip16_get_pc(core);
 }
 
 /* set pc for the core */
 void
-toy_write_pc(chip16_t *core, int i, uint64 value)
+chip16_write_pc(chip16_t *core, int i, uint64 value)
 {
-        toy_set_pc(core,value);
+        chip16_set_pc(core,value);
 }
 
 
 /* get msr for the core */
 uint64
-toy_read_msr(chip16_t *core, int i)
+chip16_read_msr(chip16_t *core, int i)
 {
         SIM_c_hap_occurred_always(hap_Control_Register_Read,
                                   core->obj,
                                   Reg_Idx_Msr,
                                   Reg_Idx_Msr);
-        return toy_get_msr(core);
+        return chip16_get_msr(core);
 }
 
 /* set msr for the core */
 void
-toy_write_msr(chip16_t *core, int i, uint64 value)
+chip16_write_msr(chip16_t *core, int i, uint64 value)
 {
         SIM_c_hap_occurred_always(hap_Control_Register_Write,
                                   core->obj,
                                   Reg_Idx_Msr,
                                   value);
-        toy_set_msr(core,value);
+        chip16_set_msr(core,value);
 }
 
 
 /* get gpr[i] for the core */
 uint64
-toy_get_gpr(chip16_t *core, int i)
+chip16_get_gpr(chip16_t *core, int i)
 {
-        return core->toy_reg[i];
+        return core->chip16_reg[i];
 }
 
 /* set gpr[i] for the core */
 void
-toy_set_gpr(chip16_t *core, int i, uint64 value)
+chip16_set_gpr(chip16_t *core, int i, uint64 value)
 {
-        core->toy_reg[i] = value;
+        core->chip16_reg[i] = value;
 }
 
 void
-toy_init_registers(void *crc)
+chip16_init_registers(void *crc)
 {
         /*
-         * keep in sync with toy_set/get_registers
+         * keep in sync with chip16_set/get_registers
          */
 }
 
@@ -260,7 +259,7 @@ chip16_write_memory32(chip16_t *core, logical_address_t la,
 }
 
 char *
-toy_string_decode(chip16_t *core, uint32 instr)
+chip16_string_decode(chip16_t *core, uint32 instr)
 {
         switch (INSTR_OP(instr)) {
 
@@ -273,10 +272,10 @@ toy_string_decode(chip16_t *core, uint32 instr)
         }
 }
 
-#define INCREMENT_PC(core) toy_set_pc(core, toy_get_pc(core) + INSTR_SIZE)
+#define INCREMENT_PC(core) chip16_set_pc(core, chip16_get_pc(core) + INSTR_SIZE)
 
 void
-toy_execute(chip16_t *core, uint32 instr)
+chip16_execute(chip16_t *core, uint32 instr)
 {
         switch (INSTR_OP(instr)) {
 
@@ -295,10 +294,10 @@ toy_execute(chip16_t *core, uint32 instr)
 
 
 void
-toy_fetch_and_execute_instruction(chip16_t *core)
+chip16_fetch_and_execute_instruction(chip16_t *core)
 {
         /* get instruction */
-        logical_address_t pc = toy_get_pc(core);
+        logical_address_t pc = chip16_get_pc(core);
         physical_address_t pa;
 
         int ok = chip16_logical_to_physical(core, pc, Sim_Access_Execute, &pa);
@@ -311,7 +310,7 @@ toy_fetch_and_execute_instruction(chip16_t *core)
                 instr = UNALIGNED_LOAD_BE32(&instr);
                 if (chip16_state(core) != State_Stopped) {
                         /* breakpoint triggered - execute instruction */
-                        toy_execute(core, instr);
+                        chip16_execute(core, instr);
                 }
         }
 }
@@ -458,7 +457,7 @@ chip16_disassemble(conf_object_t *obj, generic_address_t address,
         }
 
         uint32 instr = UNALIGNED_LOAD_BE32(SIM_attr_data(instruction_data));
-        return (tuple_int_string_t){4, toy_string_decode(core, instr)};
+        return (tuple_int_string_t){4, chip16_string_decode(core, instr)};
 }
 
 static void
@@ -468,7 +467,7 @@ chip16_set_program_counter(conf_object_t *obj,
         chip16_t *core = conf_to_chip16(obj);
         SIM_LOG_INFO(2, core->obj, 0,
                      "setting program counter to 0x%llx", pc);
-        toy_set_pc(core, pc);
+        chip16_set_pc(core, pc);
 }
 
 static logical_address_t
@@ -900,16 +899,16 @@ cr_register_attributes(conf_class_t *cr_class)
 
 		SIM_register_typed_attribute(
 				cr_class, "registers",
-				toy_get_registers, NULL,
-				toy_set_registers, NULL,
+				chip16_get_registers, NULL,
+				chip16_set_registers, NULL,
 				Sim_Attr_Optional,
 				"[i*]", NULL,
 				"The registers.");
 
 		SIM_register_typed_attribute(
 				cr_class, "freq_mhz",
-				toy_get_freq_mhz, NULL,
-				toy_set_freq_mhz, NULL,
+				chip16_get_freq_mhz, NULL,
+				chip16_set_freq_mhz, NULL,
 				Sim_Attr_Optional,
 				"f", NULL,
 				"The frequency in MHz for the core.");
@@ -925,13 +924,13 @@ cr_register_attributes(conf_class_t *cr_class)
 //                char name[8];
 //                sprintf(name, "r%d", k);
 //                chip16_add_register_declaration(crc, name, k,
-//                                                     toy_get_gpr,
-//                                                     toy_set_gpr, 0);
+//                                                     chip16_get_gpr,
+//                                                     chip16_set_gpr, 0);
 //        }
-//        chip16_add_register_declaration(crc, "pc", 0, toy_read_pc,
-//                                             toy_write_pc, 0);
-//        chip16_add_register_declaration(crc, "msr", 0, toy_read_msr,
-//                                             toy_write_msr, 1);
+//        chip16_add_register_declaration(crc, "pc", 0, chip16_read_pc,
+//                                             chip16_write_pc, 0);
+//        chip16_add_register_declaration(crc, "msr", 0, chip16_read_msr,
+//                                             chip16_write_msr, 1);
 
 
         SIM_register_typed_attribute(
@@ -1025,33 +1024,12 @@ chip16_logical_to_physical(chip16_t *core,
                            access_t access_type,
                            physical_address_t *pa_addr)
 {
-        /* no address mapping for the toy system */
+        /* no address mapping for the chip16 system */
         *pa_addr = la_addr;
         SIM_LOG_INFO(4, core->obj, 0,
                      "logical address 0x%llx to physical address"
                      " 0x%llx", la_addr, *pa_addr);
         return 1;
-}
-
-
-/* get the current program counter for the core */
-logical_address_t
-chip16_get_pc(chip16_t *core)
-{
-        return toy_get_pc(core);
-}
-
-/* set the current program counter for the core */
-void
-chip16_set_pc(chip16_t *core, logical_address_t value)
-{
-        toy_set_pc(core, value);
-}
-
-void
-chip16_fetch_and_execute_instruction(chip16_t *core)
-{
-        toy_fetch_and_execute_instruction(core);
 }
 
 /* functions that interface between a call by the processor
