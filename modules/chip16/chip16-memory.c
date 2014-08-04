@@ -190,9 +190,9 @@ get_page(chip16_t *sr, conf_object_t *phys_mem_obj,
 }
 
 void
-check_virtual_breakpoints(chip16_t *sr, chip16_t *core,
-                          access_t access, logical_address_t virt_start,
-                          generic_address_t len, uint8 *data)
+chip16_check_virtual_breakpoints(chip16_t *core, access_t access,
+                                 logical_address_t virt_start,
+                                 generic_address_t len, uint8 *data)
 {
         logical_address_t virt_end = virt_start + len - 1;
         breakpoint_set_t bp_set =
@@ -221,8 +221,7 @@ data_bp_match(breakpoint_info_t bpi,
 }
 
 static void
-check_page_breakpoints(chip16_t *sr, chip16_t *core,
-                       mem_page_t *page, access_t access,
+check_page_breakpoints(chip16_t *core, mem_page_t *page, access_t access,
                        physical_address_t phys_address, generic_address_t len,
                        uint8 *data)
 {
@@ -276,12 +275,11 @@ create_generic_transaction(conf_object_t *initiator, mem_op_type_t type,
    access if it isn't cachable.
 */
 bool
-write_memory(chip16_t *sr, chip16_t *core,
-             physical_address_t phys_address, physical_address_t len,
-             uint8 *data, bool check_bp)
+chip16_write_memory(chip16_t *core, physical_address_t phys_address,
+                    physical_address_t len, uint8 *data, bool check_bp)
 {
         conf_object_t *phys_mem_obj = core->phys_mem_obj;
-        mem_page_t *page = get_page(sr, phys_mem_obj,
+        mem_page_t *page = get_page(core, phys_mem_obj,
                                     core->phys_mem_page_iface, phys_address,
                                     Sim_Access_Write);
 
@@ -290,7 +288,7 @@ write_memory(chip16_t *sr, chip16_t *core,
                         + (((1ull << page->size_log2) - 1) & phys_address);
                 memcpy(ma, data, len);
                 if (check_bp)
-                        check_page_breakpoints(sr, core, page,
+                        check_page_breakpoints(core, page,
                                                Sim_Access_Write,
                                                phys_address, len, data);
         } else {
@@ -304,7 +302,7 @@ write_memory(chip16_t *sr, chip16_t *core,
                      core->phys_mem_space_iface->access(phys_mem_obj, &mem_op);
 
                 if (exc != Sim_PE_No_Exception) {
-                        SIM_LOG_ERROR(chip16_to_conf(sr), 0,
+                        SIM_LOG_ERROR(chip16_to_conf(core), 0,
                                       "write error to physical address 0x%llx",
                                       phys_address);
                         return false;
@@ -315,12 +313,11 @@ write_memory(chip16_t *sr, chip16_t *core,
 }
 
 bool
-read_memory(chip16_t *sr, chip16_t *core,
-            physical_address_t phys_address, physical_address_t len,
-            uint8 *data, bool check_bp)
+chip16_read_memory(chip16_t *core, physical_address_t phys_address,
+                   physical_address_t len, uint8 *data, bool check_bp)
 {
         conf_object_t *phys_mem_obj = core->phys_mem_obj;
-        mem_page_t *page = get_page(sr, phys_mem_obj,
+        mem_page_t *page = get_page(core, phys_mem_obj,
                                     core->phys_mem_page_iface, phys_address,
                                     Sim_Access_Read);
 
@@ -329,7 +326,7 @@ read_memory(chip16_t *sr, chip16_t *core,
                         + (((1ull << page->size_log2) - 1) & phys_address);
                 memcpy(data, ma, len);
                 if (check_bp)
-                        check_page_breakpoints(sr, core, page, Sim_Access_Read,
+                        check_page_breakpoints(core, page, Sim_Access_Read,
                                                phys_address, len, data);
         } else {
                 generic_transaction_t mem_op = create_generic_transaction(
@@ -342,7 +339,7 @@ read_memory(chip16_t *sr, chip16_t *core,
                      core->phys_mem_space_iface->access(phys_mem_obj, &mem_op);
 
                 if (exc != Sim_PE_No_Exception) {
-                        SIM_LOG_ERROR(chip16_to_conf(sr), 0,
+                        SIM_LOG_ERROR(chip16_to_conf(core), 0,
                                      "read error from physical address 0x%llx",
                                       phys_address);
                         return false;
@@ -353,12 +350,11 @@ read_memory(chip16_t *sr, chip16_t *core,
 }
 
 bool
-fetch_instruction(chip16_t *sr, chip16_t *core,
-                  physical_address_t phys_address, physical_address_t len,
-                  uint8 *data, bool check_bp)
-{
+chip16_fetch_instruction(chip16_t *core, physical_address_t phys_address,
+                         physical_address_t len, uint8 *data, bool check_bp)
+       {
         conf_object_t *phys_mem_obj = core->phys_mem_obj;
-        mem_page_t *page = get_page(sr, phys_mem_obj,
+        mem_page_t *page = get_page(core, phys_mem_obj,
                                     core->phys_mem_page_iface, phys_address,
                                     Sim_Access_Execute);
 
@@ -366,7 +362,7 @@ fetch_instruction(chip16_t *sr, chip16_t *core,
                 uint8 *ma = page->data
                             + (((1ull << page->size_log2) - 1) & phys_address);
                 if (check_bp)
-                        check_page_breakpoints(sr, core, page,
+                        check_page_breakpoints(core, page,
                                                Sim_Access_Execute,
                                                phys_address, len, ma);
                 memcpy(data, ma, len);
@@ -381,7 +377,7 @@ fetch_instruction(chip16_t *sr, chip16_t *core,
                      core->phys_mem_space_iface->access(phys_mem_obj, &mem_op);
 
                 if (exc != Sim_PE_No_Exception) {
-                        SIM_LOG_ERROR(chip16_to_conf(sr), 0,
+                        SIM_LOG_ERROR(chip16_to_conf(core), 0,
                                     "fetch error from physical address 0x%llx",
                                     phys_address);
                         return false;
@@ -392,12 +388,12 @@ fetch_instruction(chip16_t *sr, chip16_t *core,
 }
 
 void
-release_and_share(chip16_t *sr, chip16_t *core,
-                  physical_address_t phys_address)
+chip16_release_and_share(chip16_t *core, physical_address_t phys_address)
 {
         conf_object_t *phys_mem_obj = core->phys_mem_obj;
         mem_page_t *page =
-                search_page_cache(sr, phys_mem_obj, phys_address, (access_t)0);
+                search_page_cache(core, phys_mem_obj,
+                                  phys_address, (access_t)0);
         if (page)
                 core->phys_mem_page_iface->release_page(
                         core->phys_mem_obj, chip16_to_conf(core), page);

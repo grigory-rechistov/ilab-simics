@@ -298,12 +298,6 @@ chip16_fetch_and_execute_instruction(chip16_t *core)
         }
 }
 
-static chip16_t *
-associated_memory(chip16_t *core) // FIXME remove
-{
-        return core;
-}
-
 static register_table *
 associated_register_table(chip16_t *core)
 {
@@ -1054,52 +1048,6 @@ execute_state_t
 chip16_state(chip16_t *core)
 {
         return core->state;
-}
-
-void
-chip16_check_virtual_breakpoints(chip16_t *core,
-                                      access_t access,
-                                      logical_address_t virt_start,
-                                      generic_address_t len,
-                                      uint8 *data)
-{
-        chip16_t *sr = associated_memory(core);
-        check_virtual_breakpoints(sr, core, access, virt_start, len, data);
-}
-
-bool
-chip16_fetch_instruction(chip16_t *core,
-                              physical_address_t pa, physical_address_t len,
-                              uint8 *data, int check_bp)
-{
-        chip16_t *sr = associated_memory(core);
-        return fetch_instruction(sr, core, pa, len, data, check_bp);
-}
-
-bool
-chip16_write_memory(chip16_t *core,
-                         physical_address_t pa, physical_address_t len,
-                         uint8 *data, int check_bp)
-{
-        chip16_t *sr = associated_memory(core);
-        return write_memory(sr, core, pa, len, data, check_bp);
-}
-
-bool
-chip16_read_memory(chip16_t *core,
-                        physical_address_t pa, physical_address_t len,
-                        uint8 *data, int check_bp)
-{
-        chip16_t *sr = associated_memory(core);
-        return read_memory(sr, core, pa, len, data, check_bp);
-}
-
-void
-chip16_release_and_share(chip16_t *core,
-                              physical_address_t phys_address)
-{
-        chip16_t *sr = associated_memory(core);
-        release_and_share(sr, core, phys_address);
 }
 
 static void

@@ -68,36 +68,6 @@ int chip16_add_register_declaration(chip16_t *core,
                                          reg_set_function_ptr set,
                                          int catchable);
 
-/* check a virtual breakpoint */
-void chip16_check_virtual_breakpoints(chip16_t *core,
-                                           access_t access,
-                                           logical_address_t virt_start,
-                                           generic_address_t len,
-                                           uint8 *data);
-
-/* fetch an instruction from memory */
-bool chip16_fetch_instruction(chip16_t *core,
-                                   physical_address_t pa,
-                                   physical_address_t len,
-                                   uint8 *data,
-                                   int check_bp);
-
-/* read and write generally */
-bool chip16_write_memory(chip16_t *core,
-                              physical_address_t pa,
-                              physical_address_t len,
-                              uint8 *data,
-                              int check_bp);
-
-bool chip16_read_memory(chip16_t *core,
-                             physical_address_t pa,
-                             physical_address_t len,
-                             uint8 *data,
-                             int check_bp);
-
-void chip16_release_and_share(chip16_t *core,
-                              physical_address_t pa);
-
 /* get the running/stopped state of the core */
 execute_state_t chip16_state(chip16_t *core);
 

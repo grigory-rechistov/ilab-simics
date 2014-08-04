@@ -20,34 +20,29 @@ void register_memory_attributes(conf_class_t *cls);
 
 void init_page_cache(chip16_t *sr);
 
-void check_virtual_breakpoints(chip16_t *sr,
-                               chip16_t *core,
-                               access_t access,
-                               logical_address_t virt_start,
-                               generic_address_t len,
-                               uint8 *data);
+void chip16_check_virtual_breakpoints(chip16_t *core,
+                                      access_t access,
+                                      logical_address_t virt_start,
+                                      generic_address_t len,
+                                      uint8 *data);
 
-bool write_memory(chip16_t *sr,
-                  chip16_t *core,
-                  physical_address_t phys_address,
-                  physical_address_t len,
-                  uint8 *data, bool check_bp);
+bool chip16_write_memory(chip16_t *core,
+                         physical_address_t phys_address,
+                         physical_address_t len,
+                         uint8 *data, bool check_bp);
 
-bool read_memory(chip16_t *sr,
-                 chip16_t *core,
-                 physical_address_t phys_address,
-                 physical_address_t len,
-                 uint8 *data, bool check_bp);
+bool chip16_read_memory(chip16_t *core,
+                        physical_address_t phys_address,
+                        physical_address_t len,
+                        uint8 *data, bool check_bp);
 
-bool fetch_instruction(chip16_t *sr,
-                       chip16_t *core,
-                       physical_address_t phys_address,
-                       physical_address_t len,
-                       uint8 *data,
-                       bool check_bp);
+bool chip16_fetch_instruction(chip16_t *core,
+                              physical_address_t phys_address,
+                              physical_address_t len,
+                              uint8 *data,
+                              bool check_bp);
 
-void release_and_share(chip16_t *sr, chip16_t *core,
-                       physical_address_t phys_address);
+void chip16_release_and_share(chip16_t *core, physical_address_t phys_address);
 
 mem_page_t *get_page(chip16_t *sr, conf_object_t *phys_mem_obj,
                      const memory_page_interface_t *memp_iface,
