@@ -11,6 +11,8 @@ linux64/
 .cproject
 .project
 .modcache
+.package-list
+.workspace-setup.log
 targets/arc601-simple/
 targets/ppc-simple/
 targets/vacuum/
