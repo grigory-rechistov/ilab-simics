@@ -4,6 +4,7 @@ bin/
 compiler.mk
 config.mk
 doc/
+doc-cache/
 simics
 simics-gui
 linux64/
