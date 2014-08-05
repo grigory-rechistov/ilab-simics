@@ -759,11 +759,49 @@ chip16_ext_irq_lower(conf_object_t *obj)
                      "EXTERNAL_INTERRUPT lowered.");
 }
 
+static void
+chip16_cell_change(lang_void *callback_data, conf_object_t *obj,
+               conf_object_t *old_cell, conf_object_t *new_cell)
+{
+        chip16_t *sr = conf_to_chip16(obj);
+        if (sr->cell) {
+                const simple_dispatcher_interface_t *iface =
+                        SIM_c_get_port_interface(sr->cell,
+                                                 SIMPLE_DISPATCHER_INTERFACE,
+                                                 "breakpoint_change");
+                ASSERT(iface);
+                iface->unsubscribe(sr->cell, obj, NULL);
+        }
+
+        sr->cell = new_cell;
+        if (sr->cell) {
+                sr->cell_iface = SIM_get_interface(new_cell,
+                                                   CELL_INSPECTION_INTERFACE);
+
+                const simple_dispatcher_interface_t *iface =
+                        SIM_c_get_port_interface(sr->cell,
+                                                 SIMPLE_DISPATCHER_INTERFACE,
+                                                 "breakpoint_change");
+                ASSERT(iface);
+                iface->subscribe(sr->cell, obj, NULL);
+        } else {
+                sr->cell_iface = NULL;
+        }
+}
+
 static void *
 chip16_init_object(conf_object_t *obj, void *data)
 {
         chip16_t *core = MM_ZALLOC(1, chip16_t);
         core->obj = obj;
+
+        VINIT(core->cached_pages);
+        instantiate_step_queue(core);
+        instantiate_cycle_queue(core);
+        instantiate_frequency(core);
+
+        SIM_hap_add_callback_obj("Core_Conf_Clock_Change_Cell", core->obj, 0,
+                                 (obj_hap_func_t)chip16_cell_change, NULL);
 
         core->enabled = 1;
 
@@ -773,11 +811,12 @@ chip16_init_object(conf_object_t *obj, void *data)
 static void
 chip16_finalize(conf_object_t *obj)
 {
-        // do nothing
+        chip16_t *sr = conf_to_chip16(obj);
+        finalize_frequency(sr);
 }
 
 conf_class_t *
-cr_define_class(void)
+chip16_define_class(void)
 {
         return SIM_register_class(
                 "chip16", &(class_data_t){
@@ -1026,73 +1065,6 @@ chip16_state(chip16_t *core)
         return core->state;
 }
 
-static void
-sr_cell_change(lang_void *callback_data, conf_object_t *obj,
-               conf_object_t *old_cell, conf_object_t *new_cell)
-{
-        chip16_t *sr = conf_to_chip16(obj);
-        if (sr->cell) {
-                const simple_dispatcher_interface_t *iface =
-                        SIM_c_get_port_interface(sr->cell,
-                                                 SIMPLE_DISPATCHER_INTERFACE,
-                                                 "breakpoint_change");
-                ASSERT(iface);
-                iface->unsubscribe(sr->cell, obj, NULL);
-        }
-
-        sr->cell = new_cell;
-        if (sr->cell) {
-                sr->cell_iface = SIM_get_interface(new_cell,
-                                                   CELL_INSPECTION_INTERFACE);
-
-                const simple_dispatcher_interface_t *iface =
-                        SIM_c_get_port_interface(sr->cell,
-                                                 SIMPLE_DISPATCHER_INTERFACE,
-                                                 "breakpoint_change");
-                ASSERT(iface);
-                iface->subscribe(sr->cell, obj, NULL);
-        } else {
-                sr->cell_iface = NULL;
-        }
-}
-
-static void *
-sr_init_object(conf_object_t *obj, void *data)
-{
-        chip16_t *sr = MM_ZALLOC(1, chip16_t);
-        sr->obj = obj;
-        VINIT(sr->cached_pages);
-        instantiate_step_queue(sr);
-        instantiate_cycle_queue(sr);
-        instantiate_frequency(sr);
-
-        SIM_hap_add_callback_obj("Core_Conf_Clock_Change_Cell", sr->obj, 0,
-                                 (obj_hap_func_t)sr_cell_change, NULL);
-
-        return sr;
-}
-
-static void
-sr_finalize(conf_object_t *obj)
-{
-        chip16_t *sr = conf_to_chip16(obj);
-        finalize_frequency(sr);
-}
-
-conf_class_t *
-sr_define_class(void)
-{
-        return SIM_register_class(
-                "chip16",
-                &(class_data_t){
-                  .init_object = sr_init_object,
-                  .finalize_instance = sr_finalize,
-                  .description =
-                         "The sample RISC"
-                         " (Reduced Instructions Set Computer/Cosimulator)."
-                });
-}
-
 void
 sr_register_attributes(conf_class_t *sr_class)
 {
@@ -1119,7 +1091,7 @@ chip16_step_event_posted(chip16_t *sr)
 void
 init_local(void)
 {
-        conf_class_t *sr_class = sr_define_class();
+        conf_class_t *sr_class = chip16_define_class();
         sr_register_attributes(sr_class);
         register_memory_interfaces(sr_class);
         register_memory_attributes(sr_class);
