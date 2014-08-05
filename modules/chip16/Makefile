@@ -2,7 +2,7 @@
 # Simics module makefile
 #
 
-MODULE_CLASSES = chip16 chip16-core
+MODULE_CLASSES = chip16
 
 SRC_FILES += chip16.c            \
              chip16-queue.c      \

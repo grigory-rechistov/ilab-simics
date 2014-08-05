@@ -13,7 +13,7 @@ import cli
 def get_sample_info(obj):
     return []
 
-cli.new_info_command('sample-device-c', get_sample_info)
+cli.new_info_command('joy16', get_sample_info)
 
 #
 # ------------------------ status -----------------------
@@ -23,7 +23,7 @@ def get_sample_status(obj):
     return [(None,
              [("Attribute 'value'", obj.value)])]
 
-cli.new_status_command('sample-device-c', get_sample_status)
+cli.new_status_command('joy16', get_sample_status)
 
 #
 # ------------------------ add-log -----------------------
@@ -39,9 +39,9 @@ def add_log_cmd(obj, str):
 cli.new_command("add-log", add_log_cmd,
                 [cli.arg(cli.str_t, "log-string", "?", "default text")],
                 alias = "",
-                type  = "sample-device-c commands",
+                type  = "joy16 commands",
                 short = "add a text line to the device log",
-                namespace = "sample-device-c",
+                namespace = "joy16",
                 doc = """
 Add a line of text to the device log. Use the 'log' command to view the log
 after creating a log-buffer using 'log-size'.
@@ -57,7 +57,7 @@ def simple_method_cmd(obj, arg):
 cli.new_command("simple-method", simple_method_cmd,
                 [cli.arg(cli.int_t, "arg")],
                 alias = "",
-                type  = "sample-device-c commands",
+                type  = "joy16 commands",
                 short = "simple example method",
-                namespace = "sample-device-c",
+                namespace = "joy16",
                 doc = "Simple method used as a sample. Prints the argument.")

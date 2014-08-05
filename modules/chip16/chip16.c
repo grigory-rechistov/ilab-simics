@@ -1,5 +1,5 @@
 /*
-  chip16.c - sample code for a stand-alone RISC processor
+  chip16.c - CHIP16 CPU model
 
   This Software is part of Wind River Simics. The rights to copy, distribute,
   modify, or otherwise make use of this Software may be licensed only
@@ -125,22 +125,6 @@ chip16_set_registers(void *arg, conf_object_t *obj,
                         SIM_attr_integer(SIM_attr_list_item(*val, i));
         core->chip16_pc = SIM_attr_integer(SIM_attr_list_item(*val, 16));
         core->chip16_msr = SIM_attr_integer(SIM_attr_list_item(*val, 17));
-        return Sim_Set_Ok;
-}
-
-static attr_value_t
-chip16_get_freq_mhz(void *arg, conf_object_t *obj, attr_value_t *idx)
-{
-        chip16_t *core = conf_to_chip16(obj);
-        return SIM_make_attr_floating(core->chip16_freq_mhz);
-}
-
-static set_error_t
-chip16_set_freq_mhz(void *arg, conf_object_t *obj,
-                 attr_value_t *val, attr_value_t *idx)
-{
-        chip16_t *core = conf_to_chip16(obj);
-        core->chip16_freq_mhz = SIM_attr_floating(*val);
         return Sim_Set_Ok;
 }
 
@@ -796,10 +780,10 @@ conf_class_t *
 cr_define_class(void)
 {
         return SIM_register_class(
-                "chip16-core", &(class_data_t){
+                "chip16", &(class_data_t){
                   .init_object = chip16_init_object,
                   .finalize_instance = chip16_finalize,
-                  .description = "Sample RISC core."
+                  .description = "CHIP16 core."
                });
 }
 
@@ -873,14 +857,6 @@ cr_register_attributes(conf_class_t *cr_class)
 				Sim_Attr_Optional,
 				"[i*]", NULL,
 				"The registers.");
-
-		SIM_register_typed_attribute(
-				cr_class, "freq_mhz",
-				chip16_get_freq_mhz, NULL,
-				chip16_set_freq_mhz, NULL,
-				Sim_Attr_Optional,
-				"f", NULL,
-				"The frequency in MHz for the core.");
 
 		hap_Control_Register_Read =
 				SIM_hap_get_number("Core_Control_Register_Read");

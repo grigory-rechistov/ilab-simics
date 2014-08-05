@@ -136,7 +136,6 @@ typedef struct chip16 {
         logical_address_t chip16_pc;
         uint32 chip16_msr;
         uint32 chip16_reg[16];
-        double chip16_freq_mhz;
 
 
         /* The list of registers for this class of cores */
