@@ -2,9 +2,9 @@
 # Simics module makefile
 #
 
-MODULE_CLASSES = sample-device-c
+MODULE_CLASSES = joy16
 
-SRC_FILES= sample-device.c
+SRC_FILES= joy16.c
 
 CFLAGS+= -Wall -Werror
 
