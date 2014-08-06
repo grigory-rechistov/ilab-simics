@@ -1071,12 +1071,6 @@ chip16_state(chip16_t *core)
 }
 
 void
-sr_register_attributes(conf_class_t *sr_class)
-{
-
-}
-
-void
 chip16_cycle_event_posted(chip16_t *sr)
 {
         /* An event has been posted. We only single step, so we don't need to
@@ -1097,7 +1091,6 @@ void
 init_local(void)
 {
         conf_class_t *sr_class = chip16_define_class();
-        sr_register_attributes(sr_class);
         register_memory_interfaces(sr_class);
         register_memory_attributes(sr_class);
         register_execute_interface(sr_class);
