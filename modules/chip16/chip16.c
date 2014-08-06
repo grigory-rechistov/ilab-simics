@@ -88,7 +88,44 @@ typedef enum {
         Reg_Idx_R14,
         Reg_Idx_R15,
         Reg_Idx_PC,
-} register_index_t;
+} chip16_reg_idx_t;
+
+static attr_value_t
+chip16_get_reg(void *reg, conf_object_t *obj, attr_value_t *idx)
+{
+        chip16_t *cpu = conf_to_chip16(obj);
+        chip16_reg_idx_t id = (chip16_reg_idx_t)reg;
+        uint16 value;
+        switch (id) {
+        case Reg_Idx_PC:
+                value = cpu->chip16_pc;
+                break;
+        default:
+                ASSERT(0);
+        }
+        return SIM_make_attr_uint64(value);
+}
+
+static set_error_t
+chip16_set_reg(void *reg, conf_object_t *obj,
+               attr_value_t *val, attr_value_t *idx)
+{
+        chip16_t *cpu = conf_to_chip16(obj);
+        chip16_reg_idx_t id = (chip16_reg_idx_t)reg;
+        uint16 value = SIM_attr_integer(*val);
+        set_error_t ret = Sim_Set_Ok;
+        switch (id) {
+        case Reg_Idx_PC:
+                if (value % INSTR_SIZE)
+                        ret = Sim_Set_Illegal_Value;
+                else
+                        cpu->chip16_pc = value;
+                break;
+        default:
+                ASSERT(0);
+        }
+        return ret;
+}
 
 static attr_value_t
 chip16_get_registers(void *arg, conf_object_t *obj, attr_value_t *idx)
@@ -877,6 +914,13 @@ cr_register_attributes(conf_class_t *cr_class)
 //        chip16_add_register_declaration(crc, "pc", 0, chip16_read_pc,
 //                                             chip16_write_pc, 0);
 
+        SIM_register_typed_attribute(
+                cr_class, "pc",
+                chip16_get_reg, (void *)Reg_Idx_PC,
+                chip16_set_reg, (void *)Reg_Idx_PC,
+                Sim_Attr_Optional,
+                "i", NULL,
+                "Programm counter.");
 
         SIM_register_typed_attribute(
                 cr_class, "physical_memory_space",
