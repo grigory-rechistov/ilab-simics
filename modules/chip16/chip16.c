@@ -88,7 +88,6 @@ typedef enum {
         Reg_Idx_R14,
         Reg_Idx_R15,
         Reg_Idx_PC,
-        Reg_Idx_Msr,
 } register_index_t;
 
 static attr_value_t
@@ -105,7 +104,6 @@ chip16_get_registers(void *arg, conf_object_t *obj, attr_value_t *idx)
                         &ret, i, SIM_make_attr_uint64(core->chip16_reg[i]));
 
         SIM_attr_list_set_item(&ret, 16, SIM_make_attr_uint64(core->chip16_pc));
-        SIM_attr_list_set_item(&ret, 17, SIM_make_attr_uint64(core->chip16_msr));
         return ret;
 }
 
@@ -124,7 +122,6 @@ chip16_set_registers(void *arg, conf_object_t *obj,
                 core->chip16_reg[i] =
                         SIM_attr_integer(SIM_attr_list_item(*val, i));
         core->chip16_pc = SIM_attr_integer(SIM_attr_list_item(*val, 16));
-        core->chip16_msr = SIM_attr_integer(SIM_attr_list_item(*val, 17));
         return Sim_Set_Ok;
 }
 
@@ -138,40 +135,6 @@ void
 chip16_set_pc(chip16_t *core, logical_address_t pc)
 {
         core->chip16_pc = pc;
-}
-
-uint32
-chip16_get_msr(chip16_t *core)
-{
-        return core->chip16_msr;
-}
-
-void
-chip16_set_msr(chip16_t *core, uint32 msr)
-{
-        core->chip16_msr = msr;
-}
-
-/* get msr for the core */
-uint64
-chip16_read_msr(chip16_t *core, int i)
-{
-        SIM_c_hap_occurred_always(hap_Control_Register_Read,
-                                  core->obj,
-                                  Reg_Idx_Msr,
-                                  Reg_Idx_Msr);
-        return chip16_get_msr(core);
-}
-
-/* set msr for the core */
-void
-chip16_write_msr(chip16_t *core, int i, uint64 value)
-{
-        SIM_c_hap_occurred_always(hap_Control_Register_Write,
-                                  core->obj,
-                                  Reg_Idx_Msr,
-                                  value);
-        chip16_set_msr(core,value);
 }
 
 /* get gpr[i] for the core */
@@ -913,8 +876,6 @@ cr_register_attributes(conf_class_t *cr_class)
 //        }
 //        chip16_add_register_declaration(crc, "pc", 0, chip16_read_pc,
 //                                             chip16_write_pc, 0);
-//        chip16_add_register_declaration(crc, "msr", 0, chip16_read_msr,
-//                                             chip16_write_msr, 1);
 
 
         SIM_register_typed_attribute(

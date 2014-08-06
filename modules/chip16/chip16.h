@@ -134,7 +134,6 @@ typedef struct chip16 {
         cycles_t idle_cycles;
 
         logical_address_t chip16_pc;
-        uint32 chip16_msr;
         uint32 chip16_reg[16];
 
 
