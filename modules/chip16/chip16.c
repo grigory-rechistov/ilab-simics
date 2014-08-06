@@ -41,6 +41,8 @@
 /* fixed size instructions of 4 bytes */
 #define INSTR_SIZE 4
 
+#define MAX_REG 0xffff
+
 /*
  * TODO: Expand me
  *
@@ -68,8 +70,9 @@ hap_type_t hap_Control_Register_Write;
 hap_type_t hap_Magic_Instruction;
 
 /*
- * keep in sync with chip16_init_registers
+ * registers
  */
+
 typedef enum {
         Reg_Idx_R0,
         Reg_Idx_R1,
@@ -81,14 +84,35 @@ typedef enum {
         Reg_Idx_R7,
         Reg_Idx_R8,
         Reg_Idx_R9,
-        Reg_Idx_R10,
-        Reg_Idx_R11,
-        Reg_Idx_R12,
-        Reg_Idx_R13,
-        Reg_Idx_R14,
-        Reg_Idx_R15,
+        Reg_Idx_RA,
+        Reg_Idx_RB,
+        Reg_Idx_RC,
+        Reg_Idx_RD,
+        Reg_Idx_RE,
+        Reg_Idx_RF,
         Reg_Idx_PC,
+        Num_Regs        /* keep it last */
 } chip16_reg_idx_t;
+
+const char *const reg_names[Num_Regs] = {
+        [Reg_Idx_R0] = "r0",
+        [Reg_Idx_R1] = "r1",
+        [Reg_Idx_R2] = "r2",
+        [Reg_Idx_R3] = "r3",
+        [Reg_Idx_R4] = "r4",
+        [Reg_Idx_R5] = "r5",
+        [Reg_Idx_R6] = "r6",
+        [Reg_Idx_R7] = "r7",
+        [Reg_Idx_R8] = "r8",
+        [Reg_Idx_R9] = "r9",
+        [Reg_Idx_RA] = "ra",
+        [Reg_Idx_RB] = "rb",
+        [Reg_Idx_RC] = "rc",
+        [Reg_Idx_RD] = "rd",
+        [Reg_Idx_RE] = "re",
+        [Reg_Idx_RF] = "rf",
+        [Reg_Idx_PC] = "pc"
+};
 
 static attr_value_t
 chip16_get_reg(void *reg, conf_object_t *obj, attr_value_t *idx)
@@ -125,41 +149,6 @@ chip16_set_reg(void *reg, conf_object_t *obj,
                 ASSERT(0);
         }
         return ret;
-}
-
-static attr_value_t
-chip16_get_registers(void *arg, conf_object_t *obj, attr_value_t *idx)
-{
-        chip16_t *core = conf_to_chip16(obj);
-        attr_value_t ret = SIM_alloc_attr_list(16 + 2);
-
-        /*
-         * keep in sync with chip16_init_registers
-         */
-        for (unsigned i = 0; i < 16; i++)
-                SIM_attr_list_set_item(
-                        &ret, i, SIM_make_attr_uint64(core->chip16_reg[i]));
-
-        SIM_attr_list_set_item(&ret, 16, SIM_make_attr_uint64(core->chip16_pc));
-        return ret;
-}
-
-static set_error_t
-chip16_set_registers(void *arg, conf_object_t *obj,
-                  attr_value_t *val, attr_value_t *idx)
-{
-        chip16_t *core = conf_to_chip16(obj);
-
-        /*
-         * keep in sync with chip16_init_registers
-         */
-        if (SIM_attr_list_size(*val) < 18)
-                return Sim_Set_Illegal_Value;
-        for (unsigned i = 0; i < 16; i++)
-                core->chip16_reg[i] =
-                        SIM_attr_integer(SIM_attr_list_item(*val, i));
-        core->chip16_pc = SIM_attr_integer(SIM_attr_list_item(*val, 16));
-        return Sim_Set_Ok;
 }
 
 logical_address_t
@@ -280,13 +269,6 @@ chip16_fetch_and_execute_instruction(chip16_t *core)
                         chip16_execute(core, instr);
                 }
         }
-}
-
-static register_table *
-associated_register_table(chip16_t *core)
-{
-        register_table *rt = &(core->reg_table);
-        return rt;
 }
 
 /*
@@ -514,140 +496,76 @@ chip16_architecture(conf_object_t *obj)
 }
 
 /*
- * registers
+ * int_register_interface
  */
-
-/* Registers are handled by creating (at initialization time) a
- * table of registers.  Each table entry has a string name, and
- * an internal register number (in case we have an array of
- * registers, like the gpr or fpr or vmx or ...), as well as two
- * functions -- one to get the register value and the other to
- * set the register value.
- *
- * Registers are defined for each core class -- not each core.
- * We assume all cores have the same (set of) registers.  Different
- * instances, so different values; but the same set of registers.
- *
- * The Simics register name is the "name"; the Simics register
- * number is the index into the table of registers.  We implement
- * the register table with the Simics Vector type.
- */
-
-// TODO: is it needed?
-//static void
-//init_register_table(chip16_t *crc)
-//{
-//        register_table *rt = &(crc->reg_table);
-//        VINIT(*rt);
-//}
-
-int
-search_register_table(chip16_t *crc, const char *name)
-{
-        register_table *rt = &(crc->reg_table);
-        VFORI(*rt, i) {
-                register_description_t *rd;
-                rd = &VGET(*rt, i);
-                if (strcmp(name, rd->name) == 0)
-                        return i;
-        }
-
-        /* not found in table, return illegal index */
-        return -1;
-}
-
-int
-chip16_add_register_declaration(chip16_t *core,
-                                     const char *name, int reg_number,
-                                     reg_get_function_ptr get,
-                                     reg_set_function_ptr set,
-                                     int catchable)
-{
-        register_table *rt = &(core->reg_table);
-        register_description_t *rd;
-
-        /* we wish to define a register "name" */
-        /* first see if we already have one */
-        int i = search_register_table(core, name);
-
-        if (i != -1) {
-                rd = &VGET(*rt, i);
-        } else {
-                /* A new register -- make sure we have space */
-                i = VLEN(*rt);
-                VRESIZE(*rt, i + 1);
-                rd = &VGET(*rt, i);
-                /* and remember the name */
-                rd->name = MM_STRDUP(name);
-        }
-
-        /* now that we have a register, define its properties.
-         * at the moment, this is just its read/write functions */
-        rd->reg_number = reg_number;
-        rd->get_reg_value = get;
-        rd->set_reg_value = set;
-        rd->catchable = catchable;
-
-        return i;
-}
 
 static int
 chip16_get_register_number(conf_object_t *obj, const char *name)
 {
-        chip16_t *core = conf_to_chip16(obj);
-        int i = search_register_table(core, name);
-
-        if (i == -1) {
-                SIM_LOG_ERROR(core->obj, 0,
-                              "illegal name in get_register_number(%s)", name);
+        size_t i;
+        for (i = 0; i < Num_Regs; i++) {
+                if (reg_names[i] && strcasecmp(name, reg_names[i]) == 0)
+                        return i;
         }
-        return i;
+
+        return -1; /* Not found */
 }
 
 static const char *
 chip16_get_register_name(conf_object_t *obj, int reg)
 {
-        chip16_t *core = conf_to_chip16(obj);
-        register_table *rt = associated_register_table(core);
-
-        if (reg < 0 || reg >= VLEN(*rt)) {
-                SIM_LOG_ERROR(core->obj, 0,
-                              "illegal register in get_register_name(%d)",
-                              reg);
+        if (reg < 0 || reg > Num_Regs)
                 return NULL;
-        }
-        register_description_t *rd = &VGET(*rt, reg);
-        return rd->name;
+
+        return reg_names[reg];
 }
 
 static uint64
 chip16_read_register(conf_object_t *obj, int reg)
 {
         chip16_t *core = conf_to_chip16(obj);
-        register_table *rt = associated_register_table(core);
-
-        if (reg < 0 || reg >= VLEN(*rt)) {
-                SIM_LOG_ERROR(core->obj, 0,
-                              "illegal register in read_register(%d)", reg);
+        if (reg < 0 || reg > Num_Regs) {
+                SIM_LOG_INFO(1, core->obj, 0,
+                             "Illegal register in read_register(reg=%d).", reg);
                 return 0;
         }
-        register_description_t *rd = &VGET(*rt, reg);
-        return rd->get_reg_value(core, rd->reg_number);
+
+        switch (reg) {
+        case Reg_Idx_PC:
+                return chip16_get_pc(core);
+        default:
+                SIM_LOG_INFO(1, core->obj, 0,
+                             "read_register(reg=%d) not handled, returning 0.",
+                             reg);
+                return 0;
+        }
 }
 
 static void
 chip16_write_register(conf_object_t *obj, int reg, uint64 val)
 {
         chip16_t *core = conf_to_chip16(obj);
-        register_table *rt = associated_register_table(core);
-
-        if (reg < 0 || reg >= VLEN(*rt)) {
-                SIM_LOG_ERROR(core->obj, 0,
-                              "illegal register in write_register(%d)", reg);
+        if (reg < 0 || reg > Num_Regs) {
+                SIM_LOG_INFO(1, core->obj, 0,
+                             "Illegal register in write_register(reg=%d).",
+                             reg);
                 return;
         }
-        register_description_t *rd = &VGET(*rt, reg);
-        rd->set_reg_value(core, rd->reg_number, val);
+
+        if (val > MAX_REG) {
+                SIM_LOG_INFO(1, core->obj, 0,
+                             "Too large value %#llx. Ignored.", val);
+                return;
+        }
+
+        switch (reg)  {
+        case Reg_Idx_PC:
+                chip16_set_pc(core, val);
+                break;
+        default:
+                SIM_LOG_INFO(1, core->obj, 0,
+                             "write_register(reg=%d) unknown register.", reg);
+        }
 }
 
 
@@ -655,17 +573,15 @@ static attr_value_t
 chip16_all_registers(conf_object_t *obj)
 {
         chip16_t *core = conf_to_chip16(obj);
-        register_table *rt = associated_register_table(core);
+        attr_value_t ret = SIM_alloc_attr_list(Num_Regs);
 
-        /* The chip16_all_registers should return a list of
-         * integers representing all the registers.  In our case,
-         * that is then all the integers from 1 to the number of
-         * registers in the register table. */
+        for (size_t i = Reg_Idx_R0; i < Reg_Idx_RF; i++)
+                SIM_attr_list_set_item(
+                        &ret, i,
+                        SIM_make_attr_uint64(core->chip16_reg[i - Reg_Idx_R0]));
 
-        attr_value_t ret = SIM_alloc_attr_list(VLEN(*rt));
-        VFORI(*rt, i) {
-                SIM_attr_list_set_item(&ret, i, SIM_make_attr_uint64(i));
-        }
+        SIM_attr_list_set_item(&ret, Reg_Idx_PC,
+                               SIM_make_attr_uint64(chip16_get_pc(core)));
         return ret;
 }
 
@@ -674,20 +590,16 @@ chip16_register_info(conf_object_t *obj, int reg,
                           ireg_info_t info)
 {
         chip16_t *core = conf_to_chip16(obj);
-        register_table *rt = associated_register_table(core);
-        if (reg < 0 || reg >= VLEN(*rt)) {
+        if (reg < 0 || reg >= Num_Regs) {
                 SIM_LOG_ERROR(core->obj, 0,
-                              "illegal register in register_info(reg=%d)",
+                              "Illegal register in register_info(reg=%d)",
                               reg);
                 return -1;
         }
 
         switch (info) {
         case Sim_RegInfo_Catchable:
-                if (VGET(*rt, reg).catchable)
-                        return 1;
-                else
-                        return 0;
+                return 0;
         default:
                 SIM_LOG_ERROR(core->obj, 0,
                               "illegal info type in register_info(info=%d)",
@@ -888,31 +800,11 @@ cr_register_interfaces(conf_class_t *cr_class)
 void
 cr_register_attributes(conf_class_t *cr_class)
 {
-
-		SIM_register_typed_attribute(
-				cr_class, "registers",
-				chip16_get_registers, NULL,
-				chip16_set_registers, NULL,
-				Sim_Attr_Optional,
-				"[i*]", NULL,
-				"The registers.");
-
 		hap_Control_Register_Read =
 				SIM_hap_get_number("Core_Control_Register_Read");
 		hap_Control_Register_Write =
 				SIM_hap_get_number("Core_Control_Register_Write");
 		hap_Magic_Instruction = SIM_hap_get_number("Core_Magic_Instruction");
-
-		/* declare each register to the world */ // FIXME where should this code be?
-//        for (int k = 0; k < 16; k++) {
-//                char name[8];
-//                sprintf(name, "r%d", k);
-//                chip16_add_register_declaration(crc, name, k,
-//                                                     chip16_get_gpr,
-//                                                     chip16_set_gpr, 0);
-//        }
-//        chip16_add_register_declaration(crc, "pc", 0, chip16_read_pc,
-//                                             chip16_write_pc, 0);
 
         SIM_register_typed_attribute(
                 cr_class, "pc",
@@ -946,64 +838,6 @@ cr_register_attributes(conf_class_t *cr_class)
                 "i", NULL,
                 "Number of idle cycles.");
 }
-
-// TODO: is it needed?
-//static attr_value_t
-//chip16_get_register_value(void *arg, conf_object_t *obj,
-//                               attr_value_t *idx)
-//{
-//        chip16_t *core = conf_to_chip16(obj);
-//        register_table *rt = associated_register_table(core);
-//        register_description_t *rd;
-//
-//        if (arg != NULL) {
-//                rd = (register_description_t *)(arg);
-//        } else if (SIM_attr_is_integer(*idx)) {
-//                int n = SIM_attr_integer(*idx);
-//                if ((n < 0) || (n >= VLEN(*rt)))
-//                        return SIM_make_attr_invalid();
-//                rd = &VGET(*rt, n);
-//        } else
-//                return chip16_all_registers(obj);
-//
-//        /* return the value of register i */
-//        uint64 value = rd->get_reg_value(core, rd->reg_number);
-//        return SIM_make_attr_uint64(value);
-//}
-
-// TODO: is it needed?
-//static set_error_t
-//chip16_set_register_value(void *arg, conf_object_t *obj,
-//                               attr_value_t *val, attr_value_t *idx)
-//{
-//        chip16_t *core = conf_to_chip16(obj);
-//        register_table *rt = associated_register_table(core);
-//        register_description_t *rd;
-//
-//        if (arg != NULL) {
-//                rd = (register_description_t *)(arg);
-//        } else if (SIM_attr_is_nil(*idx)) {
-//                /* force all the registers to one value? */
-//                uint64 value = SIM_attr_integer(*val);
-//                VFORI(*rt, i) {
-//                        rd = &VGET(*rt, i);
-//                        rd->set_reg_value(core, rd->reg_number, value);
-//                }
-//                return Sim_Set_Ok;
-//        } else {
-//                int n = SIM_attr_integer(*idx);
-//                if ((n < 0) || (n >= VLEN(*rt))) {
-//                        SIM_attribute_error("Index out of range");
-//                        return Sim_Set_Object_Not_Found;
-//                }
-//                rd = &VGET(*rt, n);
-//        }
-//
-//        /* set the value of register i to the "val" parameter */
-//        uint64 value = SIM_attr_integer(*val);
-//        rd->set_reg_value(core, rd->reg_number, value);
-//        return Sim_Set_Ok;
-//}
 
 /* access_type is Sim_Access_Read, Sim_Access_Write, Sim_Access_Execute */
 /* returns boolean */
@@ -1098,27 +932,7 @@ init_local(void)
         register_step_queue(sr_class);
         register_frequency_interfaces(sr_class);
 
-        /* initialize the register table */
-        /* must be done before we allow the processor to initialize */
-//        init_register_table(crc);
-
         cr_register_attributes(sr_class);
         cr_register_interfaces(sr_class);
-
-        // FIXME add static register registration
-//        VFORI(*rt, i) {
-//                register_description_t *rd;
-//                rd = &VGET(*rt, i);
-//
-//                SIM_register_typed_attribute(crc->cr_class, rd->name,
-//                                             chip16_get_register_value,
-//                                             rd,
-//                                             chip16_set_register_value,
-//                                             rd,
-//                                             Sim_Attr_Optional,
-//                                             "i", NULL,
-//                                             rd->name);
-//        }
-
 }
 
