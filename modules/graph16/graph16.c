@@ -19,6 +19,8 @@ typedef struct {
         /* device specific data */
         unsigned value;
 
+        SDL_Window *window;
+
 } graph16_t;
 
 /* Allocate memory for the object. */
@@ -26,9 +28,33 @@ static conf_object_t *
 alloc_object(void *data)
 {
         graph16_t *sample = MM_ZALLOC(1, graph16_t);
-
-
         return &sample->obj;
+}
+
+lang_void *init_object(conf_object_t *obj, lang_void *data) {
+        graph16_t *sample = (graph16_t *)obj;
+
+        sample->window = SDL_CreateWindow (
+        "CHIP16 monitor",                  // window title, TODO include SIM_object_name output
+        SDL_WINDOWPOS_UNDEFINED,           // initial x position
+        SDL_WINDOWPOS_UNDEFINED,           // initial y position
+        320,                               // width, in pixels
+        240,                               // height, in pixels
+        SDL_WINDOW_SHOWN                   // flags 
+        );
+
+        if (sample->window == NULL) {
+                SIM_LOG_ERROR(obj, 0, "Failed to create SDL window");
+        }
+
+        return obj;
+}
+
+int delete_instance(conf_object_t *obj) {
+        graph16_t *sample = (graph16_t *)obj;
+
+        SDL_DestroyWindow(sample->window);
+        return 1;
 }
 
 /* Dummy function that doesn't really do anything. */
@@ -93,6 +119,8 @@ init_local(void)
            new instances of the class */
         const class_data_t funcs = {
                 .alloc_object = alloc_object,
+                .init_object  = init_object,
+                .delete_instance = delete_instance,
                 .class_desc = "CHIP16 video device",
                 .description =
                 "Video device for CHIP16 platform"

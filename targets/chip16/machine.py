@@ -55,5 +55,9 @@ cosim_cell.scheduled_object = chip0
 
 chip0.cell = cosim_cell
 
-SIM_add_configuration([chip0, ctx0, cosim_cell, ram_image0, ram_image1, ram0, ram1, test0, phys_mem0, joy0, joy1],
+graph0 = pre_conf_object(name_prefix + "graph0", "graph16")
+graph0.queue = chip0
+
+SIM_add_configuration([chip0, ctx0, cosim_cell, ram_image0, ram_image1, ram0, ram1, test0, phys_mem0, joy0, joy1, graph0],
                       None)
+
