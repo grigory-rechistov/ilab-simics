@@ -1,0 +1,111 @@
+/* This Software is part of Wind River Simics. The rights to copy, distribute,
+   modify, or otherwise make use of this Software may be licensed only
+   pursuant to the terms of an applicable Wind River license agreement.
+
+   Copyright 2010-2014 Intel Corporation */
+
+dml 1.2;
+
+device videotimer;
+parameter desc = "CHIP16 timer device for VSYNC";
+parameter documentation = "This is the <class>videotimer</class> "
+                          + "class, an example of how timer devices "
+                          + "can be written in Simics.";
+
+import "utility.dml";
+import "interrupt.dml";
+import "simics/devs/signal.dml";
+
+connect irq_dev {
+    parameter documentation = "Device an interrupt should be forwarded to "
+                              + "(interrupt controller)";
+    parameter configuration = "optional";
+    interface signal;
+}
+
+bank regs {
+    parameter register_size = 2;
+    parameter byte_order = "big-endian";
+
+    register counter_start_time size 8 @ undefined
+        "Records the time when the counter register was started.";
+    register counter_start_value @ undefined
+        "Records the start value of the counter register.";
+    register counter   @ 0 "Counter register";
+    register reference @ 2 "Reference counter register";
+    register step      @ 4
+        "Counter is incremented every STEP clock cycles. 0 means stopped.";
+    register config    @ 6 "Configuration register" {
+        field clear_on_match[1]
+            "If 1, counter is cleared when counter matches reference.";
+        field interrupt_enable[0]
+            "If 1, interrupt is enabled.";
+    }
+}
+
+event reference_reached {
+    parameter timebase = "cycles";
+
+    method event(void *data) {
+        if ($regs.config.clear_on_match) {
+            call $regs.counter.write(0);
+        }
+
+        if ($regs.config.interrupt_enable) {
+            if ($irq_dev.obj != NULL) {
+                $irq_dev.signal.signal_raise();
+                $irq_dev.signal.signal_lower();
+            }
+        }
+    }
+}
+
+bank regs {
+    register counter {
+        parameter configuration = "none";
+        parameter allocate = false;
+
+        method write(int value) {
+            $counter_start_value = value;
+            $counter_start_time = SIM_cycle_count($dev.obj);
+            call $update_event;
+        }
+
+        method read -> (value) {
+            if (!$step) {
+                value = $counter_start_value;
+                return;
+            }
+
+            local cycles_t now = SIM_cycle_count($dev.obj);
+            value = (now - $counter_start_time) / $step +
+                    $counter_start_value;
+        }
+
+        method update_event {
+            inline $reference_reached.remove(NULL);
+
+            if (!$step)
+                return;
+
+            local cycles_t now = SIM_cycle_count($dev.obj);
+            local cycles_t cycles_left = ($reference - $counter_start_value) *
+                                         $step - (now - $counter_start_time);
+            inline $reference_reached.post(cycles_left, NULL);
+        }
+    }
+
+    register step {
+        // after changing the step register the counter should be restarted
+        method after_write(memop) {
+            call $counter.write($counter_start_value);
+        }
+    }
+
+    register reference {
+        // after changing the reference register the event should be updated 
+        method after_write(memop) {
+            call $counter.update_event;
+        }
+    }
+}
