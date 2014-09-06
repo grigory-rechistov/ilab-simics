@@ -73,4 +73,3 @@ test_timer(stp = 1, ien = 1, clr = 0)
 test_timer(stp = 2, ien = 1, clr = 1)
 
 print "s-timer: all tests passed!"
-
