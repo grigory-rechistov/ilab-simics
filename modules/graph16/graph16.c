@@ -44,7 +44,7 @@ lang_void *init_object(conf_object_t *obj, lang_void *data) {
         );
 
         if (sample->window == NULL) {
-                SIM_LOG_ERROR(obj, 0, "Failed to create SDL window");
+                SIM_LOG_INFO(1, obj, 0, "Failed to create SDL window");
         }
 
         return obj;
