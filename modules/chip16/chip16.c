@@ -9,8 +9,6 @@
 
 */
 
-#error "This is a purposely injected error to check CI notification'
-
 #include "chip16.h"
 #include <simics/processor-api.h>
 #include <simics/util/strbuf.h>
