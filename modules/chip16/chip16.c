@@ -193,7 +193,7 @@ chip16_read_memory32(chip16_t *core, logical_address_t la,
         chip16_check_virtual_breakpoints(
                 core, Sim_Access_Read, la, 4, (uint8 *)(&data));
         chip16_read_memory(core, pa, 4, (uint8 *)&data, 1);
-        return UNALIGNED_LOAD_BE32(&data);
+        return UNALIGNED_LOAD_LE32(&data);
 }
 
 void
@@ -201,7 +201,7 @@ chip16_write_memory32(chip16_t *core, logical_address_t la,
                            physical_address_t pa, uint32 value)
 {
         uint32 data;
-        UNALIGNED_STORE_BE32(&data, value);
+        UNALIGNED_STORE_LE32(&data, value);
         chip16_check_virtual_breakpoints(
                 core, Sim_Access_Write, la, 4, (uint8 *)(&data));
         chip16_write_memory(core, pa, 4, (uint8 *)&data, 1);
@@ -263,7 +263,7 @@ chip16_fetch_and_execute_instruction(chip16_t *core)
                                               (uint8 *)(&instr), true);
                 chip16_check_virtual_breakpoints(
                         core, Sim_Access_Execute, pc, 4, (uint8 *)(&instr));
-                instr = UNALIGNED_LOAD_BE32(&instr);
+                instr = UNALIGNED_LOAD_LE32(&instr);
                 if (chip16_state(core) != State_Stopped) {
                         /* breakpoint triggered - execute instruction */
                         chip16_execute(core, instr);
@@ -393,7 +393,7 @@ chip16_disassemble(conf_object_t *obj, generic_address_t address,
                 return (tuple_int_string_t){-4, NULL};
         }
 
-        uint32 instr = UNALIGNED_LOAD_BE32(SIM_attr_data(instruction_data));
+        uint32 instr = UNALIGNED_LOAD_LE32(SIM_attr_data(instruction_data));
         return (tuple_int_string_t){4, chip16_string_decode(core, instr)};
 }
 
