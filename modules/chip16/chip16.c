@@ -52,10 +52,46 @@
  */
 
 #define INSTR_OP(i)       (((i) >> 24) & 0xff)
-#define INSTR_SRC_REG(i)  (((i) >> 20) & 0xf)
-#define INSTR_DST_REG(i)  (((i) >> 16) & 0xf)
-#define INSTR_LL          (((i) >> 8) & 0xff)
-#define INSTR_HH          ((i) & 0xff)
+#define INSTR_SRC_REG(i)  (((i) >> 20) & 0x0f)
+#define INSTR_DST_REG(i)  (((i) >> 16) & 0x0f)
+#define INSTR_Z_REG(i)    (((i) >>  8) & 0x0f)
+#define INSTR_LL(i)       (((i) >>  8) & 0xff)
+#define INSTR_HH(i)       ( (i)        & 0xff)
+
+#define INSTR_HHLL(i)     ((((INSTR_HH(i)) << 8) & 0xff00) | ((INSTR_LL(i))))
+
+
+/*
+ * Flags mapping:
+ *
+ *           7 6 5 4 3 2 1 0
+ *          |-------|-------|
+ *          |N|O|-|-|-|Z|C|-|
+ *           | |       | |
+ * Where:    N - negative|
+ *             |       | |
+ *             O - overflow
+ *                     | |
+ *                     Z - zero
+ *                       |
+ *                       C - carry
+ *
+ */
+
+// #define FLAGS_INIT(f)  ((f).byte = 0)
+
+#define CLR_CARRY(f)    ((f).map.C = 0)
+#define CLR_ZERO(f)     ((f).map.Z = 0)
+#define CLR_OVRFLW(f)   ((f).map.O = 0)
+#define CLR_NEG(f)      ((f).map.N = 0)
+
+#define SET_CARRY(f)    ((f).map.C = 1)
+#define SET_ZERO(f)     ((f).map.Z = 1)
+#define SET_OVRFLW(f)   ((f).map.O = 1)
+#define SET_NEG(f)      ((f).map.N = 1)
+
+#define BIT_15(n)      (((n) >> 15) & 0x1) 
+
 
 // TODO: Expand me
 typedef enum {
@@ -236,11 +272,21 @@ void
 chip16_execute(chip16_t *core, uint32 instr)
 {
         uint32 res = 0;
-        uint8 X = (instr >> 16) & 0xf;
-        uint8 Y = (instr >> 20) & 0xf;
-        uint8 Z = (instr >> 8) & 0xf;
 
-        switch (INSTR_OP(instr)) {
+        uint16 opcode = INSTR_OP(instr);
+
+	uint8 X = INSTR_DST_REG(instr);
+        uint8 Y = INSTR_SRC_REG(instr);
+        uint8 Z = INSTR_Z_REG(instr);
+
+        // uint8 LL = INSTR_LL(instr);
+        // uint8 HH = INSTR_HH(instr);
+
+        // uint16 HHLL = INSTR_HHLL(instr);
+
+        // int tmp = 0;
+
+        switch (opcode) {
 
         case Instr_Op_Nop:
                 chip16_increment_cycles(core, 1);
@@ -251,15 +297,15 @@ chip16_execute(chip16_t *core, uint32 instr)
         case Instr_Op_Div_XYZ:
 		if(core->chip16_reg[Y] != 0) {
 			core->chip16_reg[Z] = res = core->chip16_reg[X] / core->chip16_reg[Y];
-			if (res == 0) core->flags.Z = 1;
-			else 	      core->flags.Z = 0;
+			if (res == 0) core->flags.map.Z = 1;
+			else 	      core->flags.map.Z = 0;
 
-			if ((res & (1 << 15)) != 0) core->flags.N = 1;
-			else 		 	    core->flags.N = 0;
+			if ((res & (1 << 15)) != 0) core->flags.map.N = 1;
+			else 		 	    core->flags.map.N = 0;
 
-			if (res > 0) {core->flags.N = 0; core->flags.N = 0;}
+			if (res > 0) {core->flags.map.N = 0; core->flags.map.N = 0;}
 
-			if ((core->chip16_reg[X] % core->chip16_reg[Y]) != 0) core->flags.C = 1;
+			if ((core->chip16_reg[X] % core->chip16_reg[Y]) != 0) core->flags.map.C = 1;
 		}
 		else SIM_LOG_INFO(1, core->obj, 0, "Dividing by zero!\n");
 
@@ -413,10 +459,10 @@ get_flags(void *arg, conf_object_t *obj, attr_value_t *idx)
         chip16_t *cpu = conf_to_chip16(obj);
         attr_value_t res = SIM_alloc_attr_list(4);
 
-        SIM_attr_list_set_item(&res, 0, SIM_make_attr_uint64(cpu->flags.C));
-        SIM_attr_list_set_item(&res, 1, SIM_make_attr_uint64(cpu->flags.Z));
-        SIM_attr_list_set_item(&res, 2, SIM_make_attr_uint64(cpu->flags.O));
-        SIM_attr_list_set_item(&res, 3, SIM_make_attr_uint64(cpu->flags.N));
+        SIM_attr_list_set_item(&res, 0, SIM_make_attr_uint64(cpu->flags.map.C));
+        SIM_attr_list_set_item(&res, 1, SIM_make_attr_uint64(cpu->flags.map.Z));
+        SIM_attr_list_set_item(&res, 2, SIM_make_attr_uint64(cpu->flags.map.O));
+        SIM_attr_list_set_item(&res, 3, SIM_make_attr_uint64(cpu->flags.map.N));
 
         return res;
 }
@@ -427,10 +473,10 @@ set_flags(void *arg, conf_object_t *obj,
 {
         chip16_t *cpu = conf_to_chip16(obj);
 
-        cpu->flags.C = SIM_attr_integer(SIM_attr_list_item(*val, 0));
-        cpu->flags.Z = SIM_attr_integer(SIM_attr_list_item(*val, 1));
-        cpu->flags.O = SIM_attr_integer(SIM_attr_list_item(*val, 2));
-        cpu->flags.N = SIM_attr_integer(SIM_attr_list_item(*val, 3));
+        cpu->flags.map.C = SIM_attr_integer(SIM_attr_list_item(*val, 0));
+        cpu->flags.map.Z = SIM_attr_integer(SIM_attr_list_item(*val, 1));
+        cpu->flags.map.O = SIM_attr_integer(SIM_attr_list_item(*val, 2));
+        cpu->flags.map.N = SIM_attr_integer(SIM_attr_list_item(*val, 3));
 
         return Sim_Set_Ok;
 }

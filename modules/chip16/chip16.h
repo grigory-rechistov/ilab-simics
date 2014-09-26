@@ -28,6 +28,10 @@
 #include "event-queue-types.h"
 #include "chip16-exec.h"
 
+
+#define NUMB_OF_REGS 16
+
+
 struct chip16;
 typedef struct chip16 chip16_t;
 
@@ -146,13 +150,26 @@ typedef struct chip16 {
         cycles_t idle_cycles;
 
         logical_address_t chip16_pc;
-        uint32 chip16_reg[16];
-
-        /* flags */
-        struct flag_bits flags;
+        uint16 chip16_reg[NUMB_OF_REGS];
 
         /* The list of registers for this class of cores */
         register_table reg_table;
+
+        union chip16_flags
+                {
+                struct chip16_flags_map
+                        {
+                        unsigned empty1:1;
+                        unsigned C     :1;      // Carry
+                        unsigned Z     :1;      // Zero
+                        unsigned empty2:3;
+                        unsigned O     :1;      // Overflow
+                        unsigned N     :1;      // Negative
+                        } map;
+                        
+                uint8 byte;
+
+                } flags;
 
         /* page cache */
         int number_of_cached_pages;
