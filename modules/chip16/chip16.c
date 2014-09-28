@@ -329,7 +329,7 @@ chip16_execute(chip16_t *core, uint32 instr)
         int res = 0;
 
         switch (opcode) {
-
+       
         case Instr_Op_Nop:
                 chip16_increment_cycles(core, 1);
                 chip16_increment_steps(core, 1);
