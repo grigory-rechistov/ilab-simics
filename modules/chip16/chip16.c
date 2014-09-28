@@ -337,38 +337,6 @@ chip16_execute(chip16_t *core, uint32 instr)
                 INCREMENT_PC(core);
                 break;
 
-        case Instr_Op_Div_XYZ:
-                if(core->chip16_reg[Y] != 0) {
-                        
-                        core->chip16_reg[Z] = res = core->chip16_reg[X] / core->chip16_reg[Y];
-                        
-                        if (res == 0)
-                                SET_ZERO(core->flags);
-                        else
-                                CLR_ZERO(core->flags);
-
-                        if ((res & (1 << 15)) != 0)
-                                SET_NEG(core->flags);
-                        else
-                                CLR_NEG(core->flags);
-
-                        if (res > 0) {
-                                CLR_NEG (core->flags);
-                                CLR_ZERO(core->flags);
-                        }
-
-                        if ((core->chip16_reg[X] % core->chip16_reg[Y]) != 0)
-                                SET_CARRY(core->flags);
-                }
-                else
-                        SIM_LOG_INFO(1, core->obj, 0, "Dividing by zero!\n");
-
-                chip16_increment_cycles (core, 1);
-                chip16_increment_steps  (core, 1);
-                INCREMENT_PC(core);
-
-                break;
-
         case Instr_Op_MULI:
 
                 res = core->chip16_reg[X] * HHLL;
@@ -422,6 +390,28 @@ chip16_execute(chip16_t *core, uint32 instr)
                 break;
         
         default:
+                
+        case Instr_Op_Div_XYZ:
+		if(core->chip16_reg[Y] != 0) {
+			core->chip16_reg[Z] = res = core->chip16_reg[X] / core->chip16_reg[Y];
+			if (res == 0) core->flags.Z = 1;
+			else 	      core->flags.Z = 0;
+				
+			if ((res & (1 << 15)) != 0) core->flags.N = 1;
+			else 		 	    core->flags.N = 0;
+				
+			if (res > 0) {core->flags.N = 0; core->flags.N = 0;}
+		
+			if ((core->chip16_reg[X] % core->chip16_reg[Y]) != 0) core->flags.C = 1;
+		}
+		else SIM_LOG_INFO(1, core->obj, 0, "Dividing by zero!\n");
+		
+		chip16_increment_cycles(core, 1);
+                chip16_increment_steps(core, 1);
+                INCREMENT_PC(core);
+                break;
+        
+	default:
                 SIM_LOG_ERROR(core->obj, 0,
                               "unknown instruction");
                 break;
