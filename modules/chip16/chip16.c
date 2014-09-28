@@ -99,6 +99,7 @@ typedef enum {
         Instr_Op_Nop    = 0x00,
         Instr_Op_Div	= 0xA1,
         Instr_Op_Xor	= 0x81,
+        Instr_Op_Remi	= 0xA6,
 } instr_op_t;
 
 /* THREAD_SAFE_GLOBAL: hap_Control_Register_Read init */
@@ -324,8 +325,8 @@ chip16_execute(chip16_t *core, uint32 instr)
         uint8 Y = INSTR_SRC_REG(instr);
         uint8 Z = INSTR_Z_REG(instr);
 
-        // uint8 LL = INSTR_LL(instr);
-        // uint8 HH = INSTR_HH(instr);
+        uint8 LL = INSTR_LL(instr);
+        uint8 HH = INSTR_HH(instr);
         uint16 HHLL = INSTR_HHLL(instr);
 
         int res = 0;
@@ -402,12 +403,13 @@ chip16_execute(chip16_t *core, uint32 instr)
 		        if (res > 0) {core->flags.N = 0; core->flags.N = 0;}
 		
                 if ((core->chip16_reg[X] % core->chip16_reg[Y]) != 0) core->flags.C = 1;
-
-
+                
                 chip16_increment_cycles(core, 1);
                 chip16_increment_steps(core, 1);
                 INCREMENT_PC(core);
                 break;
+       
+
                 
         case Instr_Op_Div_XYZ:
 		if(core->chip16_reg[Y] != 0) {
@@ -423,8 +425,26 @@ chip16_execute(chip16_t *core, uint32 instr)
 			if ((core->chip16_reg[X] % core->chip16_reg[Y]) != 0) core->flags.C = 1;
 		}
 		else SIM_LOG_INFO(1, core->obj, 0, "Dividing by zero!\n");
+                
+                chip16_increment_cycles(core, 1);
+                chip16_increment_steps(core, 1);
+                INCREMENT_PC(core);
+                break;
+
 		
-		chip16_increment_cycles(core, 1);
+        case Instr_Op_Remi:
+
+                        core->chip16_reg[X] = res = core->chip16_reg[X] % HHLL;
+			if (res == 0) core->flags.Z = 1;
+			else 	      core->flags.Z = 0;
+				
+			if ((res & (1 << 15)) != 0) core->flags.N = 1;
+			else 		 	    core->flags.N = 0;
+				
+			if (res > 0) {core->flags.N = 0; core->flags.N = 0;}
+
+        
+                chip16_increment_cycles(core, 1);
                 chip16_increment_steps(core, 1);
                 INCREMENT_PC(core);
                 break;
