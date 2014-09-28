@@ -166,6 +166,11 @@ typedef struct chip16 {
         char *frequency_dispatcher_port;
         const simple_dispatcher_interface_t *frequency_dispatcher_iface;
         frequency_target_list_t frequency_targets;
+
+	/* flags */	/* | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | */
+	                /* | - | c | z | - | - | - | o | N | */
+	uint8 flags;   
+
 } chip16_t;
 
 static inline conf_object_t *
