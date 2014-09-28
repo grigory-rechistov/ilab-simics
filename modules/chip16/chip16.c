@@ -96,6 +96,8 @@ typedef enum {
         Instr_Op_Nop            = 0x00,
         Instr_Op_Div_XYZ        = 0xA2,
         Instr_Op_MULI           = 0x90,
+        Instr_Op_Nop    = 0x00,
+        Instr_Op_Div	= 0xA1,
 } instr_op_t;
 
 /* THREAD_SAFE_GLOBAL: hap_Control_Register_Read init */
@@ -393,6 +395,32 @@ chip16_execute(chip16_t *core, uint32 instr)
  
                 break;
 
+        case Instr_Op_Div:
+		if (core->chip16_reg[Y] != 0) {
+			core->chip16_reg[X] = res = core->chip16_reg[X] / core->chip16_reg[Y];
+			if (res == 0) core->flags.Z = 1;
+			else 	      core->flags.Z = 0;
+				
+			if ((res & (1 << 15)) != 0) core->flags.N = 1;
+			else 		 core->flags.N = 0;
+				
+			if (res > 0) {core->flags.N = 0; core->flags.Z = 0;}
+			else 	      core->flags.Z = 0;
+				
+			if ((res & (1 << 15)) != 0) core->flags.N = 1;
+			else 		 	    core->flags.N = 0;
+				
+			if (res > 0) {core->flags.N = 0; core->flags.N = 0;}
+		
+			if ((core->chip16_reg[X] % core->chip16_reg[Y]) != 0) core->flags.C = 1;
+		}
+		else SIM_LOG_INFO(1, core->obj, 0, "Dividing by zero!\n");
+		
+                chip16_increment_cycles(core, 1);
+                chip16_increment_steps(core, 1);
+                INCREMENT_PC(core);
+                break;
+        
         default:
                 SIM_LOG_ERROR(core->obj, 0,
                               "unknown instruction");
@@ -558,7 +586,6 @@ set_flags(void *arg, conf_object_t *obj,
         return Sim_Set_Ok;
 }
  
-
 /*
  * context_handler interface functions
  */

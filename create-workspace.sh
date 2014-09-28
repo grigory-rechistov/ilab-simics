@@ -3,7 +3,7 @@
 
 if [ -z $SIMICSPATH ]
 then
-    SIMICSPATH=/opt/simics/simics-4.6/simics-4.6.100
+    SIMICSPATH=/home/karfly/Documents/simics/simics-4.6/simics-4.6.100
 fi
 
 WRKSPCSTP=$SIMICSPATH/bin/workspace-setup
