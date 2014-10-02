@@ -60,6 +60,7 @@
 // TODO: Expand me
 typedef enum {
         Instr_Op_Nop    = 0x00,
+        Instr_Op_Div    = 0xA1,
 } instr_op_t;
 
 /* THREAD_SAFE_GLOBAL: hap_Control_Register_Read init */
@@ -245,7 +246,16 @@ chip16_execute(chip16_t *core, uint32 instr)
                 chip16_increment_steps(core, 1);
                 INCREMENT_PC(core);
                 break;
+        
+        case Instr_Op_Div:
+                chip16_reg[X] = res = chip16_reg[X] / chip16_reg[Y];
+              
 
+                chip16_increment_cycles(core, 1);
+                chip16_increment_steps(core, 1);
+                INCREMENT_PC(core);
+                break;
+                
         default:
                 SIM_LOG_ERROR(core->obj, 0,
                               "unknown instruction");
