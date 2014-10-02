@@ -234,6 +234,10 @@ chip16_string_decode(chip16_t *core, uint32 instr)
 void
 chip16_execute(chip16_t *core, uint32 instr)
 {
+        uint32 res = 0;
+        uint8 X = (instr >> 16) & 0xf;
+        uint8 Y = (instr >> 20) & 0xf;
+       
         switch (INSTR_OP(instr)) {
 
         case Instr_Op_Nop:
