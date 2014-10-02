@@ -60,6 +60,7 @@
 // TODO: Expand me
 typedef enum {
         Instr_Op_Nop    = 0x00,
+        Instr_Op_Div_XYZ = 0xA1,
 } instr_op_t;
 
 /* THREAD_SAFE_GLOBAL: hap_Control_Register_Read init */
@@ -243,6 +244,14 @@ chip16_execute(chip16_t *core, uint32 instr)
 
         case Instr_Op_Nop:
                 chip16_increment_cycles(core, 1);
+                chip16_increment_steps(core, 1);
+                INCREMENT_PC(core);
+                break;
+                
+        case Instr_Op_Div_XYZ:
+				
+        
+				chip16_increment_cycles(core, 1);
                 chip16_increment_steps(core, 1);
                 INCREMENT_PC(core);
                 break;
