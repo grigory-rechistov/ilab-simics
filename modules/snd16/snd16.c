@@ -11,6 +11,7 @@
 #include "sample-interface.h"
 
 #include "include/SDL2/SDL.h"
+#include "audio.h"
 
 typedef struct {
         /* Simics configuration object */
@@ -19,7 +20,7 @@ typedef struct {
         /* device specific data */
         unsigned value;
               
-
+        SDL_AudioDeviceID audiodev;
 } snd16_t;
 
 /* Allocate memory for the object. */
@@ -29,6 +30,31 @@ alloc_object(void *data)
         snd16_t *snd = MM_ZALLOC(1, snd16_t);
         return &snd->obj;
 }
+
+lang_void *init_object(conf_object_t *obj, lang_void *data) {
+        snd16_t *snd = (snd16_t*)obj;
+        
+        SDL_AudioSpec want;
+        SDL_zero(want);
+        want.freq = 44100;
+        want.format = AUDIO_S16;
+        want.channels = 1; /* mono sound */
+        want.samples = 4096;
+        want.callback = waveform_callback;
+
+        snd->audiodev = SDL_OpenAudioDevice(NULL, 0, &want, NULL, 0);
+        if (snd->audiodev == 0)
+                SIM_LOG_INFO(1, obj, 0, "Failed to open audio device");
+        return obj;
+}
+
+int delete_instance(conf_object_t *obj) {
+        snd16_t *snd = (snd16_t*)obj;
+        if (snd->audiodev)
+                SDL_CloseAudioDevice(snd->audiodev);
+        return 1;
+}
+
 
 static exception_type_t
 operation(conf_object_t *obj, generic_transaction_t *mop,
@@ -56,6 +82,11 @@ set_value_attribute(void *arg, conf_object_t *obj,
 {
         snd16_t *snd = (snd16_t *)obj;
         snd->value = SIM_attr_integer(*val);
+        
+        SDL_PauseAudioDevice(devid, 0); 
+        SDL_Delay(1000); 
+        SDL_PauseAudioDevice(devid, 1);  
+        
         return Sim_Set_Ok;
 }
 
@@ -74,6 +105,8 @@ init_local(void)
            new instances of the class */
         const class_data_t funcs = {
                 .alloc_object = alloc_object,
+                .init_object  = init_object,
+                .delete_instance = delete_instance,
                 .class_desc = "CHIP16 sound device",
                 .description =
                         "Sound device for CHIP16 platform"

@@ -4,7 +4,7 @@
 
 MODULE_CLASSES = snd16
 
-SRC_FILES = snd16.c
+SRC_FILES = snd16.c audio.c
 PYTHON_FILES = module_load.py
 
 THREAD_SAFE = yes
