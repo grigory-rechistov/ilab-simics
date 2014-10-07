@@ -656,19 +656,17 @@ chip16_all_exceptions(conf_object_t *NOTNULL obj)
 }
 
 static void
-chip16_ext_irq_raise(conf_object_t *obj)
+chip16_vblank_raise(conf_object_t *obj)
 {
         chip16_t *core = conf_to_chip16(obj);
-        SIM_LOG_INFO(2, core->obj, 0,
-                     "EXTERNAL_INTERRUPT raised.");
+        SIM_LOG_INFO(1, core->obj, 0, "VBLANK raised. TODO enable core");
 }
 
 static void
-chip16_ext_irq_lower(conf_object_t *obj)
+chip16_vblank_lower(conf_object_t *obj)
 {
         chip16_t *core = conf_to_chip16(obj);
-        SIM_LOG_INFO(2, core->obj, 0,
-                     "EXTERNAL_INTERRUPT lowered.");
+        SIM_LOG_INFO(1, core->obj, 0, "VBLANK lowered.");
 }
 
 static void
@@ -787,14 +785,14 @@ cr_register_interfaces(conf_class_t *cr_class)
         };
         SIM_register_interface(cr_class, EXCEPTION_INTERFACE, &exc_iface);
 
-        static const signal_interface_t ext_irq_iface = {
-                .signal_raise = chip16_ext_irq_raise,
-                .signal_lower = chip16_ext_irq_lower
+        static const signal_interface_t vblank_iface = {
+                .signal_raise = chip16_vblank_raise,
+                .signal_lower = chip16_vblank_lower
         };
         SIM_register_port_interface(cr_class, SIGNAL_INTERFACE,
-                                    &ext_irq_iface,
-                                    "EXTERNAL_INTERRUPT",
-                                    "External interrupt line.");
+                                    &vblank_iface,
+                                    "VBLANK",
+                                    "Interrupt line for VBLANK.");
 }
 
 void
