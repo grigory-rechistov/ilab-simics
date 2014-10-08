@@ -9,6 +9,7 @@
 #include <simics/device-api.h>
 #include <simics/devs/io-memory.h>
 #include "sample-interface.h"
+#include <simics/simulator-api.h> // For SIM_printf()
 
 #include "include/SDL2/SDL.h"
 #include "audio.h"
@@ -84,9 +85,9 @@ set_value_attribute(void *arg, conf_object_t *obj,
         snd->value = SIM_attr_integer(*val);
         
         if (!snd->audiodev)
-                return Sim_Set_Ok;
+            return Sim_Set_Ok;
         
-        SDL_PauseAudioDevice(snd->audiodev, 0);
+        SDL_PauseAudioDevice(devid, 0); 
         SDL_Delay(1000); 
         SDL_PauseAudioDevice(snd->audiodev, 1);
         

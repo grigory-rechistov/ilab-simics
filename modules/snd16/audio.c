@@ -7,20 +7,21 @@
 const int audio_volume = 1000;
 const int audio_frequency = 500;
 
-static void meandre_callback(void* userdata, Uint8* stream, int len) {
+static void meandre_callback(void* userdata, uint8_t* stream, int len) {
     // len /= 2; /* 16 bit */
-    Sint16* buf = (Sint16*)stream;
-    Sint16 sign = 1;
+    const audio_params_t *ap = (audio_params_t*)userdata;
+    
+    int16_t* buf = (int16_t*)stream;
+    int16_t sign = 1;
     for(int i = 0; i < len; i++) { 
-        buf[i] = sign * audio_volume * audio_position * audio_frequency;
-        audio_position++;
+        buf[i] = sign * audio_volume * ap->phase * audio_frequency;
+        ap->phase++;
         sign = -sign; // TODO: waveshape is wrong.
     }
     // audio_len -= len;
 }
 
-
-void waveform_callback(void* userdata, Uint8* stream, int len) {
+void waveform_callback(void* userdata, uint8_t* stream, int len) {
     const audio_params_t *ap = (audio_params_t*)userdata;
     switch (ap->wave_type) {
         case audio_meandre:

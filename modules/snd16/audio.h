@@ -17,9 +17,10 @@ typedef enum {
 typedef struct audio_params {
     wave_type_t wave_type;
     uint64_t param; //TODO expand to more state.
+    uint64_t phase;
 } audio_params_t;
 
-void waveform_callback(void* userdata, Uint8* stream, int len);
+void waveform_callback(void* userdata, uint8_t* stream, int len);
    
 
 #endif // CHIP16_AUDIO_H
