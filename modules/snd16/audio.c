@@ -10,14 +10,14 @@ const int audio_volume = 1000;
 const int audio_frequency = 500;
 
 static void meandre_callback(void* userdata, uint8_t* stream, int len) {
-    // len /= 2; /* 16 bit */
+    len /= 2; /* 16 bit */
     assert(userdata);
     audio_params_t *ap = (audio_params_t*)userdata;
     
     int16_t* buf = (int16_t*)stream;
     int16_t sign = 1;
     for(int i = 0; i < len; i++) { 
-        buf[i] = sign * audio_volume * ap->phase * audio_frequency;
+        buf[i] = sign * audio_volume * ap->phase / audio_frequency;
         ap->phase++;
         sign = -sign; // TODO: waveshape is wrong.
     }
