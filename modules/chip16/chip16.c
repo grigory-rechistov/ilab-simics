@@ -239,6 +239,10 @@ chip16_execute(chip16_t *core, uint32 instr)
         uint8 X = (instr >> 16) & 0xf;
         uint8 Y = (instr >> 20) & 0xf;
         uint8 Z = (instr >> 8) & 0xf;
+        
+        uint8 LL = (instr >> 8) & 0xf;
+        uint8 HH = instr & 0xf;
+        uint16 HHLL = (HH << 8) | LL;
        
         switch (INSTR_OP(instr)) {
 
