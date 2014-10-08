@@ -2,14 +2,16 @@
    Authors: Grigory Rechistov, 2014, and contributors of the MIPT Ilab project.
  */
 
+#include <assert.h>
 #include "include/SDL2/SDL.h"
+#include "audio.h"
 
 const int audio_volume = 1000;
 const int audio_frequency = 500;
 
 static void meandre_callback(void* userdata, uint8_t* stream, int len) {
     // len /= 2; /* 16 bit */
-    const audio_params_t *ap = (audio_params_t*)userdata;
+    audio_params_t *ap = (audio_params_t*)userdata;
     
     int16_t* buf = (int16_t*)stream;
     int16_t sign = 1;

@@ -22,6 +22,7 @@ cli.new_info_command('snd16', get_sample_info)
 def get_sample_status(obj):
     return [(None,
              ["No status yet"]
+             )]
 
 cli.new_status_command('snd16', get_sample_status)
 

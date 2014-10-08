@@ -87,7 +87,7 @@ set_value_attribute(void *arg, conf_object_t *obj,
         if (!snd->audiodev)
             return Sim_Set_Ok;
         
-        SDL_PauseAudioDevice(devid, 0); 
+        SDL_PauseAudioDevice(snd->audiodev, 0); 
         SDL_Delay(1000); 
         SDL_PauseAudioDevice(snd->audiodev, 1);
         
