@@ -83,9 +83,12 @@ set_value_attribute(void *arg, conf_object_t *obj,
         snd16_t *snd = (snd16_t *)obj;
         snd->value = SIM_attr_integer(*val);
         
-        SDL_PauseAudioDevice(devid, 0); 
+        if (!snd->audiodev)
+                return Sim_Set_Ok;
+        
+        SDL_PauseAudioDevice(snd->audiodev, 0);
         SDL_Delay(1000); 
-        SDL_PauseAudioDevice(devid, 1);  
+        SDL_PauseAudioDevice(snd->audiodev, 1);
         
         return Sim_Set_Ok;
 }
