@@ -249,18 +249,21 @@ chip16_execute(chip16_t *core, uint32 instr)
                 break;
                 
         case Instr_Op_Div_XYZ:
-				core->chip16_reg[Z] = res = core->chip16_reg[X] / core->chip16_reg[Y];
-				if (res == 0) core->flags |= Z_FLAG;
-				else 		  core->flags &= ~Z_FLAG;
+		if(core->chip16_reg[Y] != 0) {
+			core->chip16_reg[Z] = res = core->chip16_reg[X] / core->chip16_reg[Y];
+			if (res == 0) core->flags |= Z_FLAG;
+			else 	      core->flags &= ~Z_FLAG;
 				
-				if ((res & (1 << 15)) != 0) core->flags |= N_FLAG;
-				else 		 core->flags &= ~N_FLAG;
+			if ((res & (1 << 15)) != 0) core->flags |= N_FLAG;
+			else 		 core->flags &= ~N_FLAG;
 				
-				if (res > 0) {core->flags &= ~N_FLAG; core->flags &= ~Z_FLAG;}
+			if (res > 0) {core->flags &= ~N_FLAG; core->flags &= ~Z_FLAG;}
 		
-				if ((core->chip16_reg[X] % core->chip16_reg[Y]) != 0) core->flags |= C_FLAG;
-        
-				chip16_increment_cycles(core, 1);
+			if ((core->chip16_reg[X] % core->chip16_reg[Y]) != 0) core->flags |= C_FLAG;
+		}
+		else printf("Dividing by zero!\n");
+		
+		chip16_increment_cycles(core, 1);
                 chip16_increment_steps(core, 1);
                 INCREMENT_PC(core);
                 break;
