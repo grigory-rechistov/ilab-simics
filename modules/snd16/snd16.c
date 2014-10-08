@@ -22,6 +22,7 @@ typedef struct {
         unsigned value;
               
         SDL_AudioDeviceID audiodev;
+        audio_params_t audio_params;
 } snd16_t;
 
 /* Allocate memory for the object. */
@@ -42,6 +43,7 @@ lang_void *init_object(conf_object_t *obj, lang_void *data) {
         want.channels = 1; /* mono sound */
         want.samples = 4096;
         want.callback = waveform_callback;
+        want.userdata = (void*)&snd->audio_params;
 
         snd->audiodev = SDL_OpenAudioDevice(NULL, 0, &want, NULL, 0);
         if (snd->audiodev == 0)

@@ -11,6 +11,7 @@ const int audio_frequency = 500;
 
 static void meandre_callback(void* userdata, uint8_t* stream, int len) {
     // len /= 2; /* 16 bit */
+    assert(userdata);
     audio_params_t *ap = (audio_params_t*)userdata;
     
     int16_t* buf = (int16_t*)stream;
@@ -24,6 +25,7 @@ static void meandre_callback(void* userdata, uint8_t* stream, int len) {
 }
 
 void waveform_callback(void* userdata, uint8_t* stream, int len) {
+    assert(userdata);
     const audio_params_t *ap = (audio_params_t*)userdata;
     switch (ap->wave_type) {
         case audio_meandre:
