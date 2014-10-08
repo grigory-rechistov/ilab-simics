@@ -47,7 +47,8 @@ lang_void *init_object(conf_object_t *obj, lang_void *data) {
 
         snd->audiodev = SDL_OpenAudioDevice(NULL, 0, &want, NULL, 0);
         if (snd->audiodev == 0)
-                SIM_LOG_INFO(1, obj, 0, "Failed to open audio device");
+                SIM_LOG_INFO(1, obj, 0, "Failed to open audio device: %s", SDL_GetError());
+//        SIM_LOG_INFO(1, obj, 0, "Audio device is %s", SDL_GetAudioDeviceName(0, 0));
         return obj;
 }
 
