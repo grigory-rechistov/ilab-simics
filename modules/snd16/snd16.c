@@ -44,11 +44,12 @@ lang_void *init_object(conf_object_t *obj, lang_void *data) {
         want.samples = 4096;
         want.callback = waveform_callback;
         want.userdata = (void*)&snd->audio_params;
-
+        snd->audio_params.freq = want.freq;
+        snd->audio_params.sample = 1.0d / want.freq;
         snd->audiodev = SDL_OpenAudioDevice(NULL, 0, &want, NULL, 0);
         if (snd->audiodev == 0)
                 SIM_LOG_INFO(1, obj, 0, "Failed to open audio device: %s", SDL_GetError());
-//        SIM_LOG_INFO(1, obj, 0, "Audio device is %s", SDL_GetAudioDeviceName(0, 0));
+//        SIM_LOG_INFO(1, obj, 0, "Audio device is %s", SDL_GetAudioDeviceName(0, 0)); // incorrect, don't know if possible at all // GGG
         return obj;
 }
 
@@ -58,7 +59,6 @@ int delete_instance(conf_object_t *obj) {
                 SDL_CloseAudioDevice(snd->audiodev);
         return 1;
 }
-
 
 static exception_type_t
 operation(conf_object_t *obj, generic_transaction_t *mop,
@@ -86,14 +86,26 @@ set_value_attribute(void *arg, conf_object_t *obj,
 {
         snd16_t *snd = (snd16_t *)obj;
         snd->value = SIM_attr_integer(*val);
-        
+
         if (!snd->audiodev)
-            return Sim_Set_Ok;
-        
-        SDL_PauseAudioDevice(snd->audiodev, 0); 
-        SDL_Delay(1000); 
-        SDL_PauseAudioDevice(snd->audiodev, 1);
-        
+                return Sim_Set_Ok;
+        if (snd->value == 0)
+            SDL_PauseAudioDevice(snd->audiodev, 1);
+        else {
+            SDL_PauseAudioDevice(snd->audiodev, 1);
+            // prepare meandre parameters
+            snd->audio_params.wave_type = Audio_Meandre;
+            snd->audio_params.sdl_vol = 16000;
+            snd->audio_params.signal_freq = 440;
+            snd->audio_params.period = 1.0d / snd->audio_params.signal_freq;
+            snd->audio_params.phase = 0;
+            snd->audio_params.limit = 7000;
+            snd->audio_params.sign = 1;
+            
+            SDL_PauseAudioDevice(snd->audiodev, 0); 
+            SDL_Delay(500);
+            SDL_PauseAudioDevice(snd->audiodev, 1);
+        }
         return Sim_Set_Ok;
 }
 
