@@ -48,18 +48,35 @@
  *
  *           31   28 27   24 23   20 19   16 15   12 11    8 7     4 3     0
  *          |-------|-------|-------|-------|-------|-------|-------|-------|
- *               opcode     |   Y   |   X   |      LL       |      HH       |
+ *          |    opcode     |   Y   |   X   |      LL       |      HH       |
  */
 
 #define INSTR_OP(i)       (((i) >> 24) & 0xff)
 #define INSTR_SRC_REG(i)  (((i) >> 20) & 0xf)
 #define INSTR_DST_REG(i)  (((i) >> 16) & 0xf)
-#define INSTR_LL          (((i) >> 8) & 0xff)
-#define INSTR_HH          ((i) & 0xff)
+#define INSTR_LL(i)       (((i) >> 8) & 0xff)
+#define INSTR_HH(i)       ((i) & 0xff)
+
+/*
+ *
+ *
+ *           7 6 5   3 2 1 0
+ *          |-|-|-----|-|-|-|
+ *          |N|O|     |Z|C| |
+ */
+#define SET_FLAG_C(i)     ((i) |= 0x2)
+#define SET_FLAG_Z(i)     ((i) |= 0x4)
+#define SET_FLAG_O(i)     ((i) |= 0x40)
+#define SET_FLAG_N(i)     ((i) |= 0x80)
+#define CLEAR_FLAG_C(i)   ((i) &= 0xfd)
+#define CLEAR_FLAG_Z(i)   ((i) &= 0xfb)
+#define CLEAR_FLAG_O(i)   ((i) &= 0xbf)
+#define CLEAR_FLAG_N(i)   ((i) &= 0x7f)
 
 // TODO: Expand me
 typedef enum {
-        Instr_Op_Nop    = 0,
+        Instr_Op_Nop          = 0,
+	Instr_Op_CALL_Rx      = 0x18,
 } instr_op_t;
 
 /* THREAD_SAFE_GLOBAL: hap_Control_Register_Read init */
@@ -234,6 +251,9 @@ chip16_string_decode(chip16_t *core, uint32 instr)
 void
 chip16_execute(chip16_t *core, uint32 instr)
 {
+        int16_t x = 0;
+        int16_t y = 0;
+        int16_t z = 0;
         switch (INSTR_OP(instr)) {
 
         case Instr_Op_Nop:
@@ -241,7 +261,15 @@ chip16_execute(chip16_t *core, uint32 instr)
                 chip16_increment_steps(core, 1);
                 INCREMENT_PC(core);
                 break;
-
+	case Instr_Op_CALL_Rx:
+                x = chip16_get_gpr(INSTR_DST_REG(instr));
+                chip16_write_memory32(core, chip16_get_pc(core), chip16_get_stack_pointer(core), chip16_get_pc(core));
+                increment_stack_pointer(core, 2);
+                chip16_set_pc(core, x);
+                chip16_increment_cycles(core, 1);
+                chip16_increment_steps(core, 1);
+                INCREMENT_PC(core);
+	        break;
         default:
                 SIM_LOG_ERROR(core->obj, 0,
                               "unknown instruction");

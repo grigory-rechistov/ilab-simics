@@ -134,7 +134,9 @@ typedef struct chip16 {
         cycles_t idle_cycles;
 
         logical_address_t chip16_pc;
-        uint32 chip16_reg[16];
+        int16_t stack_pointer;
+        int16_t chip16_reg[16];
+	int8_t flags;
 
 
         /* The list of registers for this class of cores */
