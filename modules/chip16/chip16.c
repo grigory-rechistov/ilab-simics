@@ -378,6 +378,33 @@ set_idle_cycles(void *arg, conf_object_t *obj,
 }
 
 /*
+ * gprs attribute functions
+ */
+static attr_value_t
+get_gprs(void *arg, conf_object_t *obj, attr_value_t *idx)
+{
+        chip16_t *cpu = conf_to_chip16(obj);
+	attr_value_t res = SIM_alloc_attr_list(16);
+	for (int i = 0; i < 16; i++) {
+		SIM_attr_list_set_item(&res, i, SIM_make_attr_uint64(cpu->chip16_reg[i]));
+	}
+        return res;
+}
+
+static set_error_t
+set_gprs(void *arg, conf_object_t *obj,
+                attr_value_t *val, attr_value_t *idx)
+{
+        chip16_t *cpu = conf_to_chip16(obj);
+	for (int i = 0; i < 16; i++) {
+		cpu->chip16_reg[i] = SIM_attr_integer(SIM_attr_list_item(*val, i));
+	}
+
+        return Sim_Set_Ok;
+}
+ 
+
+/*
  * context_handler interface functions
  */
 static conf_object_t *
@@ -864,6 +891,14 @@ cr_register_attributes(conf_class_t *cr_class)
                 Sim_Attr_Optional,
                 "i", NULL,
                 "Number of idle cycles.");
+                
+	SIM_register_typed_attribute(
+                cr_class, "gprs",
+                get_gprs, NULL,
+                set_gprs, NULL,
+                Sim_Attr_Optional,
+                "[i*]", NULL,
+                "General purpose registers.");
 }
 
 /* access_type is Sim_Access_Read, Sim_Access_Write, Sim_Access_Execute */
