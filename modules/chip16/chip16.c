@@ -60,7 +60,7 @@
 // TODO: Expand me
 typedef enum {
         Instr_Op_Nop    = 0x00,
-        Instr_Op_Div_XYZ = 0xA1,
+        Instr_Op_Div_XYZ = 0xA2,
 } instr_op_t;
 
 /* THREAD_SAFE_GLOBAL: hap_Control_Register_Read init */
