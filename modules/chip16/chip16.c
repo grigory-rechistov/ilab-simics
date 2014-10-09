@@ -59,7 +59,8 @@
 
 // TODO: Expand me
 typedef enum {
-        Instr_Op_Nop    = 0,
+        Instr_Op_Nop    = 0x00,
+        Instr_Op_Div_XYZ = 0xA2,
 } instr_op_t;
 
 /* THREAD_SAFE_GLOBAL: hap_Control_Register_Read init */
@@ -233,7 +234,12 @@ chip16_string_decode(chip16_t *core, uint32 instr)
 
 void
 chip16_execute(chip16_t *core, uint32 instr)
-{
+{	
+        uint32 res = 0;
+        uint8 X = (instr >> 16) & 0xf;
+        uint8 Y = (instr >> 20) & 0xf;
+        uint8 Z = (instr >> 8) & 0xf;
+
         switch (INSTR_OP(instr)) {
 
         case Instr_Op_Nop:
@@ -241,8 +247,28 @@ chip16_execute(chip16_t *core, uint32 instr)
                 chip16_increment_steps(core, 1);
                 INCREMENT_PC(core);
                 break;
-
-        default:
+                
+        case Instr_Op_Div_XYZ:
+		if(core->chip16_reg[Y] != 0) {
+			core->chip16_reg[Z] = res = core->chip16_reg[X] / core->chip16_reg[Y];
+			if (res == 0) core->flags.Z = 1;
+			else 	      core->flags.Z = 0;
+				
+			if ((res & (1 << 15)) != 0) core->flags.N = 1;
+			else 		 	    core->flags.N = 0;
+				
+			if (res > 0) {core->flags.N = 0; core->flags.N = 0;}
+		
+			if ((core->chip16_reg[X] % core->chip16_reg[Y]) != 0) core->flags.C = 1;
+		}
+		else SIM_LOG_INFO(1, core->obj, 0, "Dividing by zero!\n");
+		
+		chip16_increment_cycles(core, 1);
+                chip16_increment_steps(core, 1);
+                INCREMENT_PC(core);
+                break;
+        
+	default:
                 SIM_LOG_ERROR(core->obj, 0,
                               "unknown instruction");
                 break;
@@ -349,6 +375,64 @@ set_idle_cycles(void *arg, conf_object_t *obj,
         core->idle_cycles = SIM_attr_integer(*val);
         return Sim_Set_Ok;
 }
+
+/*
+ * gprs attribute functions
+ */
+static attr_value_t
+get_gprs(void *arg, conf_object_t *obj, attr_value_t *idx)
+{
+        chip16_t *cpu = conf_to_chip16(obj);
+	attr_value_t res = SIM_alloc_attr_list(16);
+	for (int i = 0; i < 16; i++) {
+		SIM_attr_list_set_item(&res, i, SIM_make_attr_uint64(cpu->chip16_reg[i]));
+	}
+        return res;
+}
+
+static set_error_t
+set_gprs(void *arg, conf_object_t *obj,
+                attr_value_t *val, attr_value_t *idx)
+{
+        chip16_t *cpu = conf_to_chip16(obj);
+	for (int i = 0; i < 16; i++) {
+		cpu->chip16_reg[i] = SIM_attr_integer(SIM_attr_list_item(*val, i));
+	}
+
+        return Sim_Set_Ok;
+}
+
+/*
+ * flags attribute functions
+ */
+static attr_value_t
+get_flags(void *arg, conf_object_t *obj, attr_value_t *idx)
+{
+        chip16_t *cpu = conf_to_chip16(obj);
+	attr_value_t res = SIM_alloc_attr_list(4);
+	
+	SIM_attr_list_set_item(&res, 0, SIM_make_attr_uint64(cpu->flags.C));
+	SIM_attr_list_set_item(&res, 1, SIM_make_attr_uint64(cpu->flags.Z));
+	SIM_attr_list_set_item(&res, 2, SIM_make_attr_uint64(cpu->flags.O));
+	SIM_attr_list_set_item(&res, 3, SIM_make_attr_uint64(cpu->flags.N));
+
+        return res;
+}
+
+static set_error_t
+set_flags(void *arg, conf_object_t *obj,
+                attr_value_t *val, attr_value_t *idx)
+{
+        chip16_t *cpu = conf_to_chip16(obj);
+	
+	cpu->flags.C = SIM_attr_integer(SIM_attr_list_item(*val, 0));
+	cpu->flags.Z = SIM_attr_integer(SIM_attr_list_item(*val, 1));
+	cpu->flags.O = SIM_attr_integer(SIM_attr_list_item(*val, 2));
+	cpu->flags.N = SIM_attr_integer(SIM_attr_list_item(*val, 3));
+
+        return Sim_Set_Ok;
+}
+ 
 
 /*
  * context_handler interface functions
@@ -835,6 +919,25 @@ cr_register_attributes(conf_class_t *cr_class)
                 Sim_Attr_Optional,
                 "i", NULL,
                 "Number of idle cycles.");
+                
+	SIM_register_typed_attribute(
+                cr_class, "gprs",
+                get_gprs, NULL,
+                set_gprs, NULL,
+                Sim_Attr_Optional,
+                "[i*]", NULL,
+                "General purpose registers.");
+                
+	SIM_register_typed_attribute(
+                cr_class, "flags",
+                get_flags, NULL,
+                set_flags, NULL,
+                Sim_Attr_Optional,
+                "[i*]", NULL,
+                "Flags.");
+
+                
+                
 }
 
 /* access_type is Sim_Access_Read, Sim_Access_Write, Sim_Access_Execute */
