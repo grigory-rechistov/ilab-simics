@@ -78,8 +78,6 @@
  *
  */
 
-// #define FLAGS_INIT(f)  ((f).byte = 0)
-
 #define CLR_CARRY(f)    ((f).map.C = 0)
 #define CLR_ZERO(f)     ((f).map.Z = 0)
 #define CLR_OVRFLW(f)   ((f).map.O = 0)
@@ -95,8 +93,9 @@
 
 // TODO: Expand me
 typedef enum {
-        Instr_Op_Nop    = 0x00,
-        Instr_Op_Div_XYZ = 0xA2,
+        Instr_Op_Nop            = 0x00,
+        Instr_Op_Div_XYZ        = 0xA2,
+        Instr_Op_MULI           = 0x90,
 } instr_op_t;
 
 /* THREAD_SAFE_GLOBAL: hap_Control_Register_Read init */
@@ -186,6 +185,51 @@ chip16_set_reg(void *reg, conf_object_t *obj,
                 ASSERT(0);
         }
         return ret;
+}
+
+static attr_value_t
+chip16_get_gprs(void *reg, conf_object_t *obj, attr_value_t *idx)
+{
+        chip16_t *cpu = conf_to_chip16(obj);
+	attr_value_t res = SIM_alloc_attr_list(16);
+	for (int i = 0; i < 16; i++) {
+		SIM_attr_list_set_item(&res, i, SIM_make_attr_uint64(cpu->chip16_reg[i]));
+	}
+        return res;
+}
+
+static set_error_t
+chip16_set_gprs(void *reg, conf_object_t *obj,
+               attr_value_t *val, attr_value_t *idx)
+{
+        chip16_t *cpu = conf_to_chip16(obj);
+	for (int i = 0; i < 16; i++) {
+		cpu->chip16_reg[i] = SIM_attr_integer(SIM_attr_list_item(*val, i));
+	}
+
+        return Sim_Set_Ok;
+}
+
+static attr_value_t
+chip16_get_flags(void *arg, conf_object_t *obj, attr_value_t *idx)
+{
+        chip16_t *core = conf_to_chip16(obj);
+        return SIM_make_attr_uint64(core->flags.byte);
+}
+
+static set_error_t
+chip16_set_flags(void *arg, conf_object_t *obj,
+                attr_value_t *val, attr_value_t *idx)
+{
+        chip16_t *core = conf_to_chip16(obj);
+        int value = SIM_attr_integer(*val);
+
+        if ( (0 <= value) && (value <= 0xff) )
+                core->flags.byte = value;
+        else
+                return Sim_Set_Illegal_Value;
+
+        return Sim_Set_Ok;
 }
 
 logical_address_t
@@ -282,9 +326,9 @@ chip16_execute(chip16_t *core, uint32 instr)
         // uint8 LL = INSTR_LL(instr);
         // uint8 HH = INSTR_HH(instr);
 
-        // uint16 HHLL = INSTR_HHLL(instr);
+        uint16 HHLL = INSTR_HHLL(instr);
 
-        // int tmp = 0;
+        int tmp = 0;
 
         switch (opcode) {
 
@@ -312,6 +356,30 @@ chip16_execute(chip16_t *core, uint32 instr)
 		chip16_increment_cycles(core, 1);
                 chip16_increment_steps(core, 1);
                 INCREMENT_PC(core);
+
+        case Instr_Op_MULI:
+                core->chip16_reg[X] *= HHLL;
+                
+                tmp = core->chip16_reg[X] * HHLL;
+                if (tmp > 0xffff)
+                        SET_CARRY(core->flags);
+                else
+                        CLR_CARRY(core->flags);
+                
+                if (tmp == 0)
+                        SET_ZERO(core->flags);
+                else
+                        CLR_ZERO(core->flags);
+
+                if ( BIT_15(core->chip16_reg[X]) == 1)
+                        SET_NEG(core->flags);
+                else
+                        CLR_NEG(core->flags);
+                
+                chip16_increment_cycles (core, 1);
+                chip16_increment_steps  (core, 1);
+                INCREMENT_PC(core);
+ 
                 break;
 
 	default:
@@ -942,6 +1010,22 @@ cr_register_attributes(conf_class_t *cr_class)
                 Sim_Attr_Optional,
                 "i", NULL,
                 "Programm counter.");
+
+        SIM_register_typed_attribute(
+                cr_class, "gprs",
+                chip16_get_gprs, NULL,
+                chip16_set_gprs, NULL,
+                Sim_Attr_Optional,
+                "[i*]", NULL,
+                "General purpose registers.");
+
+        SIM_register_typed_attribute(
+                cr_class, "flags",
+                chip16_get_flags, NULL,
+                chip16_set_flags, NULL,
+                Sim_Attr_Optional,
+                "i", NULL,
+                "Flags of CPU.");
 
         SIM_register_typed_attribute(
                 cr_class, "physical_memory_space",
