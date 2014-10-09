@@ -76,7 +76,7 @@
 // TODO: Expand me
 typedef enum {
         Instr_Op_Nop          = 0,
-	Instr_Op_CALL_Rx      = 0x18,
+	Instr_Op_ADD_Rx_Ry_Rz = 0x42,
 } instr_op_t;
 
 /* THREAD_SAFE_GLOBAL: hap_Control_Register_Read init */
@@ -261,11 +261,15 @@ chip16_execute(chip16_t *core, uint32 instr)
                 chip16_increment_steps(core, 1);
                 INCREMENT_PC(core);
                 break;
-	case Instr_Op_CALL_Rx:
-                x = chip16_get_gpr(INSTR_DST_REG(instr));
-                chip16_write_memory32(core, chip16_get_pc(core), chip16_get_stack_pointer(core), chip16_get_pc(core));
-                increment_stack_pointer(core, 2);
-                chip16_set_pc(core, x);
+	case Instr_Op_ADD_Rx_Ry_Rz:
+                x = chip16_get_gpr(core, INSTR_DST_REG(instr));
+                y = chip16_get_gpr(core, INSTR_SRC_REG(instr));
+                z = x + y;
+                chip16_set_gpr(core, (((instr) >> 8) & 0xf), z );
+                if (((x<0)==(y<0))&&((x<0)!=(z<0))) SET_FLAG_C(core->flags); else CLEAR_FLAG_Z(core->flags);
+                if (z==0) SET_FLAG_Z(core->flags); else CLEAR_FLAG_Z(core->flags);
+                if (((z>0) && (y<0) && (x>0)) || ((z<0) && (y>0) && (x<0))) SET_FLAG_O(core->flags); else CLEAR_FLAG_O(core->flags);
+                if (z<0) SET_FLAG_N(core->flags); else CLEAR_FLAG_N(core->flags);
                 chip16_increment_cycles(core, 1);
                 chip16_increment_steps(core, 1);
                 INCREMENT_PC(core);
