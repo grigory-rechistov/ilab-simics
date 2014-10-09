@@ -358,9 +358,10 @@ chip16_execute(chip16_t *core, uint32 instr)
                 INCREMENT_PC(core);
 
         case Instr_Op_MULI:
+
+                tmp = core->chip16_reg[X] * HHLL;
                 core->chip16_reg[X] *= HHLL;
                 
-                tmp = core->chip16_reg[X] * HHLL;
                 if (tmp > 0xffff)
                         SET_CARRY(core->flags);
                 else
@@ -371,7 +372,7 @@ chip16_execute(chip16_t *core, uint32 instr)
                 else
                         CLR_ZERO(core->flags);
 
-                if ( BIT_15(core->chip16_reg[X]) == 1)
+                if ( BIT_15(tmp) == 1 )
                         SET_NEG(core->flags);
                 else
                         CLR_NEG(core->flags);
