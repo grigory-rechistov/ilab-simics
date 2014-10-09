@@ -261,7 +261,7 @@ chip16_execute(chip16_t *core, uint32 instr)
 		
 			if ((core->chip16_reg[X] % core->chip16_reg[Y]) != 0) core->flags.C = 1;
 		}
-		else printf("Dividing by zero!\n");
+		else SIM_LOG_INFO(1, core->obj, 0, "Dividing by zero!\n");
 		
 		chip16_increment_cycles(core, 1);
                 chip16_increment_steps(core, 1);
