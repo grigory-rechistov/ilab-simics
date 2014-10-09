@@ -28,11 +28,6 @@
 #include "event-queue-types.h"
 #include "chip16-exec.h"
 
-#define Z_FLAG 0x00000100
-#define C_FLAG 0x00000001
-#define O_FLAG 0x01000000
-#define N_FLAG 0x10000000
-
 struct chip16;
 typedef struct chip16 chip16_t;
 
