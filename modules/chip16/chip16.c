@@ -234,13 +234,12 @@ chip16_string_decode(chip16_t *core, uint32 instr)
 
 void
 chip16_execute(chip16_t *core, uint32 instr)
-{
+{	
         uint32 res = 0;
         uint8 X = (instr >> 16) & 0xf;
         uint8 Y = (instr >> 20) & 0xf;
         uint8 Z = (instr >> 8) & 0xf;
 
-       
         switch (INSTR_OP(instr)) {
 
         case Instr_Op_Nop:
@@ -399,6 +398,37 @@ set_gprs(void *arg, conf_object_t *obj,
 	for (int i = 0; i < 16; i++) {
 		cpu->chip16_reg[i] = SIM_attr_integer(SIM_attr_list_item(*val, i));
 	}
+
+        return Sim_Set_Ok;
+}
+
+/*
+ * flags attribute functions
+ */
+static attr_value_t
+get_flags(void *arg, conf_object_t *obj, attr_value_t *idx)
+{
+        chip16_t *cpu = conf_to_chip16(obj);
+	attr_value_t res = SIM_alloc_attr_list(4);
+	
+	SIM_attr_list_set_item(&res, 0, SIM_make_attr_uint64(cpu->flags.C));
+	SIM_attr_list_set_item(&res, 1, SIM_make_attr_uint64(cpu->flags.Z));
+	SIM_attr_list_set_item(&res, 2, SIM_make_attr_uint64(cpu->flags.O));
+	SIM_attr_list_set_item(&res, 3, SIM_make_attr_uint64(cpu->flags.N));
+
+        return res;
+}
+
+static set_error_t
+set_flags(void *arg, conf_object_t *obj,
+                attr_value_t *val, attr_value_t *idx)
+{
+        chip16_t *cpu = conf_to_chip16(obj);
+	
+	cpu->flags.C = SIM_attr_integer(SIM_attr_list_item(*val, 0));
+	cpu->flags.Z = SIM_attr_integer(SIM_attr_list_item(*val, 1));
+	cpu->flags.O = SIM_attr_integer(SIM_attr_list_item(*val, 2));
+	cpu->flags.N = SIM_attr_integer(SIM_attr_list_item(*val, 3));
 
         return Sim_Set_Ok;
 }
@@ -899,6 +929,17 @@ cr_register_attributes(conf_class_t *cr_class)
                 Sim_Attr_Optional,
                 "[i*]", NULL,
                 "General purpose registers.");
+                
+	SIM_register_typed_attribute(
+                cr_class, "flags",
+                get_flags, NULL,
+                set_flags, NULL,
+                Sim_Attr_Optional,
+                "[i*]", NULL,
+                "Flags.");
+
+                
+                
 }
 
 /* access_type is Sim_Access_Read, Sim_Access_Write, Sim_Access_Execute */

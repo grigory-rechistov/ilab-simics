@@ -31,6 +31,18 @@
 struct chip16;
 typedef struct chip16 chip16_t;
 
+
+/* flags */	           /* | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | */
+	                   /* | - | C | Z | - | - | - | O | N | */
+struct flag_bits {
+	unsigned:   1;
+	unsigned C: 1;
+	unsigned Z: 1;
+	unsigned:   3;
+	unsigned O: 1;
+	unsigned N: 1;
+};
+
 typedef short sample_reg_number_t;
 typedef uint64 (*reg_get_function_ptr)(chip16_t *core, int n);
 typedef void (*reg_set_function_ptr)(chip16_t *core, int n, uint64 value);
@@ -167,9 +179,8 @@ typedef struct chip16 {
         const simple_dispatcher_interface_t *frequency_dispatcher_iface;
         frequency_target_list_t frequency_targets;
 
-	/* flags */	/* | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | */
-	                /* | - | c | z | - | - | - | o | N | */
-	uint8 flags;   
+	/* flags */	
+	struct flag_bits flags;  
 
 } chip16_t;
 
