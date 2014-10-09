@@ -7,7 +7,7 @@ cli.run_command("run-python-file %s/targets/chip16/machine.py" % conf.sim.worksp
 def test_one_availability(cpu):
     paddr = 0x4	
     cpu.pc = paddr
-    cpu.gprs[4] = 0xbaadc0de
+    cpu.gprs[4] = 501
     cpu.gprs[2] = 100
     cpu.gprs[1] = 0
     res = cpu.gprs[4] / cpu.gprs[2]
@@ -15,7 +15,7 @@ def test_one_availability(cpu):
     simics.SIM_write_phys_memory(cpu, paddr, 0xA2240100, 4)
     SIM_continue(1)
     stest.expect_equal(cpu.pc, paddr + 4)
-    stest.expect_equal(cpu.gprs[1], res)
+    stest.expect_equal(cpu.flags[0], 1)
     print "DIV_RX_RY_RZ: success"
 
 

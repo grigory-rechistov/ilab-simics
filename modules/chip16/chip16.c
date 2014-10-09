@@ -268,7 +268,7 @@ chip16_execute(chip16_t *core, uint32 instr)
                 INCREMENT_PC(core);
                 break;
         
-    default:
+	default:
                 SIM_LOG_ERROR(core->obj, 0,
                               "unknown instruction");
                 break;
