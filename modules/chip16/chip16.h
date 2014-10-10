@@ -4,7 +4,7 @@
   This Software is part of Wind River Simics. The rights to copy, distribute,
   modify, or otherwise make use of this Software may be licensed only
   pursuant to the terms of an applicable Wind River license agreement.
-  
+
   Copyright 2010-2014 Intel Corporation
 
 */
@@ -148,10 +148,11 @@ typedef struct chip16 {
         logical_address_t chip16_pc;
         uint32 chip16_reg[16];
 
+        /* flags */
+        struct flag_bits flags;
 
         /* The list of registers for this class of cores */
         register_table reg_table;
-
 
         /* page cache */
         int number_of_cached_pages;
@@ -178,10 +179,6 @@ typedef struct chip16 {
         char *frequency_dispatcher_port;
         const simple_dispatcher_interface_t *frequency_dispatcher_iface;
         frequency_target_list_t frequency_targets;
-
-	/* flags */	
-	struct flag_bits flags;  
-
 } chip16_t;
 
 static inline conf_object_t *
