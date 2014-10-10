@@ -5,7 +5,7 @@ on top of Wind River Simics [2] framework.
 
 # License
 
-Licenses of third-party components are provided within the corresponding directories.
+Licenses for third-party components are provided within the corresponding directories.
 
 # Source code
 
