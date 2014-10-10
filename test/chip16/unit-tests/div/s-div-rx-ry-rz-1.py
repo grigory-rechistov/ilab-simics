@@ -5,7 +5,7 @@ import stest
 cli.run_command("run-python-file %s/targets/chip16/machine.py" % conf.sim.workspace)
 
 def test_one_availability(cpu):
-    paddr = 0x4	
+    paddr = 0x4
     cpu.pc = paddr
     cpu.gprs[4] = 501
     cpu.gprs[2] = 100
@@ -17,6 +17,5 @@ def test_one_availability(cpu):
     stest.expect_equal(cpu.pc, paddr + 4)
     stest.expect_equal(cpu.flags[0], 1)
     print "DIV_RX_RY_RZ: success"
-
 
 test_one_availability(conf.chip0)
