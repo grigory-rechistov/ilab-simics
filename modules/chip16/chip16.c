@@ -191,10 +191,10 @@ static attr_value_t
 chip16_get_gprs(void *reg, conf_object_t *obj, attr_value_t *idx)
 {
         chip16_t *cpu = conf_to_chip16(obj);
-	attr_value_t res = SIM_alloc_attr_list(16);
-	for (int i = 0; i < 16; i++) {
-		SIM_attr_list_set_item(&res, i, SIM_make_attr_uint64(cpu->chip16_reg[i]));
-	}
+        attr_value_t res = SIM_alloc_attr_list(16);
+        for (int i = 0; i < 16; i++) {
+                SIM_attr_list_set_item(&res, i, SIM_make_attr_uint64(cpu->chip16_reg[i]));
+        }
         return res;
 }
 
@@ -203,9 +203,9 @@ chip16_set_gprs(void *reg, conf_object_t *obj,
                attr_value_t *val, attr_value_t *idx)
 {
         chip16_t *cpu = conf_to_chip16(obj);
-	for (int i = 0; i < 16; i++) {
-		cpu->chip16_reg[i] = SIM_attr_integer(SIM_attr_list_item(*val, i));
-	}
+        for (int i = 0; i < 16; i++) {
+                cpu->chip16_reg[i] = SIM_attr_integer(SIM_attr_list_item(*val, i));
+        }
 
         return Sim_Set_Ok;
 }
@@ -317,7 +317,7 @@ chip16_execute(chip16_t *core, uint32 instr)
 {
         uint16 opcode = INSTR_OP(instr);
 
-	uint8 X = INSTR_DST_REG(instr);
+        uint8 X = INSTR_DST_REG(instr);
         uint8 Y = INSTR_SRC_REG(instr);
         uint8 Z = INSTR_Z_REG(instr);
 
@@ -337,32 +337,32 @@ chip16_execute(chip16_t *core, uint32 instr)
                 break;
 
         case Instr_Op_Div_XYZ:
-		if(core->chip16_reg[Y] != 0) {
-			
+                if(core->chip16_reg[Y] != 0) {
+                        
                         core->chip16_reg[Z] = res = core->chip16_reg[X] / core->chip16_reg[Y];
-			
+                        
                         if (res == 0)
                                 SET_ZERO(core->flags);
-			else
+                        else
                                 CLR_ZERO(core->flags);
 
-			if ((res & (1 << 15)) != 0)
+                        if ((res & (1 << 15)) != 0)
                                 SET_NEG(core->flags);
-			else
+                        else
                                 CLR_NEG(core->flags);
 
-			if (res > 0) {
+                        if (res > 0) {
                                 CLR_NEG (core->flags);
                                 CLR_ZERO(core->flags);
                         }
 
-			if ((core->chip16_reg[X] % core->chip16_reg[Y]) != 0)
+                        if ((core->chip16_reg[X] % core->chip16_reg[Y]) != 0)
                                 SET_CARRY(core->flags);
-		}
-		else
+                }
+                else
                         SIM_LOG_INFO(1, core->obj, 0, "Dividing by zero!\n");
 
-		chip16_increment_cycles (core, 1);
+                chip16_increment_cycles (core, 1);
                 chip16_increment_steps  (core, 1);
                 INCREMENT_PC(core);
 
@@ -394,7 +394,7 @@ chip16_execute(chip16_t *core, uint32 instr)
  
                 break;
 
-	default:
+        default:
                 SIM_LOG_ERROR(core->obj, 0,
                               "unknown instruction");
                 break;
@@ -950,11 +950,11 @@ cr_register_interfaces(conf_class_t *cr_class)
 void
 cr_register_attributes(conf_class_t *cr_class)
 {
-		hap_Control_Register_Read =
-				SIM_hap_get_number("Core_Control_Register_Read");
-		hap_Control_Register_Write =
-				SIM_hap_get_number("Core_Control_Register_Write");
-		hap_Magic_Instruction = SIM_hap_get_number("Core_Magic_Instruction");
+                hap_Control_Register_Read =
+                                SIM_hap_get_number("Core_Control_Register_Read");
+                hap_Control_Register_Write =
+                                SIM_hap_get_number("Core_Control_Register_Write");
+                hap_Magic_Instruction = SIM_hap_get_number("Core_Magic_Instruction");
 
         SIM_register_typed_attribute(
                 cr_class, "pc",
