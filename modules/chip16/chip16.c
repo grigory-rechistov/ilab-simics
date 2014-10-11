@@ -96,6 +96,10 @@ typedef enum {
         Instr_Op_Nop            = 0x00,
         Instr_Op_Div_XYZ        = 0xA2,
         Instr_Op_MULI           = 0x90,
+        Instr_Op_Div            = 0xA1,
+        Instr_Op_Xor            = 0x81,
+        Instr_Op_Remi           = 0xA6,
+        Instr_Op_Noti           = 0xE0,
 } instr_op_t;
 
 /* THREAD_SAFE_GLOBAL: hap_Control_Register_Read init */
@@ -323,49 +327,16 @@ chip16_execute(chip16_t *core, uint32 instr)
 
         // uint8 LL = INSTR_LL(instr);
         // uint8 HH = INSTR_HH(instr);
-
         uint16 HHLL = INSTR_HHLL(instr);
 
         int res = 0;
 
         switch (opcode) {
-
+       
         case Instr_Op_Nop:
                 chip16_increment_cycles(core, 1);
                 chip16_increment_steps(core, 1);
                 INCREMENT_PC(core);
-                break;
-
-        case Instr_Op_Div_XYZ:
-                if(core->chip16_reg[Y] != 0) {
-                        
-                        core->chip16_reg[Z] = res = core->chip16_reg[X] / core->chip16_reg[Y];
-                        
-                        if (res == 0)
-                                SET_ZERO(core->flags);
-                        else
-                                CLR_ZERO(core->flags);
-
-                        if ((res & (1 << 15)) != 0)
-                                SET_NEG(core->flags);
-                        else
-                                CLR_NEG(core->flags);
-
-                        if (res > 0) {
-                                CLR_NEG (core->flags);
-                                CLR_ZERO(core->flags);
-                        }
-
-                        if ((core->chip16_reg[X] % core->chip16_reg[Y]) != 0)
-                                SET_CARRY(core->flags);
-                }
-                else
-                        SIM_LOG_INFO(1, core->obj, 0, "Dividing by zero!\n");
-
-                chip16_increment_cycles (core, 1);
-                chip16_increment_steps  (core, 1);
-                INCREMENT_PC(core);
-
                 break;
 
         case Instr_Op_MULI:
@@ -394,9 +365,100 @@ chip16_execute(chip16_t *core, uint32 instr)
  
                 break;
 
+        case Instr_Op_Div:
+
+                if (core->chip16_reg[Y] != 0) {
+                        if (core->chip16_reg[X] % core->chip16_reg[Y] != 0) SET_CARRY(core->flags);
+                        else                                                CLR_CARRY(core->flags); 
+                        res = core->chip16_reg[X] / core->chip16_reg[Y];
+                        core->chip16_reg[X] = res;
+                        
+                        if (res == 0) SET_ZERO(core->flags);
+                        else          CLR_ZERO(core->flags);
+                        
+                        if ((res & (1 << 15)) != 0) SET_NEG(core->flags);
+                        else                        CLR_NEG(core->flags);
+                }
+
+                else SIM_LOG_INFO(1, core->obj, 0, "Dividing by zero!\n");
+       
+                chip16_increment_cycles(core, 1);
+                chip16_increment_steps(core, 1);
+                INCREMENT_PC(core);
+                break;
+
+        
+        case Instr_Op_Xor:
+                        
+                core->chip16_reg[X] = res = core->chip16_reg[X] ^ core->chip16_reg[Y];
+               
+                if (res == 0) SET_ZERO(core->flags);
+                else          CLR_ZERO(core->flags);
+               
+                if ((res & (1 << 15)) != 0) SET_NEG(core->flags);
+                else                        CLR_NEG(core->flags);
+                       
+                chip16_increment_cycles(core, 1);
+                chip16_increment_steps(core, 1);
+                INCREMENT_PC(core);
+                break;
+                
+        case Instr_Op_Div_XYZ:
+
+                if(core->chip16_reg[Y] != 0) {
+                        if (core->chip16_reg[X] % core->chip16_reg[Y] != 0) SET_CARRY(core->flags);
+
+                        else                                                CLR_CARRY(core->flags); 
+                        res = core->chip16_reg[X] / core->chip16_reg[Y];
+                        core->chip16_reg[Z] = res;
+                        
+                        if (res == 0) SET_ZERO(core->flags);
+                        else          CLR_ZERO(core->flags);
+                        
+                        if ((res & (1 << 15)) != 0) SET_NEG(core->flags);
+                        else                        CLR_NEG(core->flags);
+                }              
+                
+                else SIM_LOG_INFO(1, core->obj, 0, "Dividing by zero!\n");
+         
+                chip16_increment_cycles(core, 1);
+                chip16_increment_steps(core, 1);
+                INCREMENT_PC(core);
+                break;
+
+        case Instr_Op_Remi:
+
+                core->chip16_reg[X] = res = core->chip16_reg[X] % HHLL;
+                
+                if (res == 0) SET_ZERO(core->flags);
+                else          CLR_ZERO(core->flags);
+                        
+                if ((res & (1 << 15)) != 0) SET_NEG(core->flags);
+                else                        CLR_NEG(core->flags);
+        
+                chip16_increment_cycles(core, 1);
+                chip16_increment_steps(core, 1);
+                INCREMENT_PC(core);
+                break;
+                
+        case Instr_Op_Noti:
+
+                core->chip16_reg[X] = res = ~HHLL & 0xFFFF;
+                
+                if (res == 0) SET_ZERO(core->flags);
+                else          CLR_ZERO(core->flags);
+                        
+                if ((res & (1 << 15)) != 0) SET_NEG(core->flags);
+                else                        CLR_NEG(core->flags);
+                                
+                chip16_increment_cycles(core, 1);
+                chip16_increment_steps(core, 1);
+                INCREMENT_PC(core);
+                break;
+                                
         default:
                 SIM_LOG_ERROR(core->obj, 0,
-                              "unknown instruction");
+                                "unknown instruction");
                 break;
         }
 }
@@ -1003,6 +1065,7 @@ cr_register_attributes(conf_class_t *cr_class)
                 Sim_Attr_Optional,
                 "i", NULL,
                 "Number of idle cycles.");
+                
 }
 
 /* access_type is Sim_Access_Read, Sim_Access_Write, Sim_Access_Execute */
