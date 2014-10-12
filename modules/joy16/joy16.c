@@ -21,40 +21,50 @@ typedef struct {
         unsigned value;
 
         SDL_Window *window;
+        SDL_Renderer *renderer;
 } joy16_t;
 
 /* Allocate memory for the object. */
 static conf_object_t *
 alloc_object(void *data)
 {
-        joy16_t *sample = MM_ZALLOC(1, joy16_t);
-        return &sample->obj;
+        joy16_t *joy = MM_ZALLOC(1, joy16_t);
+        return &joy->obj;
 }
 
 lang_void *init_object(conf_object_t *obj, lang_void *data) {
-        joy16_t *sample = (joy16_t *)obj;
+        joy16_t *joy = (joy16_t *)obj;
 
         const char* name = SIM_object_name(obj);
-        sample->window = SDL_CreateWindow (
+        joy->window = SDL_CreateWindow (
         name,                              // window title
         SDL_WINDOWPOS_UNDEFINED,           // initial x position
         SDL_WINDOWPOS_UNDEFINED,           // initial y position
-        64,                               // width, in pixels
-        64,                               // height, in pixels
+        128,                                // width, in pixels
+        64,                                // height, in pixels
         SDL_WINDOW_SHOWN                   // flags 
         );
 
-        if (sample->window == NULL) {
+        if (joy->window == NULL) {
                 SIM_LOG_INFO(1, obj, 0, "Failed to create SDL window");
+                return obj;
         }
-
+        joy->renderer = SDL_CreateRenderer(joy->window, -1, SDL_RENDERER_SOFTWARE);
+        if (joy->renderer == NULL) {
+                SIM_LOG_ERROR(obj, 0, "Failed to create SDL renderer");
+                return obj;
+        }
+        SDL_SetRenderDrawColor( joy->renderer, 0xaa, 0xbb, 0xcc, 0xdd );
+        SDL_RenderClear(joy->renderer);
+        SDL_RenderPresent(joy->renderer);
         return obj;
 }
 
 int delete_instance(conf_object_t *obj) {
-        joy16_t *sample = (joy16_t *)obj;
+        joy16_t *joy = (joy16_t *)obj;
 
-        SDL_DestroyWindow(sample->window);
+        SDL_DestroyRenderer(joy->renderer);
+        SDL_DestroyWindow(joy->window);
         return 1;
 }
 
@@ -62,8 +72,8 @@ int delete_instance(conf_object_t *obj) {
 static void
 simple_method(conf_object_t *obj, int arg)
 {
-        joy16_t *sample = (joy16_t *)obj;
-        SIM_LOG_INFO(1, &sample->obj, 0,
+        joy16_t *joy = (joy16_t *)obj;
+        SIM_LOG_INFO(1, &joy->obj, 0,
                      "'simple_method' called with arg %d", arg);
 }
 
@@ -71,18 +81,18 @@ static exception_type_t
 operation(conf_object_t *obj, generic_transaction_t *mop,
                  map_info_t info)
 {
-        joy16_t *sample = (joy16_t *)obj;
+        joy16_t *joy = (joy16_t *)obj;
         unsigned offset = (SIM_get_mem_op_physical_address(mop)
                            + info.start - info.base);
 
         if (SIM_mem_op_is_read(mop)) {
-                SIM_set_mem_op_value_le(mop, sample->value);
-                SIM_LOG_INFO(1, &sample->obj, 0, "read from offset %d: 0x%x",
-                             offset, sample->value);
+                SIM_set_mem_op_value_le(mop, joy->value);
+                SIM_LOG_INFO(1, &joy->obj, 0, "read from offset %d: 0x%x",
+                             offset, joy->value);
         } else {
-                sample->value = SIM_get_mem_op_value_le(mop);
-                SIM_LOG_INFO(1, &sample->obj, 0, "write to offset %d: 0x%x",
-                             offset, sample->value);
+                joy->value = SIM_get_mem_op_value_le(mop);
+                SIM_LOG_INFO(1, &joy->obj, 0, "write to offset %d: 0x%x",
+                             offset, joy->value);
         }
         return Sim_PE_No_Exception;
 }
@@ -91,24 +101,27 @@ static set_error_t
 set_value_attribute(void *arg, conf_object_t *obj,
                     attr_value_t *val, attr_value_t *idx)
 {
-        joy16_t *sample = (joy16_t *)obj;
-        sample->value = SIM_attr_integer(*val);
+        joy16_t *joy = (joy16_t *)obj;
+        joy->value = SIM_attr_integer(*val);
+        SDL_SetRenderDrawColor( joy->renderer, 0xaa, 0xbb, 0xcc, 0xdd );
+        SDL_RenderClear(joy->renderer);
+        SDL_RenderPresent(joy->renderer);
         return Sim_Set_Ok;
 }
 
 static attr_value_t
 get_value_attribute(void *arg, conf_object_t *obj, attr_value_t *idx)
 {
-        joy16_t *sample = (joy16_t *)obj;
-        return SIM_make_attr_uint64(sample->value);
+        joy16_t *joy = (joy16_t *)obj;
+        return SIM_make_attr_uint64(joy->value);
 }
 
 static set_error_t
 set_add_log_attribute(void *arg, conf_object_t *obj, attr_value_t *val,
                       attr_value_t *idx)
 {
-        joy16_t *sample = (joy16_t *)obj;
-        SIM_LOG_INFO(1, &sample->obj, 0, "%s", SIM_attr_string(*val));
+        joy16_t *joy = (joy16_t *)obj;
+        SIM_LOG_INFO(1, &joy->obj, 0, "%s", SIM_attr_string(*val));
         return Sim_Set_Ok;
 }
 
