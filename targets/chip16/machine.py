@@ -27,8 +27,8 @@ ram1.image = ram_image1
 joy0 = pre_conf_object(name_prefix + "joy0", "joy16")
 joy0.queue = chip0
 
-joy1 = pre_conf_object(name_prefix + "joy1", "joy16")
-joy1.queue = chip0
+#joy1 = pre_conf_object(name_prefix + "joy1", "joy16")
+#joy1.queue = chip0
 
 phys_mem0 = pre_conf_object(name_prefix + "phys_mem0", "memory-space")
 phys_mem0.queue = chip0

@@ -6,11 +6,12 @@
   
    Copyright 2010-2014 Intel Corporation */
 
+#include <simics/simulator-api.h> // For SIM_printf()
 #include <simics/device-api.h>
-
 #include <simics/devs/io-memory.h>
-
 #include "sample-interface.h"
+
+#include "include/SDL2/SDL.h"
 
 typedef struct {
         /* Simics configuration object */
@@ -19,21 +20,49 @@ typedef struct {
         /* device specific data */
         unsigned value;
 
-} joy_t;
+        SDL_Window *window;
+} joy16_t;
 
 /* Allocate memory for the object. */
 static conf_object_t *
 alloc_object(void *data)
 {
-        joy_t *sample = MM_ZALLOC(1, joy_t);
+        joy16_t *sample = MM_ZALLOC(1, joy16_t);
         return &sample->obj;
+}
+
+lang_void *init_object(conf_object_t *obj, lang_void *data) {
+        joy16_t *sample = (joy16_t *)obj;
+
+        const char* name = SIM_object_name(obj);
+        sample->window = SDL_CreateWindow (
+        name,                              // window title
+        SDL_WINDOWPOS_UNDEFINED,           // initial x position
+        SDL_WINDOWPOS_UNDEFINED,           // initial y position
+        64,                               // width, in pixels
+        64,                               // height, in pixels
+        SDL_WINDOW_SHOWN                   // flags 
+        );
+
+        if (sample->window == NULL) {
+                SIM_LOG_INFO(1, obj, 0, "Failed to create SDL window");
+        }
+
+        return obj;
+}
+
+int delete_instance(conf_object_t *obj) {
+        joy16_t *sample = (joy16_t *)obj;
+
+        SDL_DestroyWindow(sample->window);
+        return 1;
 }
 
 /* Dummy function that doesn't really do anything. */
 static void
 simple_method(conf_object_t *obj, int arg)
 {
-        joy_t *sample = (joy_t *)obj;
+        joy16_t *sample = (joy16_t *)obj;
         SIM_LOG_INFO(1, &sample->obj, 0,
                      "'simple_method' called with arg %d", arg);
 }
@@ -42,7 +71,7 @@ static exception_type_t
 operation(conf_object_t *obj, generic_transaction_t *mop,
                  map_info_t info)
 {
-        joy_t *sample = (joy_t *)obj;
+        joy16_t *sample = (joy16_t *)obj;
         unsigned offset = (SIM_get_mem_op_physical_address(mop)
                            + info.start - info.base);
 
@@ -62,7 +91,7 @@ static set_error_t
 set_value_attribute(void *arg, conf_object_t *obj,
                     attr_value_t *val, attr_value_t *idx)
 {
-        joy_t *sample = (joy_t *)obj;
+        joy16_t *sample = (joy16_t *)obj;
         sample->value = SIM_attr_integer(*val);
         return Sim_Set_Ok;
 }
@@ -70,7 +99,7 @@ set_value_attribute(void *arg, conf_object_t *obj,
 static attr_value_t
 get_value_attribute(void *arg, conf_object_t *obj, attr_value_t *idx)
 {
-        joy_t *sample = (joy_t *)obj;
+        joy16_t *sample = (joy16_t *)obj;
         return SIM_make_attr_uint64(sample->value);
 }
 
@@ -78,7 +107,7 @@ static set_error_t
 set_add_log_attribute(void *arg, conf_object_t *obj, attr_value_t *val,
                       attr_value_t *idx)
 {
-        joy_t *sample = (joy_t *)obj;
+        joy16_t *sample = (joy16_t *)obj;
         SIM_LOG_INFO(1, &sample->obj, 0, "%s", SIM_attr_string(*val));
         return Sim_Set_Ok;
 }
@@ -91,6 +120,8 @@ init_local(void)
            new instances of the class */
         const class_data_t funcs = {
                 .alloc_object = alloc_object,
+                .init_object  = init_object,
+                .delete_instance = delete_instance,
                 .class_desc = "Joystick of CHIP16",
                 .description =
                 "Joystick device of CHIP16 system."
@@ -126,4 +157,15 @@ init_local(void)
                 Sim_Attr_Pseudo, "s", NULL,
                 "<i>Write-only</i>. Strings written to this"
                 " attribute will end up in the device's log file.");
+        
+        if (SDL_WasInit(SDL_INIT_VIDEO | SDL_INIT_EVENTS) == 0) {
+                int res = 0;
+                SIM_printf("SDL video/events haven't been initialized, doing it now\n");
+                res = SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
+                ASSERT(res == 0);
+        }
+
+        // FIXME we also need to call a cleanup, maybe something like this?
+        // But see this: https://developer.palm.com/distribution/viewtopic.php?f=82&t=6643
+        atexit(SDL_Quit);
 }
