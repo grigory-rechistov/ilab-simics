@@ -4,7 +4,7 @@
   This Software is part of Wind River Simics. The rights to copy, distribute,
   modify, or otherwise make use of this Software may be licensed only
   pursuant to the terms of an applicable Wind River license agreement.
-  
+
   Copyright 2010-2014 Intel Corporation
 
 */
@@ -25,8 +25,12 @@
 #include "event-queue.h"
 #include "chip16-exec.h"
 
+
 #include "event-queue-types.h"
 #include "chip16-exec.h"
+
+#define NUMB_OF_REGS 16
+
 
 struct chip16;
 typedef struct chip16 chip16_t;
@@ -134,14 +138,33 @@ typedef struct chip16 {
         cycles_t idle_cycles;
 
         logical_address_t chip16_pc;
+<<<<<<< HEAD
         int16_t stack_pointer;
         int16_t chip16_reg[16];
 	int8_t flags;
 
+=======
+        uint16 chip16_reg[NUMB_OF_REGS];
+>>>>>>> 9583b035771fad8e359f763e8b8d2184165145b7
 
         /* The list of registers for this class of cores */
         register_table reg_table;
 
+        union chip16_flags
+                {
+                struct chip16_flags_map
+                        {
+                        unsigned empty1:1;
+                        unsigned C     :1;      // Carry
+                        unsigned Z     :1;      // Zero
+                        unsigned empty2:3;
+                        unsigned O     :1;      // Overflow
+                        unsigned N     :1;      // Negative
+                        } map;
+                        
+                uint8 byte;
+
+                } flags;
 
         /* page cache */
         int number_of_cached_pages;

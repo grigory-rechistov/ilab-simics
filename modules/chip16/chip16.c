@@ -4,7 +4,7 @@
   This Software is part of Wind River Simics. The rights to copy, distribute,
   modify, or otherwise make use of this Software may be licensed only
   pursuant to the terms of an applicable Wind River license agreement.
-  
+
   Copyright 2010-2014 Intel Corporation
 
 */
@@ -52,31 +52,54 @@
  */
 
 #define INSTR_OP(i)       (((i) >> 24) & 0xff)
-#define INSTR_SRC_REG(i)  (((i) >> 20) & 0xf)
-#define INSTR_DST_REG(i)  (((i) >> 16) & 0xf)
-#define INSTR_LL(i)       (((i) >> 8) & 0xff)
-#define INSTR_HH(i)       ((i) & 0xff)
+#define INSTR_SRC_REG(i)  (((i) >> 20) & 0x0f)
+#define INSTR_DST_REG(i)  (((i) >> 16) & 0x0f)
+#define INSTR_Z_REG(i)    (((i) >>  8) & 0x0f)
+#define INSTR_LL(i)       (((i) >>  8) & 0xff)
+#define INSTR_HH(i)       ( (i)        & 0xff)
+
+#define INSTR_HHLL(i)     ((((INSTR_HH(i)) << 8) & 0xff00) | ((INSTR_LL(i))))
+
 
 /*
+ * Flags mapping:
  *
+ *           7 6 5 4 3 2 1 0
+ *          |-------|-------|
+ *          |N|O|-|-|-|Z|C|-|
+ *           | |       | |
+ * Where:    N - negative|
+ *             |       | |
+ *             O - overflow
+ *                     | |
+ *                     Z - zero
+ *                       |
+ *                       C - carry
  *
- *           7 6 5   3 2 1 0
- *          |-|-|-----|-|-|-|
- *          |N|O|     |Z|C| |
  */
-#define SET_FLAG_C(i)     ((i) |= 0x2)
-#define SET_FLAG_Z(i)     ((i) |= 0x4)
-#define SET_FLAG_O(i)     ((i) |= 0x40)
-#define SET_FLAG_N(i)     ((i) |= 0x80)
-#define CLEAR_FLAG_C(i)   ((i) &= 0xfd)
-#define CLEAR_FLAG_Z(i)   ((i) &= 0xfb)
-#define CLEAR_FLAG_O(i)   ((i) &= 0xbf)
-#define CLEAR_FLAG_N(i)   ((i) &= 0x7f)
+
+#define CLR_CARRY(f)    ((f).map.C = 0)
+#define CLR_ZERO(f)     ((f).map.Z = 0)
+#define CLR_OVRFLW(f)   ((f).map.O = 0)
+#define CLR_NEG(f)      ((f).map.N = 0)
+
+#define SET_CARRY(f)    ((f).map.C = 1)
+#define SET_ZERO(f)     ((f).map.Z = 1)
+#define SET_OVRFLW(f)   ((f).map.O = 1)
+#define SET_NEG(f)      ((f).map.N = 1)
+
+#define BIT_15(n)      (((n) >> 15) & 0x1) 
+
 
 // TODO: Expand me
 typedef enum {
-        Instr_Op_Nop          = 0,
-	Instr_Op_ADD_Rx_Ry_Rz = 0x42,
+        Instr_Op_Nop            = 0x00,
+        Instr_Op_Div_XYZ        = 0xA2,
+        Instr_Op_MULI           = 0x90,
+        Instr_Op_Div            = 0xA1,
+        Instr_Op_Xor            = 0x81,
+        Instr_Op_Remi           = 0xA6,
+        Instr_Op_Noti           = 0xE0,
 } instr_op_t;
 
 /* THREAD_SAFE_GLOBAL: hap_Control_Register_Read init */
@@ -168,6 +191,51 @@ chip16_set_reg(void *reg, conf_object_t *obj,
         return ret;
 }
 
+static attr_value_t
+chip16_get_gprs(void *reg, conf_object_t *obj, attr_value_t *idx)
+{
+        chip16_t *cpu = conf_to_chip16(obj);
+        attr_value_t res = SIM_alloc_attr_list(16);
+        for (int i = 0; i < 16; i++) {
+                SIM_attr_list_set_item(&res, i, SIM_make_attr_uint64(cpu->chip16_reg[i]));
+        }
+        return res;
+}
+
+static set_error_t
+chip16_set_gprs(void *reg, conf_object_t *obj,
+               attr_value_t *val, attr_value_t *idx)
+{
+        chip16_t *cpu = conf_to_chip16(obj);
+        for (int i = 0; i < 16; i++) {
+                cpu->chip16_reg[i] = SIM_attr_integer(SIM_attr_list_item(*val, i));
+        }
+
+        return Sim_Set_Ok;
+}
+
+static attr_value_t
+chip16_get_flags(void *arg, conf_object_t *obj, attr_value_t *idx)
+{
+        chip16_t *core = conf_to_chip16(obj);
+        return SIM_make_attr_uint64(core->flags.byte);
+}
+
+static set_error_t
+chip16_set_flags(void *arg, conf_object_t *obj,
+                attr_value_t *val, attr_value_t *idx)
+{
+        chip16_t *core = conf_to_chip16(obj);
+        int value = SIM_attr_integer(*val);
+
+        if ( (0 <= value) && (value <= 0xff) )
+                core->flags.byte = value;
+        else
+                return Sim_Set_Illegal_Value;
+
+        return Sim_Set_Ok;
+}
+
 logical_address_t
 chip16_get_pc(chip16_t *core)
 {
@@ -251,32 +319,148 @@ chip16_string_decode(chip16_t *core, uint32 instr)
 void
 chip16_execute(chip16_t *core, uint32 instr)
 {
-        int16_t x = 0;
-        int16_t y = 0;
-        int16_t z = 0;
         switch (INSTR_OP(instr)) {
+        uint16 opcode = INSTR_OP(instr);
 
+        uint8 X = INSTR_DST_REG(instr);
+        uint8 Y = INSTR_SRC_REG(instr);
+        uint8 Z = INSTR_Z_REG(instr);
+>>>>>>> 9583b035771fad8e359f763e8b8d2184165145b7
+
+        // uint8 LL = INSTR_LL(instr);
+        // uint8 HH = INSTR_HH(instr);
+        uint16 HHLL = INSTR_HHLL(instr);
+
+        int res = 0;
+
+        switch (opcode) {
+       
         case Instr_Op_Nop:
                 chip16_increment_cycles(core, 1);
                 chip16_increment_steps(core, 1);
                 INCREMENT_PC(core);
                 break;
-	case Instr_Op_ADD_Rx_Ry_Rz:
-                x = chip16_get_gpr(core, INSTR_DST_REG(instr));
-                y = chip16_get_gpr(core, INSTR_SRC_REG(instr));
-                z = x + y;
-                chip16_set_gpr(core, (((instr) >> 8) & 0xf), z );
-                if (((x<0)==(y<0))&&((x<0)!=(z<0))) SET_FLAG_C(core->flags); else CLEAR_FLAG_Z(core->flags);
-                if (z==0) SET_FLAG_Z(core->flags); else CLEAR_FLAG_Z(core->flags);
-                if (((z>0) && (y<0) && (x>0)) || ((z<0) && (y>0) && (x<0))) SET_FLAG_O(core->flags); else CLEAR_FLAG_O(core->flags);
-                if (z<0) SET_FLAG_N(core->flags); else CLEAR_FLAG_N(core->flags);
+
+        case Instr_Op_MULI:
+
+                res = core->chip16_reg[X] * HHLL;
+                core->chip16_reg[X] *= HHLL;
+                
+                if (res > 0xffff)
+                        SET_CARRY(core->flags);
+                else
+                        CLR_CARRY(core->flags);
+                
+                if (res == 0)
+                        SET_ZERO(core->flags);
+                else
+                        CLR_ZERO(core->flags);
+
+                if ( BIT_15(res) == 1 )
+                        SET_NEG(core->flags);
+                else
+                        CLR_NEG(core->flags);
+                
+                chip16_increment_cycles (core, 1);
+                chip16_increment_steps  (core, 1);
+                INCREMENT_PC(core);
+ 
+                break;
+
+        case Instr_Op_Div:
+
+                if (core->chip16_reg[Y] != 0) {
+                        if (core->chip16_reg[X] % core->chip16_reg[Y] != 0) SET_CARRY(core->flags);
+                        else                                                CLR_CARRY(core->flags); 
+                        res = core->chip16_reg[X] / core->chip16_reg[Y];
+                        core->chip16_reg[X] = res;
+                        
+                        if (res == 0) SET_ZERO(core->flags);
+                        else          CLR_ZERO(core->flags);
+                        
+                        if ((res & (1 << 15)) != 0) SET_NEG(core->flags);
+                        else                        CLR_NEG(core->flags);
+                }
+
+                else SIM_LOG_INFO(1, core->obj, 0, "Dividing by zero!\n");
+       
                 chip16_increment_cycles(core, 1);
                 chip16_increment_steps(core, 1);
                 INCREMENT_PC(core);
-	        break;
+                break;
+
+        
+        case Instr_Op_Xor:
+                        
+                core->chip16_reg[X] = res = core->chip16_reg[X] ^ core->chip16_reg[Y];
+               
+                if (res == 0) SET_ZERO(core->flags);
+                else          CLR_ZERO(core->flags);
+               
+                if ((res & (1 << 15)) != 0) SET_NEG(core->flags);
+                else                        CLR_NEG(core->flags);
+                       
+                chip16_increment_cycles(core, 1);
+                chip16_increment_steps(core, 1);
+                INCREMENT_PC(core);
+                break;
+                
+        case Instr_Op_Div_XYZ:
+
+                if(core->chip16_reg[Y] != 0) {
+                        if (core->chip16_reg[X] % core->chip16_reg[Y] != 0) SET_CARRY(core->flags);
+
+                        else                                                CLR_CARRY(core->flags); 
+                        res = core->chip16_reg[X] / core->chip16_reg[Y];
+                        core->chip16_reg[Z] = res;
+                        
+                        if (res == 0) SET_ZERO(core->flags);
+                        else          CLR_ZERO(core->flags);
+                        
+                        if ((res & (1 << 15)) != 0) SET_NEG(core->flags);
+                        else                        CLR_NEG(core->flags);
+                }              
+                
+                else SIM_LOG_INFO(1, core->obj, 0, "Dividing by zero!\n");
+         
+                chip16_increment_cycles(core, 1);
+                chip16_increment_steps(core, 1);
+                INCREMENT_PC(core);
+                break;
+
+        case Instr_Op_Remi:
+
+                core->chip16_reg[X] = res = core->chip16_reg[X] % HHLL;
+                
+                if (res == 0) SET_ZERO(core->flags);
+                else          CLR_ZERO(core->flags);
+                        
+                if ((res & (1 << 15)) != 0) SET_NEG(core->flags);
+                else                        CLR_NEG(core->flags);
+        
+                chip16_increment_cycles(core, 1);
+                chip16_increment_steps(core, 1);
+                INCREMENT_PC(core);
+                break;
+                
+        case Instr_Op_Noti:
+
+                core->chip16_reg[X] = res = ~HHLL & 0xFFFF;
+                
+                if (res == 0) SET_ZERO(core->flags);
+                else          CLR_ZERO(core->flags);
+                        
+                if ((res & (1 << 15)) != 0) SET_NEG(core->flags);
+                else                        CLR_NEG(core->flags);
+                                
+                chip16_increment_cycles(core, 1);
+                chip16_increment_steps(core, 1);
+                INCREMENT_PC(core);
+                break;
+                                
         default:
                 SIM_LOG_ERROR(core->obj, 0,
-                              "unknown instruction");
+                                "unknown instruction");
                 break;
         }
 }
@@ -688,19 +872,17 @@ chip16_all_exceptions(conf_object_t *NOTNULL obj)
 }
 
 static void
-chip16_ext_irq_raise(conf_object_t *obj)
+chip16_vblank_raise(conf_object_t *obj)
 {
         chip16_t *core = conf_to_chip16(obj);
-        SIM_LOG_INFO(2, core->obj, 0,
-                     "EXTERNAL_INTERRUPT raised.");
+        SIM_LOG_INFO(1, core->obj, 0, "VBLANK raised. TODO enable core");
 }
 
 static void
-chip16_ext_irq_lower(conf_object_t *obj)
+chip16_vblank_lower(conf_object_t *obj)
 {
         chip16_t *core = conf_to_chip16(obj);
-        SIM_LOG_INFO(2, core->obj, 0,
-                     "EXTERNAL_INTERRUPT lowered.");
+        SIM_LOG_INFO(1, core->obj, 0, "VBLANK lowered.");
 }
 
 static void
@@ -819,24 +1001,24 @@ cr_register_interfaces(conf_class_t *cr_class)
         };
         SIM_register_interface(cr_class, EXCEPTION_INTERFACE, &exc_iface);
 
-        static const signal_interface_t ext_irq_iface = {
-                .signal_raise = chip16_ext_irq_raise,
-                .signal_lower = chip16_ext_irq_lower
+        static const signal_interface_t vblank_iface = {
+                .signal_raise = chip16_vblank_raise,
+                .signal_lower = chip16_vblank_lower
         };
         SIM_register_port_interface(cr_class, SIGNAL_INTERFACE,
-                                    &ext_irq_iface,
-                                    "EXTERNAL_INTERRUPT",
-                                    "External interrupt line.");
+                                    &vblank_iface,
+                                    "VBLANK",
+                                    "Interrupt line for VBLANK.");
 }
 
 void
 cr_register_attributes(conf_class_t *cr_class)
 {
-		hap_Control_Register_Read =
-				SIM_hap_get_number("Core_Control_Register_Read");
-		hap_Control_Register_Write =
-				SIM_hap_get_number("Core_Control_Register_Write");
-		hap_Magic_Instruction = SIM_hap_get_number("Core_Magic_Instruction");
+                hap_Control_Register_Read =
+                                SIM_hap_get_number("Core_Control_Register_Read");
+                hap_Control_Register_Write =
+                                SIM_hap_get_number("Core_Control_Register_Write");
+                hap_Magic_Instruction = SIM_hap_get_number("Core_Magic_Instruction");
 
         SIM_register_typed_attribute(
                 cr_class, "pc",
@@ -845,6 +1027,22 @@ cr_register_attributes(conf_class_t *cr_class)
                 Sim_Attr_Optional,
                 "i", NULL,
                 "Programm counter.");
+
+        SIM_register_typed_attribute(
+                cr_class, "gprs",
+                chip16_get_gprs, NULL,
+                chip16_set_gprs, NULL,
+                Sim_Attr_Optional,
+                "[i*]", NULL,
+                "General purpose registers.");
+
+        SIM_register_typed_attribute(
+                cr_class, "flags",
+                chip16_get_flags, NULL,
+                chip16_set_flags, NULL,
+                Sim_Attr_Optional,
+                "i", NULL,
+                "Flags of CPU.");
 
         SIM_register_typed_attribute(
                 cr_class, "physical_memory_space",
@@ -869,6 +1067,7 @@ cr_register_attributes(conf_class_t *cr_class)
                 Sim_Attr_Optional,
                 "i", NULL,
                 "Number of idle cycles.");
+                
 }
 
 /* access_type is Sim_Access_Read, Sim_Access_Write, Sim_Access_Execute */

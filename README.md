@@ -5,13 +5,13 @@ on top of Wind River Simics [2] framework.
 
 # License
 
-Licenses of third-party components are provided within the corresponding directories.
+Licenses for third-party components are provided within the corresponding directories.
 
 # Source code
 
 Authors: Grigory Rechistov, 2014, and contributors of the MIPT Ilab project.
 The source code is subject to University Software License Agreement between
-Intel Corporation and the participating univercity. Please refer to the text
+Intel Corporation and the participating university. Please refer to the text
 of the agreement for terms and conditions.
 
 # Wiki contents
