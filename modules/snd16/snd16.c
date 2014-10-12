@@ -20,9 +20,9 @@ typedef struct {
 
         /* device specific data */
         unsigned value;
-              
-        SDL_AudioDeviceID audiodev;
-        audio_params_t audio_params;
+
+        SDL_AudioDeviceID audiodev; // an audiodevice opened
+        audio_params_t audio_params; // parameters to control waveform
 } snd16_t;
 
 /* Allocate memory for the object. */
@@ -35,7 +35,7 @@ alloc_object(void *data)
 
 lang_void *init_object(conf_object_t *obj, lang_void *data) {
         snd16_t *snd = (snd16_t*)obj;
-        
+
         SDL_AudioSpec want;
         SDL_zero(want);
         want.freq = 44100;
@@ -61,8 +61,7 @@ int delete_instance(conf_object_t *obj) {
 }
 
 static exception_type_t
-operation(conf_object_t *obj, generic_transaction_t *mop,
-                 map_info_t info)
+operation(conf_object_t *obj, generic_transaction_t *mop, map_info_t info)
 {
         snd16_t *snd = (snd16_t *)obj;
         unsigned offset = (SIM_get_mem_op_physical_address(mop)
@@ -89,6 +88,9 @@ set_value_attribute(void *arg, conf_object_t *obj,
 
         if (!snd->audiodev)
                 return Sim_Set_Ok;
+
+        // For debug purposes, we can write to this attribute to force
+        // sound generation.
         if (snd->value == 0)
             SDL_PauseAudioDevice(snd->audiodev, 1);
         else {
