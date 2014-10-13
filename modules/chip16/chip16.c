@@ -48,7 +48,7 @@
  *
  *           31   28 27   24 23   20 19   16 15   12 11    8 7     4 3     0
  *          |-------|-------|-------|-------|-------|-------|-------|-------|
- *          |    opcode     |   Y   |   X   |      LL       |      HH       |
+ *               opcode     |   Y   |   X   |      LL       |      HH       |
  */
 
 #define INSTR_OP(i)       (((i) >> 24) & 0xff)
@@ -319,13 +319,11 @@ chip16_string_decode(chip16_t *core, uint32 instr)
 void
 chip16_execute(chip16_t *core, uint32 instr)
 {
-        switch (INSTR_OP(instr)) {
         uint16 opcode = INSTR_OP(instr);
 
         uint8 X = INSTR_DST_REG(instr);
         uint8 Y = INSTR_SRC_REG(instr);
         uint8 Z = INSTR_Z_REG(instr);
->>>>>>> 9583b035771fad8e359f763e8b8d2184165145b7
 
         // uint8 LL = INSTR_LL(instr);
         // uint8 HH = INSTR_HH(instr);
