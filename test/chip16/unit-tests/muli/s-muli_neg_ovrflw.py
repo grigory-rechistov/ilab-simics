@@ -10,24 +10,24 @@ def test_muli_availability(cpu):
 
         cpu.flags = 0
 
-        cpu.gprs[7] = 0xab
-        res = cpu.gprs[7] * 0
+        cpu.gprs[7] = 0x2
+        res = cpu.gprs[7] * (0x7fff)
 
         # MULI
-        simics.SIM_write_phys_memory(cpu, paddr, 0x90070000, 4)
+        simics.SIM_write_phys_memory(cpu, paddr, 0x9007ff7f, 4)
         SIM_continue(1)
 
         # check regs
-        print "MULI_test-2: checking regs..."
+        print "MULI_test-4: checking regs..."
         stest.expect_equal(cpu.pc, paddr + 4)
         stest.expect_equal(cpu.gprs[7], res)
-        print "MULI_test-2: regs OK."
+        print "MULI_test-4: regs OK."
 
         # check flags
-        print "MULI_test-2: checking flags..."
-        stest.expect_equal(cpu.flags, 0b00000100) # ZERO flag
-        print "MULI_test-2: flags OK: ZERO is set."
+        print "MULI_test-4: checking flags..."
+        stest.expect_equal(cpu.flags, 0b11000000) # NEG & OVRFLW flag
+        print "MULI_test-4: flags OK: NEG & OVRFLW is set."
 
-        print "MULI_test-2: All is OK!"
+        print "MULI_test-4: All is OK!"
 
 test_muli_availability(conf.chip0)
