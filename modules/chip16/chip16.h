@@ -138,10 +138,14 @@ typedef struct chip16 {
         cycles_t idle_cycles;
 
         logical_address_t chip16_pc;
+<<<<<<< HEAD
+        int16_t stack_pointer;
+        int16_t chip16_reg[16];
+	int8_t flags;
 
+=======
         uint16 chip16_reg[NUMB_OF_REGS];
-        uint8 chip16_stack_pointer;
-
+>>>>>>> 9583b035771fad8e359f763e8b8d2184165145b7
 
         /* The list of registers for this class of cores */
         register_table reg_table;
@@ -157,7 +161,7 @@ typedef struct chip16 {
                         unsigned O     :1;      // Overflow
                         unsigned N     :1;      // Negative
                         } map;
-                        
+
                 uint8 byte;
 
                 } flags;
