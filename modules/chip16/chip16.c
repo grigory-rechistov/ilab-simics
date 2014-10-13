@@ -95,7 +95,7 @@
 typedef enum {
         Instr_Op_Nop            = 0x00,
         Instr_Op_Div_XYZ        = 0xA2,
-        Instr_Op_MULI           = 0x90,
+        Instr_Op_Muli           = 0x90,
         Instr_Op_Div            = 0xA1,
         Instr_Op_Xor            = 0x81,
         Instr_Op_Remi           = 0xA6,
@@ -329,7 +329,8 @@ chip16_execute(chip16_t *core, uint32 instr)
         // uint8 HH = INSTR_HH(instr);
         uint16 HHLL = INSTR_HHLL(instr);
 
-        int res = 0;
+        uint32 tmp = 0;
+        uint32 res = 0;
 
         switch (opcode) {
 
@@ -339,7 +340,9 @@ chip16_execute(chip16_t *core, uint32 instr)
                 INCREMENT_PC(core);
                 break;
 
-        case Instr_Op_MULI:
+        case Instr_Op_Muli:
+
+                tmp = core->chip16_reg[X];       // only for OVRFLW flag
 
                 res = core->chip16_reg[X] * HHLL;
                 core->chip16_reg[X] *= HHLL;
@@ -354,7 +357,12 @@ chip16_execute(chip16_t *core, uint32 instr)
                 else
                         CLR_ZERO(core->flags);
 
-                if ( BIT_15(res) == 1 )
+                if ((BIT_15(tmp) ^ BIT_15(HHLL)) != BIT_15(res))
+                        SET_OVRFLW(core->flags);
+                else
+                        CLR_OVRFLW(core->flags);
+
+                if (BIT_15(res) == 1)
                         SET_NEG(core->flags);
                 else
                         CLR_NEG(core->flags);
