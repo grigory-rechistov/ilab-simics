@@ -161,7 +161,7 @@ typedef struct chip16 {
                         unsigned O     :1;      // Overflow
                         unsigned N     :1;      // Negative
                         } map;
-                        
+
                 uint8 byte;
 
                 } flags;
