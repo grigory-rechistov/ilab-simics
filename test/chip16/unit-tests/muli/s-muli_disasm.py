@@ -33,12 +33,12 @@ def test_muli_availability(cpu):
         print "'muli r7, 0xded' is OK."
         print " "
 
-        print "writing 'unknown' instruction..."
+        print "writing 'unknown: 0xffffffff' instruction..."
         paddr += 4
         cpu.pc = paddr
         simics.SIM_write_phys_memory(cpu, paddr, 0xffffffff, 4)
-        # stest.expect_equal('p:0x000c unknown', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
-        print "'unknown' instruction is OK."
+        stest.expect_equal('p:0x000c  unknown: 0xffffffff', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'unknown: 0xffffffff' instruction is OK."
         print " "
 
         print "All is OK!"
