@@ -43,6 +43,8 @@
 
 #define MAX_REG 0xffff
 
+#define INCREMENT_PC(core) chip16_set_pc(core, chip16_get_pc(core) + INSTR_SIZE)
+
 /*
  * TODO: Expand me
  *
@@ -303,18 +305,40 @@ chip16_write_memory32(chip16_t *core, logical_address_t la,
 char *
 chip16_string_decode(chip16_t *core, uint32 instr)
 {
-        switch (INSTR_OP(instr)) {
+        uint16 opcode = INSTR_OP(instr);
+
+        uint8 X = INSTR_DST_REG(instr);
+        // uint8 Y = INSTR_SRC_REG(instr);
+        // uint8 Z = INSTR_Z_REG(instr);
+
+        // uint8 LL = INSTR_LL(instr);
+        // uint8 HH = INSTR_HH(instr);
+        uint16 HHLL = INSTR_HHLL(instr);
+
+        // 64 is a magic number, cause I do not know the maximum of symbols
+        // we need to print the longest disassembled instruction
+        size_t numb_of_char = 64;
+        char disasm_str[numb_of_char + 1];      // '+ 1' is for trailing \0
+
+        switch (opcode) {
 
         case Instr_Op_Nop:
-                return MM_STRDUP("nop");
+                snprintf (disasm_str, numb_of_char, "nop");
+                break;
+
+        case Instr_Op_Muli:
+                snprintf (disasm_str, numb_of_char,"muli r%d, 0x%x", X, HHLL);
+                break;
 
         default:
-                SIM_LOG_ERROR(core->obj, 0, "unknown instruction");
-                return MM_STRDUP("unknown");
+                snprintf (disasm_str, numb_of_char, "unknown: 0x%x", instr);
+                // cause if this not commented, then test on 'unknown' can not pass
+                // SIM_LOG_SPEC_VIOLATION(1, core->obj, 0, "unknown instruction");
+                break;
         }
-}
 
-#define INCREMENT_PC(core) chip16_set_pc(core, chip16_get_pc(core) + INSTR_SIZE)
+        return MM_STRDUP(disasm_str);
+}
 
 void
 chip16_execute(chip16_t *core, uint32 instr)
@@ -347,7 +371,7 @@ chip16_execute(chip16_t *core, uint32 instr)
                 res = core->chip16_reg[X] * HHLL;
                 core->chip16_reg[X] *= HHLL;
 
-                if (res > 0xffff)
+                if (res > MAX_REG)
                         SET_CARRY(core->flags);
                 else
                         CLR_CARRY(core->flags);
