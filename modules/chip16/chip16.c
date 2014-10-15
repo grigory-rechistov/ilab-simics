@@ -389,11 +389,6 @@ chip16_execute(chip16_t *core, uint32 instr)
                 else
                         CLR_ZERO(core->flags);
 
-                if ((BIT_15(tmp) ^ BIT_15(HHLL)) != BIT_15(res))
-                        SET_OVRFLW(core->flags);
-                else
-                        CLR_OVRFLW(core->flags);
-
                 if (BIT_15(res) == 1)
                         SET_NEG(core->flags);
                 else
