@@ -50,7 +50,7 @@
  *
  *           31   28 27   24 23   20 19   16 15   12 11    8 7     4 3     0
  *          |-------|-------|-------|-------|-------|-------|-------|-------|
- *               opcode     |   Y   |   X   |      LL       |      HH       |
+ *          |    opcode     |   Y   |   X   |      LL       |      HH       |
  */
 
 #define INSTR_OP(i)       (((i) >> 24) & 0xff)
@@ -91,13 +91,18 @@
 #define SET_NEG(f)      ((f).map.N = 1)
 
 #define BIT_15(n)      (((n) >> 15) & 0x1)
+#define BIT_16(n)      (((n) >> 16) & 0x1)
 
 
 // TODO: Expand me
 typedef enum {
         Instr_Op_Nop            = 0x00,
-        Instr_Op_Div_XYZ        = 0xA2,
+
         Instr_Op_Muli           = 0x90,
+        Instr_Op_Addi           = 0x40,
+        Instr_Op_Mov            = 0x24,
+
+        Instr_Op_Div_XYZ        = 0xA2,
         Instr_Op_Div            = 0xA1,
         Instr_Op_Xor            = 0x81,
         Instr_Op_Remi           = 0xA6,
@@ -308,7 +313,7 @@ chip16_string_decode(chip16_t *core, uint32 instr)
         uint16 opcode = INSTR_OP(instr);
 
         uint8 X = INSTR_DST_REG(instr);
-        // uint8 Y = INSTR_SRC_REG(instr);
+        uint8 Y = INSTR_SRC_REG(instr);
         // uint8 Z = INSTR_Z_REG(instr);
 
         // uint8 LL = INSTR_LL(instr);
@@ -327,7 +332,15 @@ chip16_string_decode(chip16_t *core, uint32 instr)
                 break;
 
         case Instr_Op_Muli:
-                snprintf (disasm_str, numb_of_char,"muli r%d, 0x%x", X, HHLL);
+                snprintf (disasm_str, numb_of_char, "muli r%d, 0x%x", X, HHLL);
+                break;
+
+        case Instr_Op_Addi:
+                snprintf (disasm_str, numb_of_char, "addi r%d, 0x%x", X, HHLL);
+                break;
+
+        case Instr_Op_Mov:
+                snprintf (disasm_str, numb_of_char, "mov r%d, r%d", X, Y);
                 break;
 
         default:
@@ -367,8 +380,8 @@ chip16_execute(chip16_t *core, uint32 instr)
         case Instr_Op_Muli:
 
                 tmp = core->chip16_reg[X];       // only for OVRFLW flag
-
                 res = core->chip16_reg[X] * HHLL;
+
                 core->chip16_reg[X] *= HHLL;
 
                 if (res > MAX_REG)
@@ -376,12 +389,42 @@ chip16_execute(chip16_t *core, uint32 instr)
                 else
                         CLR_CARRY(core->flags);
 
-                if (res == 0)
+                if (core->chip16_reg[X] == 0)
                         SET_ZERO(core->flags);
                 else
                         CLR_ZERO(core->flags);
 
-                if ((BIT_15(tmp) ^ BIT_15(HHLL)) != BIT_15(res))
+                if (BIT_15(res) == 1)
+                        SET_NEG(core->flags);
+                else
+                        CLR_NEG(core->flags);
+
+                chip16_increment_cycles (core, 1);
+                chip16_increment_steps  (core, 1);
+                INCREMENT_PC(core);
+
+                break;
+
+        case Instr_Op_Addi:
+
+                tmp = core->chip16_reg[X];
+                res = core->chip16_reg[X] + HHLL;
+
+                core->chip16_reg[X] += HHLL;
+
+                if (BIT_16(res) == 1)
+                        SET_CARRY(core->flags);
+                else
+                        CLR_CARRY(core->flags);
+
+                if (core->chip16_reg[X] == 0)
+                        SET_ZERO(core->flags);
+                else
+                        CLR_ZERO(core->flags);
+
+                if (((BIT_15(tmp) == 0) && (BIT_15(HHLL) == 0) && (BIT_15(res) == 1)) ||
+                    ((BIT_15(tmp) == 1) && (BIT_15(HHLL) == 1) && (BIT_15(res) == 0)))
+
                         SET_OVRFLW(core->flags);
                 else
                         CLR_OVRFLW(core->flags);
@@ -390,6 +433,16 @@ chip16_execute(chip16_t *core, uint32 instr)
                         SET_NEG(core->flags);
                 else
                         CLR_NEG(core->flags);
+
+                chip16_increment_cycles (core, 1);
+                chip16_increment_steps  (core, 1);
+                INCREMENT_PC(core);
+
+                break;
+
+        case Instr_Op_Mov:
+
+                core->chip16_reg[X] = core->chip16_reg[Y];
 
                 chip16_increment_cycles (core, 1);
                 chip16_increment_steps  (core, 1);
