@@ -32,6 +32,41 @@ alloc_object(void *data)
         return &joy->obj;
 }
 
+// Asynchronously process SDL events
+int joy16_event_filter(void* userdata, SDL_Event* event) {
+        // TODO lock joystick state?
+        joy16_t *joy = (joy16_t *)userdata;
+        ASSERT(joy);
+        SIM_LOG_INFO(1, &joy->obj, 0, "%s: started", __FUNCTION__);
+        if (!joy->window) return 1;
+
+        switch (event->type) {
+        case SDL_WINDOWEVENT: // enforce window redraw
+                SDL_RenderPresent(joy->renderer);
+                break;
+        default: break;
+        }
+        return 1;
+}
+
+
+int joy16_event_watch(void* userdata, SDL_Event* event) {
+        // TODO lock joystick state?
+        joy16_t *joy = (joy16_t *)userdata;
+        ASSERT(joy);
+        SIM_LOG_INFO(1, &joy->obj, 0, "%s: started", __FUNCTION__);
+        if (!joy->window) return 1;
+
+        switch (event->type) {
+        case SDL_WINDOWEVENT: // enforce window redraw
+                SDL_RenderPresent(joy->renderer);
+                break;
+        default: break;
+        }
+        return 1;
+}
+
+
 lang_void *init_object(conf_object_t *obj, lang_void *data) {
         joy16_t *joy = (joy16_t *)obj;
 
@@ -56,7 +91,13 @@ lang_void *init_object(conf_object_t *obj, lang_void *data) {
         }
         SDL_SetRenderDrawColor( joy->renderer, 0xaa, 0xbb, 0xcc, 0xdd );
         SDL_RenderClear(joy->renderer);
+        SDL_SetRenderDrawColor(joy->renderer, 0xff, 0, 0, 0);
+        SDL_RenderDrawLine(joy->renderer, 0, 0, 127, 63);
         SDL_RenderPresent(joy->renderer);
+        
+        // TODO try to understand which one is to be kept
+        SDL_AddEventWatch(joy16_event_watch, (void*)joy);
+        SDL_SetEventFilter(joy16_event_filter, (void*)joy);
         return obj;
 }
 
@@ -103,8 +144,6 @@ set_value_attribute(void *arg, conf_object_t *obj,
 {
         joy16_t *joy = (joy16_t *)obj;
         joy->value = SIM_attr_integer(*val);
-        SDL_SetRenderDrawColor( joy->renderer, 0xaa, 0xbb, 0xcc, 0xdd );
-        SDL_RenderClear(joy->renderer);
         SDL_RenderPresent(joy->renderer);
         return Sim_Set_Ok;
 }
@@ -113,6 +152,26 @@ static attr_value_t
 get_value_attribute(void *arg, conf_object_t *obj, attr_value_t *idx)
 {
         joy16_t *joy = (joy16_t *)obj;
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+                 switch (event.type) {
+                 case SDL_WINDOWEVENT:
+                         SIM_LOG_INFO(1, &joy->obj, 0, "%s: Window event", __FUNCTION__);
+                         break;
+                 case SDL_KEYDOWN:
+                         joy->value = event.key.keysym.sym;
+                         SIM_LOG_INFO(1, &joy->obj, 0, "%s: Keydown %d event", __FUNCTION__, joy->value);
+                         break;
+                 case SDL_KEYUP:
+                         joy->value = event.key.keysym.sym;
+                         SIM_LOG_INFO(1, &joy->obj, 0, "%s: Keyup %d event", __FUNCTION__, joy->value);
+                         break;
+                 default:
+                         SIM_LOG_INFO(1, &joy->obj, 0, "%s: Other event type", __FUNCTION__);
+                         break;
+                 }
+        }
+
         return SIM_make_attr_uint64(joy->value);
 }
 
