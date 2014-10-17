@@ -363,7 +363,7 @@ chip16_string_decode(chip16_t *core, uint32 instr)
                 break;
 
         case Instr_Op_Div_XYZ:
-                snprintf (disasm_str, numb_of_char, "div(x, y, z) r%d, r%d, r%d", X, Y, Z);
+                snprintf (disasm_str, numb_of_char, "div r%d, r%d, r%d", X, Y, Z);
                 break;
 
         case Instr_Op_Xor:
