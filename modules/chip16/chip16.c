@@ -138,6 +138,7 @@ typedef enum {
         Reg_Idx_RE,
         Reg_Idx_RF,
         Reg_Idx_PC,
+        Reg_Idx_SP,
         Num_Regs        /* keep it last */
 } chip16_reg_idx_t;
 
@@ -158,7 +159,8 @@ const char *const reg_names[Num_Regs] = {
         [Reg_Idx_RD] = "rd",
         [Reg_Idx_RE] = "re",
         [Reg_Idx_RF] = "rf",
-        [Reg_Idx_PC] = "pc"
+        [Reg_Idx_PC] = "pc",
+        [Reg_Idx_SP] = "sp"
 };
 
 static attr_value_t
@@ -171,6 +173,11 @@ chip16_get_reg(void *reg, conf_object_t *obj, attr_value_t *idx)
         case Reg_Idx_PC:
                 value = cpu->chip16_pc;
                 break;
+
+        case Reg_Idx_SP:
+                value = cpu->chip16_sp;
+                break;
+
         default:
                 ASSERT(0);
         }
@@ -192,6 +199,14 @@ chip16_set_reg(void *reg, conf_object_t *obj,
                 else
                         cpu->chip16_pc = value;
                 break;
+
+        case Reg_Idx_SP:
+                if ((0xfdf0 <= value) && (value < 0xfff0))
+                        cpu->chip16_sp = value;
+                else
+                        ret = Sim_Set_Illegal_Value;
+                break;
+
         default:
                 ASSERT(0);
         }
@@ -348,7 +363,7 @@ chip16_string_decode(chip16_t *core, uint32 instr)
                 break;
 
         case Instr_Op_Div_XYZ:
-                snprintf (disasm_str, numb_of_char, "div(x, y, z) r%d, r%d, r%d", X, Y, Z);
+                snprintf (disasm_str, numb_of_char, "div r%d, r%d, r%d", X, Y, Z);
                 break;
 
         case Instr_Op_Xor:
@@ -1032,6 +1047,8 @@ chip16_init_object(conf_object_t *obj, void *data)
 
         core->enabled = 1;
 
+        core->chip16_sp = 0xFDF0;      // start of the stack
+
         return core;
 }
 
@@ -1128,6 +1145,14 @@ cr_register_attributes(conf_class_t *cr_class)
                 Sim_Attr_Optional,
                 "i", NULL,
                 "Programm counter.");
+
+        SIM_register_typed_attribute(
+                cr_class, "sp",
+                chip16_get_reg, (void *)Reg_Idx_SP,
+                chip16_set_reg, (void *)Reg_Idx_SP,
+                Sim_Attr_Optional,
+                "i", NULL,
+                "Stack pointer.");
 
         SIM_register_typed_attribute(
                 cr_class, "gprs",
