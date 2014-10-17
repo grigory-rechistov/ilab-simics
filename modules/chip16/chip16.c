@@ -102,8 +102,8 @@ typedef enum {
         Instr_Op_Addi           = 0x40,
         Instr_Op_Mov            = 0x24,
 
-        Instr_Op_Div_XYZ        = 0xA2,
         Instr_Op_Div            = 0xA1,
+        Instr_Op_Div_XYZ        = 0xA2,
         Instr_Op_Xor            = 0x81,
         Instr_Op_Remi           = 0xA6,
         Instr_Op_Noti           = 0xE0,
@@ -314,7 +314,7 @@ chip16_string_decode(chip16_t *core, uint32 instr)
 
         uint8 X = INSTR_DST_REG(instr);
         uint8 Y = INSTR_SRC_REG(instr);
-        // uint8 Z = INSTR_Z_REG(instr);
+        uint8 Z = INSTR_Z_REG(instr);
 
         // uint8 LL = INSTR_LL(instr);
         // uint8 HH = INSTR_HH(instr);
@@ -341,6 +341,26 @@ chip16_string_decode(chip16_t *core, uint32 instr)
 
         case Instr_Op_Mov:
                 snprintf (disasm_str, numb_of_char, "mov r%d, r%d", X, Y);
+                break;
+
+        case Instr_Op_Div:
+                snprintf (disasm_str, numb_of_char, "div r%d, r%d", X, Y);
+                break;
+
+        case Instr_Op_Div_XYZ:
+                snprintf (disasm_str, numb_of_char, "div(x, y, z) r%d, r%d, r%d", X, Y, Z);
+                break;
+
+        case Instr_Op_Xor:
+                snprintf (disasm_str, numb_of_char, "xor r%d, r%d", X, Y);
+                break;
+
+        case Instr_Op_Remi:
+                snprintf (disasm_str, numb_of_char, "remi r%d, 0x%x", X, HHLL);
+                break;
+
+        case Instr_Op_Noti:
+                snprintf (disasm_str, numb_of_char, "noti r%d, 0x%x", X, HHLL);
                 break;
 
         default:
@@ -472,20 +492,6 @@ chip16_execute(chip16_t *core, uint32 instr)
                 INCREMENT_PC(core);
                 break;
 
-        case Instr_Op_Xor:
-
-                core->chip16_reg[X] = res = core->chip16_reg[X] ^ core->chip16_reg[Y];
-
-                if (res == 0) SET_ZERO(core->flags);
-                else          CLR_ZERO(core->flags);
-
-                if ((res & (1 << 15)) != 0) SET_NEG(core->flags);
-                else                        CLR_NEG(core->flags);
-
-                chip16_increment_cycles(core, 1);
-                chip16_increment_steps(core, 1);
-                INCREMENT_PC(core);
-                break;
 
         case Instr_Op_Div_XYZ:
 
@@ -502,6 +508,21 @@ chip16_execute(chip16_t *core, uint32 instr)
                         else                        CLR_NEG(core->flags);
                 }
                 else SIM_LOG_INFO(1, core->obj, 0, "Dividing by zero!\n");
+
+                chip16_increment_cycles(core, 1);
+                chip16_increment_steps(core, 1);
+                INCREMENT_PC(core);
+                break;
+
+        case Instr_Op_Xor:
+
+                core->chip16_reg[X] = res = core->chip16_reg[X] ^ core->chip16_reg[Y];
+
+                if (res == 0) SET_ZERO(core->flags);
+                else          CLR_ZERO(core->flags);
+
+                if ((res & (1 << 15)) != 0) SET_NEG(core->flags);
+                else                        CLR_NEG(core->flags);
 
                 chip16_increment_cycles(core, 1);
                 chip16_increment_steps(core, 1);

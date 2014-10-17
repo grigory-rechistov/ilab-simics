@@ -97,6 +97,80 @@ def test_disasm(cpu):
         print " "
 #------------------------------------------------------------------------------#
 
+#------------------------------------------------------------------------------#
+        print "DIV_disasm_unit-test:"
+#------------------------------------------------------------------------------#
+        print " "
+
+        paddr = 0
+        cpu.pc = paddr
+
+        print "writing 'div r1, r2'..."
+        simics.SIM_write_phys_memory(cpu, paddr, 0xA1210000, 4)
+        stest.expect_equal('p:0x0000  div r1, r2', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'div r1, r2' is OK."
+        print " "
+#------------------------------------------------------------------------------#
+
+#------------------------------------------------------------------------------#
+        print "DIV_XYZ_disasm_unit-test:"
+#------------------------------------------------------------------------------#
+        print " "
+
+        paddr = 0
+        cpu.pc = paddr
+
+        print "writing 'div(x, y, z) r1, r2, r3'..."
+        simics.SIM_write_phys_memory(cpu, paddr, 0xA2210300, 4)
+        stest.expect_equal('p:0x0000  div(x, y, z) r1, r2, r3', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'div(x, y, z) r1, r2, r3' is OK."
+        print " "
+#------------------------------------------------------------------------------#
+
+#------------------------------------------------------------------------------#
+        print "XOR_disasm_unit-test:"
+#------------------------------------------------------------------------------#
+        print " "
+
+        paddr = 0
+        cpu.pc = paddr
+
+        print "writing 'xor r1, r2'..."
+        simics.SIM_write_phys_memory(cpu, paddr, 0x81210000, 4)
+        stest.expect_equal('p:0x0000  xor r1, r2', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'xor r1, r2' is OK."
+        print " "
+#------------------------------------------------------------------------------#
+
+#------------------------------------------------------------------------------#
+        print "REMI_disasm_unit-test:"
+#------------------------------------------------------------------------------#
+        print " "
+
+        paddr = 0
+        cpu.pc = paddr
+
+        print "writing 'remi r1, 0xded'..."
+        simics.SIM_write_phys_memory(cpu, paddr, 0xA601ed0d, 4)
+        stest.expect_equal('p:0x0000  remi r1, 0xded', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'remi r1, 0xded' is OK."
+        print " "
+#------------------------------------------------------------------------------#
+
+#------------------------------------------------------------------------------#
+        print "NOTI_disasm_unit-test:"
+#------------------------------------------------------------------------------#
+        print " "
+
+        paddr = 0
+        cpu.pc = paddr
+
+        print "writing 'noti r1, 0xded'..."
+        simics.SIM_write_phys_memory(cpu, paddr, 0xE001ed0d, 4)
+        stest.expect_equal('p:0x0000  noti r1, 0xded', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'noti r1, 0xded' is OK."
+        print " "
+#------------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------#
         print "Unknown_instr_disasm_unit-test:"
