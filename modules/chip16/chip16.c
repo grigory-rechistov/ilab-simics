@@ -380,6 +380,7 @@ chip16_string_decode(chip16_t *core, uint32 instr)
 
         default:
                 snprintf (disasm_str, numb_of_char, "unknown: 0x%x", instr);
+                SIM_LOG_INFO(1, core->obj, 0, "unknown instruction");
                 // cause if this not commented, then test on 'unknown' can not pass
                 // SIM_LOG_SPEC_VIOLATION(1, core->obj, 0, "unknown instruction");
                 break;
