@@ -98,10 +98,11 @@
 typedef enum {
         Instr_Op_Nop            = 0x00,
 
-        Instr_Op_Muli           = 0x90,
-        Instr_Op_Addi           = 0x40,
+        Instr_Op_Ldi_Sp         = 0x21,
         Instr_Op_Mov            = 0x24,
         Instr_Op_Stm_XY         = 0x31,
+        Instr_Op_Addi           = 0x40,
+        Instr_Op_Muli           = 0x90,
 
         Instr_Op_Div            = 0xA1,
         Instr_Op_Div_XYZ        = 0xA2,
@@ -271,6 +272,18 @@ chip16_set_pc(chip16_t *core, logical_address_t pc)
         core->chip16_pc = pc;
 }
 
+uint16
+chip16_get_sp(chip16_t *core)
+{
+        return core->chip16_sp;
+}
+
+void
+chip16_set_sp(chip16_t *core, uint16 sp)
+{
+        core->chip16_sp = sp;
+}
+
 /* get gpr[i] for the core */
 uint64
 chip16_get_gpr(chip16_t *core, int i)
@@ -347,12 +360,8 @@ chip16_string_decode(chip16_t *core, uint32 instr)
                 snprintf (disasm_str, numb_of_char, "nop");
                 break;
 
-        case Instr_Op_Muli:
-                snprintf (disasm_str, numb_of_char, "muli r%d, 0x%x", X, HHLL);
-                break;
-
-        case Instr_Op_Addi:
-                snprintf (disasm_str, numb_of_char, "addi r%d, 0x%x", X, HHLL);
+        case Instr_Op_Ldi_Sp:
+                snprintf (disasm_str, numb_of_char, "ldi sp, 0x%x", HHLL);
                 break;
 
         case Instr_Op_Mov:
@@ -361,6 +370,14 @@ chip16_string_decode(chip16_t *core, uint32 instr)
 
         case Instr_Op_Stm_XY:
                 snprintf (disasm_str, numb_of_char, "stm r%d, r%d", X, Y);
+                break;
+
+        case Instr_Op_Addi:
+                snprintf (disasm_str, numb_of_char, "addi r%d, 0x%x", X, HHLL);
+                break;
+
+        case Instr_Op_Muli:
+                snprintf (disasm_str, numb_of_char, "muli r%d, 0x%x", X, HHLL);
                 break;
 
         case Instr_Op_Div:
@@ -418,27 +435,29 @@ chip16_execute(chip16_t *core, uint32 instr)
                 INCREMENT_PC(core);
                 break;
 
-        case Instr_Op_Muli:
+        case Instr_Op_Ldi_Sp:
 
-                tmp = core->chip16_reg[X];       // only for OVRFLW flag
-                res = core->chip16_reg[X] * HHLL;
+                chip16_set_sp (core, HHLL);
 
-                core->chip16_reg[X] *= HHLL;
+                chip16_increment_cycles (core, 1);
+                chip16_increment_steps  (core, 1);
+                INCREMENT_PC(core);
 
-                if (res > MAX_REG)
-                        SET_CARRY(core->flags);
-                else
-                        CLR_CARRY(core->flags);
+                break;
 
-                if (core->chip16_reg[X] == 0)
-                        SET_ZERO(core->flags);
-                else
-                        CLR_ZERO(core->flags);
+        case Instr_Op_Mov:
 
-                if (BIT_15(res) == 1)
-                        SET_NEG(core->flags);
-                else
-                        CLR_NEG(core->flags);
+                core->chip16_reg[X] = core->chip16_reg[Y];
+
+                chip16_increment_cycles (core, 1);
+                chip16_increment_steps  (core, 1);
+                INCREMENT_PC(core);
+
+                break;
+
+        case Instr_Op_Stm_XY:
+
+                chip16_write_memory (core, core->chip16_reg[Y], 2, (uint8*)&core->chip16_reg[X], true);
 
                 chip16_increment_cycles (core, 1);
                 chip16_increment_steps  (core, 1);
@@ -481,19 +500,27 @@ chip16_execute(chip16_t *core, uint32 instr)
 
                 break;
 
-        case Instr_Op_Mov:
+        case Instr_Op_Muli:
 
-                core->chip16_reg[X] = core->chip16_reg[Y];
+                tmp = core->chip16_reg[X];       // only for OVRFLW flag
+                res = core->chip16_reg[X] * HHLL;
 
-                chip16_increment_cycles (core, 1);
-                chip16_increment_steps  (core, 1);
-                INCREMENT_PC(core);
+                core->chip16_reg[X] *= HHLL;
 
-                break;
+                if (res > MAX_REG)
+                        SET_CARRY(core->flags);
+                else
+                        CLR_CARRY(core->flags);
 
-        case Instr_Op_Stm_XY:
+                if (core->chip16_reg[X] == 0)
+                        SET_ZERO(core->flags);
+                else
+                        CLR_ZERO(core->flags);
 
-                chip16_write_memory (core, core->chip16_reg[Y], 2, (uint8*)&core->chip16_reg[X], true);
+                if (BIT_15(res) == 1)
+                        SET_NEG(core->flags);
+                else
+                        CLR_NEG(core->flags);
 
                 chip16_increment_cycles (core, 1);
                 chip16_increment_steps  (core, 1);
@@ -1063,7 +1090,7 @@ chip16_init_object(conf_object_t *obj, void *data)
 
         core->enabled = 1;
 
-        core->chip16_sp = 0xFDF0;      // start of the stack
+        core->chip16_sp = 0xfdf0;      // start of the stack
 
         return core;
 }

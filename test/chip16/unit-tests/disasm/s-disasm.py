@@ -24,6 +24,23 @@ def test_disasm(cpu):
 
 
 #------------------------------------------------------------------------------#
+        print "LDI_SP_disasm_unit-test:"
+#------------------------------------------------------------------------------#
+        print "{"
+
+        paddr = 0
+        cpu.pc = paddr
+
+        print "writing 'ldi sp, 0xfdf4'..."
+        simics.SIM_write_phys_memory(cpu, paddr, 0x2100f4fd, 4)
+        stest.expect_equal('p:0x0000  ldi sp, 0xfdf4', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'ldi sp, 0xfdf4' is OK."
+        print "}"
+        print " "
+#------------------------------------------------------------------------------#
+
+
+#------------------------------------------------------------------------------#
         print "MOV_disasm_unit-test:"
 #------------------------------------------------------------------------------#
         print "{"
