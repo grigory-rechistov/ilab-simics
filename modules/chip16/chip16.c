@@ -103,6 +103,7 @@ typedef enum {
         Instr_Op_Stm_XY         = 0x31,
         Instr_Op_Addi           = 0x40,
         Instr_Op_Muli           = 0x90,
+        Instr_Op_Popall         = 0xc3,
 
         Instr_Op_Div            = 0xA1,
         Instr_Op_Div_XYZ        = 0xA2,
@@ -380,6 +381,10 @@ chip16_string_decode(chip16_t *core, uint32 instr)
                 snprintf (disasm_str, numb_of_char, "muli r%d, 0x%x", X, HHLL);
                 break;
 
+        case Instr_Op_Popall:
+                snprintf (disasm_str, numb_of_char, "popall");
+                break;
+
         case Instr_Op_Div:
                 snprintf (disasm_str, numb_of_char, "div r%d, r%d", X, Y);
                 break;
@@ -521,6 +526,20 @@ chip16_execute(chip16_t *core, uint32 instr)
                         SET_NEG(core->flags);
                 else
                         CLR_NEG(core->flags);
+
+                chip16_increment_cycles (core, 1);
+                chip16_increment_steps  (core, 1);
+                INCREMENT_PC(core);
+
+                break;
+
+        case Instr_Op_Popall:
+
+                for (tmp = 0; tmp < 16; tmp++)
+                        {
+                        chip16_set_sp (core, chip16_get_sp (core) - 2);
+                        chip16_read_memory (core, chip16_get_sp (core), 2, (uint8*)(&(core->chip16_reg[tmp])), 1);
+                        }
 
                 chip16_increment_cycles (core, 1);
                 chip16_increment_steps  (core, 1);

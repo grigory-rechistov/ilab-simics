@@ -137,6 +137,23 @@ def test_disasm(cpu):
 
 
 #------------------------------------------------------------------------------#
+        print "POPALL_disasm_unit-test:"
+#------------------------------------------------------------------------------#
+        print "{"
+
+        paddr = 0
+        cpu.pc = paddr
+
+        print "writing 'popall'..."
+        simics.SIM_write_phys_memory(cpu, paddr, 0xc3000000, 4)
+        stest.expect_equal('p:0x0000  popall', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'popall' is OK."
+        print "}"
+        print " "
+#------------------------------------------------------------------------------#
+
+
+#------------------------------------------------------------------------------#
         print "DIV_disasm_unit-test:"
 #------------------------------------------------------------------------------#
         print "{"
