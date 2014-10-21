@@ -24,10 +24,6 @@ ram0.image = ram_image0
 ram1 = pre_conf_object(name_prefix + "ram1", "ram")
 ram1.image = ram_image1
 
-test0 = pre_conf_object(name_prefix + "test0", "memory-space")
-test0.queue = chip0
-test0.map = [[0x0, ram1, 0, 0, 0x10000]]
-
 joy0 = pre_conf_object(name_prefix + "joy0", "joy16")
 joy0.queue = chip0
 
@@ -36,10 +32,9 @@ joy1.queue = chip0
 
 phys_mem0 = pre_conf_object(name_prefix + "phys_mem0", "memory-space")
 phys_mem0.queue = chip0
-phys_mem0.map = [[     0x0, ram0,                 0, 0, 0x10000],
-                [ 0x100, joy0,  0, 0,     0x10],
-                [ 0x110, joy1,  0, 0,     0x10],
-                [0x8000, test0, 0, 0,   0x8000]]
+phys_mem0.map = [[0x0,    ram0,     0, 0, 0xfff0],
+                [ 0xfff0, joy0,     0, 0, 0x2   ],
+                [ 0xfff2, joy1,     0, 0, 0x2   ]]
 
 ctx0 = pre_conf_object(name_prefix + "ctx0", "context")
 ctx0.queue = chip0
@@ -58,6 +53,6 @@ chip0.cell = cosim_cell
 graph0 = pre_conf_object(name_prefix + "graph0", "graph16")
 graph0.queue = chip0
 
-SIM_add_configuration([chip0, ctx0, cosim_cell, ram_image0, ram_image1, ram0, ram1, test0, phys_mem0, joy0, joy1, graph0],
+SIM_add_configuration([chip0, ctx0, cosim_cell, ram_image0, ram_image1, ram0, ram1, phys_mem0, joy0, joy1, graph0],
                       None)
 
