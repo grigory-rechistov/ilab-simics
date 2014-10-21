@@ -48,6 +48,30 @@ def test_disasm(cpu):
 
 
 #------------------------------------------------------------------------------#
+        print "STM_XY_disasm_unit-test:"
+#------------------------------------------------------------------------------#
+        print "{"
+
+        paddr = 0
+        cpu.pc = paddr
+
+        print "writing 'stm r5, r7'..."
+        simics.SIM_write_phys_memory(cpu, paddr, 0x31750000, 4)
+        stest.expect_equal('p:0x0000  stm r5, r7', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'stm r5, r7' is OK."
+
+        print "writing 'stm r15, r0'..."
+        paddr += 4
+        cpu.pc = paddr
+        simics.SIM_write_phys_memory(cpu, paddr, 0x310f0000, 4)
+        stest.expect_equal('p:0x0004  stm r15, r0', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'stm r15, r0' is OK."
+        print "}"
+        print " "
+#------------------------------------------------------------------------------#
+
+
+#------------------------------------------------------------------------------#
         print "ADDI_disasm_unit-test:"
 #------------------------------------------------------------------------------#
         print "{"
