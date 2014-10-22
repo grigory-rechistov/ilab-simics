@@ -408,8 +408,6 @@ chip16_string_decode(chip16_t *core, uint32 instr)
         default:
                 snprintf (disasm_str, numb_of_char, "unknown: 0x%x", instr);
                 SIM_LOG_INFO(1, core->obj, 0, "unknown instruction");
-                // cause if this not commented, then test on 'unknown' can not pass
-                // SIM_LOG_SPEC_VIOLATION(1, core->obj, 0, "unknown instruction");
                 break;
         }
 
@@ -535,10 +533,10 @@ chip16_execute(chip16_t *core, uint32 instr)
 
         case Instr_Op_Popall:
 
-                for (tmp = 0; tmp < 16; tmp++)
+                for (int i = 0; i < NUMB_OF_REGS; i++)
                         {
                         chip16_set_sp (core, chip16_get_sp (core) - 2);
-                        chip16_read_memory (core, chip16_get_sp (core), 2, (uint8*)(&(core->chip16_reg[tmp])), 1);
+                        chip16_read_memory (core, chip16_get_sp (core), 2, (uint8*)(&(core->chip16_reg[i])), 1);
                         }
 
                 chip16_increment_cycles (core, 1);
