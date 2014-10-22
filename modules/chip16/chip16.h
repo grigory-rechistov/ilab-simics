@@ -114,7 +114,7 @@ typedef VECT(register_description_t) register_table;
 /*
  * The main chip16 class
  */
-typedef struct chip16 {
+struct chip16 {
         /* pointer to the corresponding Simics object */
         conf_object_t *obj;
 
@@ -185,7 +185,7 @@ typedef struct chip16 {
         char *frequency_dispatcher_port;
         const simple_dispatcher_interface_t *frequency_dispatcher_iface;
         frequency_target_list_t frequency_targets;
-} chip16_t;
+};
 
 static inline conf_object_t *
 chip16_to_conf(chip16_t *sr)
