@@ -110,6 +110,7 @@ typedef enum {
         Instr_Op_Xor            = 0x81,
         Instr_Op_Remi           = 0xA6,
         Instr_Op_Noti           = 0xE0,
+        Instr_Op_Pop            = 0xC1,
 } instr_op_t;
 
 /* THREAD_SAFE_GLOBAL: hap_Control_Register_Read init */
@@ -405,6 +406,10 @@ chip16_string_decode(chip16_t *core, uint32 instr)
                 snprintf (disasm_str, numb_of_char, "noti r%d, 0x%x", X, HHLL);
                 break;
 
+        case Instr_Op_Pop:
+                snprintf (disasm_str, numb_of_char, "pop r%d", X);
+                break;
+
         default:
                 snprintf (disasm_str, numb_of_char, "unknown: 0x%x", instr);
                 SIM_LOG_INFO(1, core->obj, 0, "unknown instruction");
@@ -628,6 +633,16 @@ chip16_execute(chip16_t *core, uint32 instr)
 
                 if ((res & (1 << 15)) != 0) SET_NEG(core->flags);
                 else                        CLR_NEG(core->flags);
+
+                chip16_increment_cycles(core, 1);
+                chip16_increment_steps(core, 1);
+                INCREMENT_PC(core);
+                break;
+
+        case Instr_Op_Pop:
+
+                chip16_set_sp(core, chip16_get_sp(core) - 2);
+                chip16_read_memory(core, chip16_get_sp(core), 2, (uint8*)(&(core->chip16_reg[X])), 1);
 
                 chip16_increment_cycles(core, 1);
                 chip16_increment_steps(core, 1);

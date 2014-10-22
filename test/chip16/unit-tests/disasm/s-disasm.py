@@ -239,6 +239,23 @@ def test_disasm(cpu):
 
 
 #------------------------------------------------------------------------------#
+        print "POP_disasm_unit-test:"
+#------------------------------------------------------------------------------#
+        print "{"
+
+        paddr = 0
+        cpu.pc = paddr
+
+        print "writing 'pop r1'..."
+        simics.SIM_write_phys_memory(cpu, paddr, 0xC1010000, 4)
+        stest.expect_equal('p:0x0000  pop r1', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'pop r1' is OK."
+        print "}"
+        print " "
+#------------------------------------------------------------------------------#
+
+
+#------------------------------------------------------------------------------#
         print "Unknown_instr_disasm_unit-test:"
 #------------------------------------------------------------------------------#
         print "{"
