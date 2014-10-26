@@ -7,7 +7,6 @@ cli.run_command("run-python-file %s/targets/chip16/machine.py" % conf.sim.worksp
 def test_muli_availability(cpu):
         paddr = 0
         cpu.pc = paddr
-
         cpu.flags = 0
 
         cpu.gprs[7] = 0xab

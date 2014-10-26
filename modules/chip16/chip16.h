@@ -31,7 +31,6 @@
 
 #define NUMB_OF_REGS 16
 
-
 struct chip16;
 typedef struct chip16 chip16_t;
 
@@ -138,7 +137,8 @@ struct chip16 {
         cycles_t idle_cycles;
 
         logical_address_t chip16_pc;
-        uint16            chip16_sp;
+        logical_address_t chip16_sp;
+
         uint16 chip16_reg[NUMB_OF_REGS];
 
         /* The list of registers for this class of cores */

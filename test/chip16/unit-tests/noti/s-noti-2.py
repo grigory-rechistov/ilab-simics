@@ -24,5 +24,4 @@ def test_one_availability(cpu):
         stest.expect_equal(cpu.flags, 0b00000100)
         print "NOTI: (flags) success"
 
-
 test_one_availability(conf.chip0)

@@ -135,6 +135,132 @@ def test_disasm(cpu):
         print " "
 #------------------------------------------------------------------------------#
 
+#------------------------------------------------------------------------------#
+        print "AND_disasm_unit-test:"
+#------------------------------------------------------------------------------#
+        print " "
+
+        paddr = 0
+        cpu.pc = paddr
+
+        print "writing 'and r4, r5, r6'..."
+        simics.SIM_write_phys_memory(cpu, paddr, 0x62540600, 4)
+        stest.expect_equal('p:0x0000  and r4, r5, r6', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'and r4, r5, r6' is OK."
+        print " "
+
+        print "writing 'and r15, r0, r5'..."
+        paddr += 4
+        cpu.pc = paddr
+        simics.SIM_write_phys_memory(cpu, paddr, 0x620f0500, 4)
+        stest.expect_equal('p:0x0004  and r15, r0, r5', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'and r15, r0, r5' is OK."
+        print " "
+        print " "
+#------------------------------------------------------------------------------#
+
+#------------------------------------------------------------------------------#
+        print "NEGI_disasm_unit-test:"
+#------------------------------------------------------------------------------#
+        print " "
+
+        paddr = 0
+        cpu.pc = paddr
+
+        print "writing 'negi r10, 0xdead'..."
+        simics.SIM_write_phys_memory(cpu, paddr, 0xE30aadde, 4)
+        stest.expect_equal('p:0x0000  negi r10, 0xdead', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'negi r10, 0xdead' is OK."
+        print " "
+
+        print "writing 'negi r0, 0x0'..."
+        paddr += 4
+        cpu.pc = paddr
+        simics.SIM_write_phys_memory(cpu, paddr, 0xE3000000, 4)
+        stest.expect_equal('p:0x0004  negi r0, 0x0', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'negi r0, 0x0' is OK."
+        print " "
+        print " "
+#------------------------------------------------------------------------------#
+
+#------------------------------------------------------------------------------#
+        print "NEG_XY_disasm_unit-test:"
+#------------------------------------------------------------------------------#
+        print " "
+
+        paddr = 0
+        cpu.pc = paddr
+
+        print "writing 'neg r10, r0'..."
+        simics.SIM_write_phys_memory(cpu, paddr, 0xE50a0000, 4)
+        stest.expect_equal('p:0x0000  neg r10, r0', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'neg r10, r0' is OK."
+        print " "
+
+        print "writing 'neg r15, r8'..."
+        paddr += 4
+        cpu.pc = paddr
+        simics.SIM_write_phys_memory(cpu, paddr, 0xE58f0000, 4)
+        stest.expect_equal('p:0x0004  neg r15, r8', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'neg r15, r8' is OK."
+        print " "
+        print " "
+#------------------------------------------------------------------------------#
+
+#------------------------------------------------------------------------------#
+        print "RET_disasm_unit-test:"
+#------------------------------------------------------------------------------#
+        print " "
+
+        paddr = 0
+        cpu.pc = paddr
+
+        print "writing 'ret'..."
+        simics.SIM_write_phys_memory(cpu, paddr, 0x15000000, 4)
+        stest.expect_equal('p:0x0000  ret', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'ret' is OK."
+        print " "
+        print " "
+#------------------------------------------------------------------------------#
+
+#------------------------------------------------------------------------------#
+        print "CALL_HHLL_disasm_unit-test:"
+#------------------------------------------------------------------------------#
+        print " "
+
+        paddr = 0
+        cpu.pc = paddr
+
+        print "writing 'call 0xfdf4'..."
+        simics.SIM_write_phys_memory(cpu, paddr, 0x1400f4fd, 4)
+        stest.expect_equal('p:0x0000  call 0xfdf4', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'call 0xfdf4' is OK."
+        print " "
+        print " "
+#------------------------------------------------------------------------------#
+
+#------------------------------------------------------------------------------#
+        print "JMP_X_disasm_unit-test:"
+#------------------------------------------------------------------------------#
+        print " "
+
+        paddr = 0
+        cpu.pc = paddr
+
+        print "writing 'jmp r10'..."
+        simics.SIM_write_phys_memory(cpu, paddr, 0x160a0000, 4)
+        stest.expect_equal('p:0x0000  jmp r10', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'jmp r10' is OK."
+        print " "
+        print " "
+
+        print "writing 'jmp r0'..."
+        simics.SIM_write_phys_memory(cpu, paddr, 0x16000000, 4)
+        stest.expect_equal('p:0x0000  jmp r0', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'jmp r0' is OK."
+        print " "
+        print " "
+#------------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------#
         print "POPALL_disasm_unit-test:"
