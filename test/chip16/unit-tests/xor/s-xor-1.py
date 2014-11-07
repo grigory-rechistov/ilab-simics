@@ -24,5 +24,4 @@ def test_one_availability(cpu):
         stest.expect_equal(cpu.flags, 0b00000000)
         print "XOR: (flags) success"
 
-
 test_one_availability(conf.chip0)

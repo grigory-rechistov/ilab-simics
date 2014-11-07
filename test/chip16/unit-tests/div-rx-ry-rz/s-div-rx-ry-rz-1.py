@@ -26,5 +26,4 @@ def test_one_availability(cpu):
         stest.expect_equal(cpu.flags, 0b000000010)
         print "DIV_RX_RY_RZ:(flags) success"
 
-
 test_one_availability(conf.chip0)

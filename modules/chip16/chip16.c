@@ -62,7 +62,6 @@
 
 #define INSTR_HHLL(i)     ((((INSTR_HH(i)) << 8) & 0xff00) | ((INSTR_LL(i))))
 
-
 /*
  * Flags mapping:
  *
@@ -97,20 +96,24 @@
 // TODO: Expand me
 typedef enum {
         Instr_Op_Nop            = 0x00,
-
+        Instr_Op_Call_HHLL      = 0x14,
+        Instr_Op_Ret            = 0x15,
+        Instr_Op_Jmp_X          = 0x16,
         Instr_Op_Ldi_Sp         = 0x21,
         Instr_Op_Mov            = 0x24,
         Instr_Op_Stm_XY         = 0x31,
         Instr_Op_Addi           = 0x40,
         Instr_Op_Muli           = 0x90,
-        Instr_Op_Popall         = 0xc3,
-
+        Instr_Op_Popall         = 0xC3,
+        Instr_Op_And            = 0x62,
         Instr_Op_Div            = 0xA1,
         Instr_Op_Div_XYZ        = 0xA2,
         Instr_Op_Xor            = 0x81,
         Instr_Op_Remi           = 0xA6,
         Instr_Op_Noti           = 0xE0,
         Instr_Op_Pop            = 0xC1,
+        Instr_Op_Negi           = 0xE3,
+        Instr_Op_Neg_XY         = 0xE5,
 } instr_op_t;
 
 /* THREAD_SAFE_GLOBAL: hap_Control_Register_Read init */
@@ -274,30 +277,16 @@ chip16_set_pc(chip16_t *core, logical_address_t pc)
         core->chip16_pc = pc;
 }
 
-uint16
+logical_address_t
 chip16_get_sp(chip16_t *core)
 {
         return core->chip16_sp;
 }
 
 void
-chip16_set_sp(chip16_t *core, uint16 sp)
+chip16_set_sp(chip16_t *core, logical_address_t sp)
 {
         core->chip16_sp = sp;
-}
-
-/* get gpr[i] for the core */
-uint64
-chip16_get_gpr(chip16_t *core, int i)
-{
-        return core->chip16_reg[i];
-}
-
-/* set gpr[i] for the core */
-void
-chip16_set_gpr(chip16_t *core, int i, uint64 value)
-{
-        core->chip16_reg[i] = value;
 }
 
 void
@@ -308,26 +297,26 @@ chip16_init_registers(void *crc)
          */
 }
 
-uint32
-chip16_read_memory32(chip16_t *core, logical_address_t la,
+uint16_t
+chip16_read_memory16(chip16_t *core, logical_address_t la,
                           physical_address_t pa)
 {
-        uint32 data = 0;
+        uint16_t data = 0;
         chip16_check_virtual_breakpoints(
-                core, Sim_Access_Read, la, 4, (uint8 *)(&data));
-        chip16_read_memory(core, pa, 4, (uint8 *)&data, 1);
-        return UNALIGNED_LOAD_LE32(&data);
+                core, Sim_Access_Read, la, 2, (uint8 *)(&data));
+        chip16_read_memory(core, pa, 2, (uint8 *)&data, 1);
+        return UNALIGNED_LOAD_LE16(&data);
 }
 
 void
-chip16_write_memory32(chip16_t *core, logical_address_t la,
-                           physical_address_t pa, uint32 value)
+chip16_write_memory16(chip16_t *core, logical_address_t la,
+                           physical_address_t pa, uint16_t value)
 {
-        uint32 data;
-        UNALIGNED_STORE_LE32(&data, value);
+        uint16_t data;
+        UNALIGNED_STORE_LE16(&data, value);
         chip16_check_virtual_breakpoints(
-                core, Sim_Access_Write, la, 4, (uint8 *)(&data));
-        chip16_write_memory(core, pa, 4, (uint8 *)&data, 1);
+                core, Sim_Access_Write, la, 2, (uint8 *)(&data));
+        chip16_write_memory(core, pa, 2, (uint8 *)&data, 1);
 
         /* Hint to the simulator that a page is likely to be
            sharable. The heuristic here is that a write to the last
@@ -410,6 +399,30 @@ chip16_string_decode(chip16_t *core, uint32 instr)
                 snprintf (disasm_str, numb_of_char, "pop r%d", X);
                 break;
 
+        case Instr_Op_Negi:
+                snprintf (disasm_str, numb_of_char, "negi r%d, 0x%x", X, HHLL);
+                break;
+
+        case Instr_Op_Neg_XY:
+                snprintf (disasm_str, numb_of_char, "neg r%d, r%d", X, Y);
+                break;
+
+        case Instr_Op_And:
+                snprintf (disasm_str, numb_of_char, "and r%d, r%d, r%d", X, Y, Z);
+                break;
+
+        case Instr_Op_Ret:
+                snprintf (disasm_str, numb_of_char, "ret");
+                break;
+
+        case Instr_Op_Call_HHLL:
+                snprintf (disasm_str, numb_of_char, "call 0x%x", HHLL);
+                break;
+
+        case Instr_Op_Jmp_X:
+                snprintf (disasm_str, numb_of_char, "jmp r%d", X);
+                break;
+
         default:
                 snprintf (disasm_str, numb_of_char, "unknown: 0x%x", instr);
                 SIM_LOG_INFO(1, core->obj, 0, "unknown instruction");
@@ -432,12 +445,12 @@ chip16_execute(chip16_t *core, uint32 instr)
         // uint8 HH = INSTR_HH(instr);
         uint16 HHLL = INSTR_HHLL(instr);
 
-        uint32 tmp = 0;
+        uint16 tmp = 0;
         uint32 res = 0;
 
         switch (opcode) {
-
         case Instr_Op_Nop:
+
                 chip16_increment_cycles(core, 1);
                 chip16_increment_steps(core, 1);
                 INCREMENT_PC(core);
@@ -572,6 +585,67 @@ chip16_execute(chip16_t *core, uint32 instr)
                 INCREMENT_PC(core);
                 break;
 
+        case Instr_Op_And:
+
+                res = (core->chip16_reg[X]) & (core->chip16_reg[Y]);
+                core->chip16_reg[Z] = res;
+                if (res == 0) {
+                    SET_ZERO(core->flags);
+                }
+                else {
+                    CLR_ZERO(core->flags);
+                    if (BIT_15(res) != 0) SET_NEG(core->flags);
+                    else                  CLR_NEG(core->flags);
+                }
+
+                chip16_increment_cycles(core, 1);
+                chip16_increment_steps(core, 1);
+                INCREMENT_PC(core);
+                break;
+
+        case Instr_Op_Negi:
+
+                if (HHLL == 0) {
+                    SET_ZERO(core->flags);
+                    core->chip16_reg[X] = HHLL;
+                    CLR_NEG(core->flags);
+                }
+                else {
+                    HHLL = ~HHLL + 1;
+                    core->chip16_reg[X] = HHLL;
+                    if (BIT_15(HHLL) != 0) {
+                        SET_NEG(core->flags); 
+                    }
+                    else CLR_NEG(core->flags);
+                    CLR_ZERO(core->flags);
+                }
+
+                chip16_increment_cycles(core, 1);
+                chip16_increment_steps(core, 1);
+                INCREMENT_PC(core);
+                break;
+
+        case Instr_Op_Neg_XY:
+
+                core->chip16_reg[X] = ~(core->chip16_reg[Y]) + 1;
+                if (core->chip16_reg[X] != 0) {
+                    if (BIT_15(core->chip16_reg[X]) != 0) {
+                        SET_NEG(core->flags);
+                    }
+                    else {
+                        CLR_NEG(core->flags);
+                    }
+                    CLR_ZERO(core->flags);
+                }
+                else {
+                    SET_ZERO(core->flags);
+                    CLR_NEG(core->flags);
+                }
+
+                chip16_increment_cycles(core, 1);
+                chip16_increment_steps(core, 1);
+                INCREMENT_PC(core);
+                break;
 
         case Instr_Op_Div_XYZ:
 
@@ -637,6 +711,40 @@ chip16_execute(chip16_t *core, uint32 instr)
                 chip16_increment_cycles(core, 1);
                 chip16_increment_steps(core, 1);
                 INCREMENT_PC(core);
+                break;
+
+        case Instr_Op_Call_HHLL:
+
+                chip16_write_memory16(
+                        core, 
+                        chip16_get_sp(core), 
+                        chip16_get_sp(core),
+                        chip16_get_pc(core));
+                chip16_set_sp(core, chip16_get_sp(core) + 2);
+                chip16_set_pc(core, HHLL);
+
+                chip16_increment_cycles(core, 1);
+                chip16_increment_steps(core, 1);
+                break;
+
+        case Instr_Op_Ret:
+
+                chip16_set_sp(core, chip16_get_sp(core) - 2);
+                tmp = chip16_read_memory16(core,
+                        chip16_get_sp(core), 
+                        chip16_get_sp(core));
+                chip16_set_pc(core, tmp);
+
+                chip16_increment_cycles(core, 1);
+                chip16_increment_steps(core, 1);
+                break;
+
+        case Instr_Op_Jmp_X:
+
+                chip16_set_pc(core, core->chip16_reg[X]);
+
+                chip16_increment_cycles(core, 1);
+                chip16_increment_steps(core, 1);
                 break;
 
         case Instr_Op_Pop:
@@ -974,7 +1082,6 @@ chip16_write_register(conf_object_t *obj, int reg, uint64 val)
                              "write_register(reg=%d) unknown register.", reg);
         }
 }
-
 
 static attr_value_t
 chip16_all_registers(conf_object_t *obj)
@@ -1367,4 +1474,3 @@ init_local(void)
         cr_register_attributes(sr_class);
         cr_register_interfaces(sr_class);
 }
-

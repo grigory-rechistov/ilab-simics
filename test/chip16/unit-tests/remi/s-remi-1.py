@@ -24,5 +24,4 @@ def test_one_availability(cpu):
         stest.expect_equal(cpu.flags, 0b00000000)
         print "REMI: (flags) success"
 
-
 test_one_availability(conf.chip0)
