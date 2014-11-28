@@ -24,6 +24,9 @@ ram0.image = ram_image0
 video_ram = pre_conf_object(name_prefix + "video_ram", "ram")
 video_ram.image = video_image
 
+snd0 = pre_conf_object(name_prefix + "snd0", "snd16")
+snd0.queue = chip0
+
 joy0 = pre_conf_object(name_prefix + "joy0", "joy16")
 joy0.queue = chip0
 
@@ -46,6 +49,7 @@ phys_mem0 = pre_conf_object(name_prefix + "phys_mem0", "memory-space")
 phys_mem0.queue = chip0
 phys_mem0.map = [[0x0,    ram0,     0, 0, 0xfff0],
                 [ 0xfff0, joy0,     0, 0, 0x2   ],
+                [ 0xfff4, snd0,     0, 0, 0x2   ],
                 [ 0xfff6, graph0,   0, 0, 0x2   ]]
 
 video_mem = pre_conf_object(name_prefix + "video_mem", "memory-space")
@@ -69,7 +73,7 @@ cosim_cell.scheduled_object = chip0
 
 chip0.cell = cosim_cell
 
-SIM_add_configuration([chip0, ctx0, cosim_cell, ram_image0, video_image, ram0, video_ram, phys_mem0, joy0, graph0, timer0, video_mem],
+SIM_add_configuration([chip0, ctx0, cosim_cell, ram_image0, video_image, ram0, video_ram, phys_mem0, joy0, snd0, graph0, timer0, video_mem],
                       None)
 
 conf.timer0.regs_reference = 1000
