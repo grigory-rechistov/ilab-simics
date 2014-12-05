@@ -1,4 +1,4 @@
-/* sample-device.c - sample code for a Simics device
+/* graph16.c - CHIP16 graphics monitor
 
    This Software is part of Wind River Simics. The rights to copy, distribute,
    modify, or otherwise make use of this Software may be licensed only
@@ -18,6 +18,13 @@ typedef struct {
 
         /* device specific data */
         unsigned value;
+
+        /* registers */
+        uint8   bg;             // (Nibble) Color index of background layer
+        uint8   spritew;        // (Unsigned byte) Width of sprite(s) to draw
+        uint8   spriteh;        // (Unsigned byte) Height of sprite(s) to draw
+        bool    hflip;          // (Boolean) Flip sprite(s) to draw, horizontally
+        bool    vflip;          // (Boolean) Flip sprite(s) to draw, vertically
 
         SDL_Window *window;
 
@@ -52,8 +59,8 @@ lang_void *init_object(conf_object_t *obj, lang_void *data) {
 
 int delete_instance(conf_object_t *obj) {
         graph16_t *sample = (graph16_t *)obj;
-
-        SDL_DestroyWindow(sample->window);
+        if (sample->window != NULL)
+                SDL_DestroyWindow(sample->window);
         return 1;
 }
 
@@ -85,7 +92,9 @@ operation(conf_object_t *obj, generic_transaction_t *mop,
         }
         return Sim_PE_No_Exception;
 }
-
+/* 
+ * value attribute functions
+ */
 static set_error_t
 set_value_attribute(void *arg, conf_object_t *obj,
                     attr_value_t *val, attr_value_t *idx)
@@ -93,13 +102,51 @@ set_value_attribute(void *arg, conf_object_t *obj,
         graph16_t *sample = (graph16_t *)obj;
         sample->value = SIM_attr_integer(*val);
         return Sim_Set_Ok;
-}
+} 
 
 static attr_value_t
 get_value_attribute(void *arg, conf_object_t *obj, attr_value_t *idx)
 {
         graph16_t *sample = (graph16_t *)obj;
         return SIM_make_attr_uint64(sample->value);
+}
+
+/*
+ * bg register attribute functions
+ */
+static set_error_t
+set_bg_attribute(void *arg, conf_object_t *obj,
+                    attr_value_t *val, attr_value_t *idx)
+{
+        graph16_t *sample = (graph16_t *)obj;
+        sample->bg = SIM_attr_integer(*val);
+        return Sim_Set_Ok;
+} 
+
+static attr_value_t
+get_bg_attribute(void *arg, conf_object_t *obj, attr_value_t *idx)
+{
+        graph16_t *sample = (graph16_t *)obj;
+        return SIM_make_attr_uint64(sample->bg);
+}
+
+/*
+ * bg register attribute functions
+ */
+static set_error_t
+set_spritew_attribute(void *arg, conf_object_t *obj,
+                    attr_value_t *val, attr_value_t *idx)
+{
+        graph16_t *sample = (graph16_t *)obj;
+        sample->spritew = SIM_attr_integer(*val);
+        return Sim_Set_Ok;
+} 
+
+static attr_value_t
+get_spritew_attribute(void *arg, conf_object_t *obj, attr_value_t *idx)
+{
+        graph16_t *sample = (graph16_t *)obj;
+        return SIM_make_attr_uint64(sample->spritew);
 }
 
 static set_error_t
@@ -148,6 +195,19 @@ init_local(void)
                 get_value_attribute, NULL, set_value_attribute, NULL,
                 Sim_Attr_Optional, "i", NULL,
                 "The <i>value</i> field.");
+                
+        SIM_register_typed_attribute(
+                class, "bg",
+                get_bg_attribute, NULL, set_bg_attribute, NULL,
+                Sim_Attr_Optional, "i", NULL,
+                "The \"bg\" register.");
+
+        SIM_register_typed_attribute(
+                class, "spritew",
+                get_spritew_attribute, NULL, set_spritew_attribute, NULL,
+                Sim_Attr_Optional, "i", NULL,
+                "The \"spritew\" register.");
+
 
         /* Pseudo attribute, not saved in configuration */
         SIM_register_typed_attribute(
@@ -156,6 +216,7 @@ init_local(void)
                 Sim_Attr_Pseudo, "s", NULL,
                 "<i>Write-only</i>. Strings written to this"
                 " attribute will end up in the device's log file.");
+
 
         SDL_Init(SDL_INIT_VIDEO);
         // FIXME we also need to call a cleanup, maybe something like this?
