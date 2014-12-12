@@ -11,6 +11,7 @@
 #include <simics/devs/io-memory.h>
 #include <simics/devs/signal.h>
 
+#include "sample-interface.h"
 #include "include/SDL2/SDL.h"
 
 typedef struct {
@@ -238,6 +239,23 @@ joy16_signal_lower(conf_object_t *obj)
         // nothing to do
 }
 
+/* Posting keydown event to the queue */
+static void
+joy16_key_inject (conf_object_t* obj, int arg)
+{
+//        joy16_t *joy = (joy16_t *)obj;
+        SDL_Event event = {0};
+        if(arg & (1 << 31)) {
+            event.type = SDL_KEYDOWN;
+            event.key.keysym.sym = arg & ~(1 << 31);
+        }
+        else {
+            event.type = SDL_KEYUP;
+            event.key.keysym.sym = arg & ~(1 << 31);
+        }
+        SDL_PushEvent(&event);
+}
+
 static set_error_t
 set_add_log_attribute(void *arg, conf_object_t *obj, attr_value_t *val,
                       attr_value_t *idx)
@@ -276,6 +294,12 @@ init_local(void)
                 .operation = operation
         };
         SIM_register_interface(class, IO_MEMORY_INTERFACE, &memory_iface);
+
+        /* Interface for user keyboar devents */
+        static const sample_interface_t key_inject = {
+                .simple_method = joy16_key_inject
+        };
+        SIM_register_interface(class, SAMPLE_INTERFACE, &key_inject);
 
         /* Register attributes (device specific data) together with functions
            for getting and setting these attributes. */
