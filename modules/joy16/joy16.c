@@ -3,7 +3,7 @@
    This Software is part of Wind River Simics. The rights to copy, distribute,
    modify, or otherwise make use of this Software may be licensed only
    pursuant to the terms of an applicable Wind River license agreement.
-  
+
    Copyright 2010-2014 Intel Corporation */
 
 #include <simics/simulator-api.h> // For SIM_printf()
@@ -18,7 +18,23 @@ typedef struct {
         conf_object_t obj;
 
         /* device specific data */
-        unsigned value;
+        union joy16_reg
+        {
+        struct joy16_reg_map
+                {
+                    unsigned U     :1; // Up
+                    unsigned D     :1; // Down
+                    unsigned L     :1; // Left
+                    unsigned R     :1; // Right
+                    unsigned Slc   :1; // Select
+                    unsigned St    :1; // Start     
+                    unsigned A     :1; // A
+                    unsigned B     :1; // B
+                    unsigned empty :8;
+                } map;
+        uint16 byte;
+
+        } value;
 
         SDL_Window *window;
         SDL_Renderer *renderer;
@@ -28,7 +44,7 @@ typedef struct {
 static conf_object_t *
 alloc_object(void *data)
 {
-        joy16_t *joy = MM_ZALLOC(1, joy16_t);
+            joy16_t *joy = MM_ZALLOC(1, joy16_t);
         return &joy->obj;
 }
 
@@ -37,35 +53,17 @@ int joy16_event_filter(void* userdata, SDL_Event* event) {
         // TODO lock joystick state?
         joy16_t *joy = (joy16_t *)userdata;
         ASSERT(joy);
-        SIM_LOG_INFO(1, &joy->obj, 0, "%s: started", __FUNCTION__);
-        if (!joy->window) return 1;
+        ASSERT(joy->window);
 
+        // Leave only events we are interested in. the way we want.
+        // others are not supposed to get into the event queue
         switch (event->type) {
-        case SDL_WINDOWEVENT: // enforce window redraw
-                SDL_RenderPresent(joy->renderer);
-                break;
-        default: break;
+            case SDL_KEYDOWN: return 1;
+            case SDL_KEYUP:   return 1;
+            default:          return 0;
         }
-        return 1;
+        return 0;
 }
-
-
-int joy16_event_watch(void* userdata, SDL_Event* event) {
-        // TODO lock joystick state?
-        joy16_t *joy = (joy16_t *)userdata;
-        ASSERT(joy);
-        SIM_LOG_INFO(1, &joy->obj, 0, "%s: started", __FUNCTION__);
-        if (!joy->window) return 1;
-
-        switch (event->type) {
-        case SDL_WINDOWEVENT: // enforce window redraw
-                SDL_RenderPresent(joy->renderer);
-                break;
-        default: break;
-        }
-        return 1;
-}
-
 
 lang_void *init_object(conf_object_t *obj, lang_void *data) {
         joy16_t *joy = (joy16_t *)obj;
@@ -75,7 +73,7 @@ lang_void *init_object(conf_object_t *obj, lang_void *data) {
         name,                              // window title
         SDL_WINDOWPOS_UNDEFINED,           // initial x position
         SDL_WINDOWPOS_UNDEFINED,           // initial y position
-        128,                                // width, in pixels
+        128,                               // width, in pixels
         64,                                // height, in pixels
         SDL_WINDOW_SHOWN                   // flags 
         );
@@ -89,15 +87,15 @@ lang_void *init_object(conf_object_t *obj, lang_void *data) {
                 SIM_LOG_ERROR(obj, 0, "Failed to create SDL renderer");
                 return obj;
         }
-        SDL_SetRenderDrawColor( joy->renderer, 0xaa, 0xbb, 0xcc, 0xdd );
+        SDL_SetRenderDrawColor(joy->renderer, 0xaa, 0xbb, 0xcc, 0xdd);
         SDL_RenderClear(joy->renderer);
         SDL_SetRenderDrawColor(joy->renderer, 0xff, 0, 0, 0);
         SDL_RenderDrawLine(joy->renderer, 0, 0, 127, 63);
         SDL_RenderPresent(joy->renderer);
-        
-        // TODO try to understand which one is to be kept
-        SDL_AddEventWatch(joy16_event_watch, (void*)joy);
+
+        // Filter events before entering the event queue
         SDL_SetEventFilter(joy16_event_filter, (void*)joy);
+
         return obj;
 }
 
@@ -127,13 +125,12 @@ operation(conf_object_t *obj, generic_transaction_t *mop,
                            + info.start - info.base);
 
         if (SIM_mem_op_is_read(mop)) {
-                SIM_set_mem_op_value_le(mop, joy->value);
+                SIM_set_mem_op_value_le(mop, joy->value.byte);
                 SIM_LOG_INFO(1, &joy->obj, 0, "read from offset %d: 0x%x",
-                             offset, joy->value);
+                             offset, joy->value.byte);
         } else {
-                joy->value = SIM_get_mem_op_value_le(mop);
-                SIM_LOG_INFO(1, &joy->obj, 0, "write to offset %d: 0x%x",
-                             offset, joy->value);
+                SIM_LOG_SPEC_VIOLATION(1, &joy->obj, 0, "Write ignored %d %#llx",
+                             offset, SIM_get_mem_op_value_le(mop));
         }
         return Sim_PE_No_Exception;
 }
@@ -143,7 +140,7 @@ set_value_attribute(void *arg, conf_object_t *obj,
                     attr_value_t *val, attr_value_t *idx)
 {
         joy16_t *joy = (joy16_t *)obj;
-        joy->value = SIM_attr_integer(*val);
+        joy->value.byte = SIM_attr_integer(*val);
         SDL_RenderPresent(joy->renderer);
         return Sim_Set_Ok;
 }
@@ -154,25 +151,88 @@ get_value_attribute(void *arg, conf_object_t *obj, attr_value_t *idx)
         joy16_t *joy = (joy16_t *)obj;
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
-                 switch (event.type) {
-                 case SDL_WINDOWEVENT:
-                         SIM_LOG_INFO(1, &joy->obj, 0, "%s: Window event", __FUNCTION__);
-                         break;
-                 case SDL_KEYDOWN:
-                         joy->value = event.key.keysym.sym;
-                         SIM_LOG_INFO(1, &joy->obj, 0, "%s: Keydown %d event", __FUNCTION__, joy->value);
-                         break;
-                 case SDL_KEYUP:
-                         joy->value = event.key.keysym.sym;
-                         SIM_LOG_INFO(1, &joy->obj, 0, "%s: Keyup %d event", __FUNCTION__, joy->value);
-                         break;
-                 default:
-                         SIM_LOG_INFO(1, &joy->obj, 0, "%s: Other event type", __FUNCTION__);
-                         break;
+                if (event.type == SDL_KEYDOWN) {
+                        switch (event.key.keysym.sym) {
+                        case SDLK_UP:
+                                joy->value.map.U = 1;
+                                SIM_LOG_INFO(4, &joy->obj, 0, "%s: Keydown UP %d", __FUNCTION__, joy->value.byte);
+                                break;
+                        case SDLK_DOWN:
+                                joy->value.map.D = 1;
+                                SIM_LOG_INFO(4, &joy->obj, 0, "%s: Keydown DOWN %d", __FUNCTION__, joy->value.byte);
+                                break;
+                        case SDLK_LEFT:
+                                joy->value.map.L = 1;
+                                SIM_LOG_INFO(4, &joy->obj, 0, "%s: Keydown LEFT %d", __FUNCTION__, joy->value.byte);
+                                break;
+                        case SDLK_RIGHT:
+                                joy->value.map.R = 1;
+                                SIM_LOG_INFO(4, &joy->obj, 0, "%s: Keydown RIGHT %d", __FUNCTION__, joy->value.byte);
+                                break;
+                        case SDLK_END:
+                                joy->value.map.Slc = 1;
+                                SIM_LOG_INFO(4, &joy->obj, 0, "%s: Keydown SELECT %d", __FUNCTION__, joy->value.byte);
+                                break;
+                        case SDLK_RCTRL:
+                                joy->value.map.St = 1;
+                                SIM_LOG_INFO(4, &joy->obj, 0, "%s: Keydown START %d", __FUNCTION__, joy->value.byte);
+                                break;
+                        case SDLK_f:
+                                joy->value.map.A = 1;
+                                SIM_LOG_INFO(4, &joy->obj, 0, "%s: Keydown A %d", __FUNCTION__, joy->value.byte);
+                                break;
+                        case SDLK_g:
+                                joy->value.map.B = 1;
+                                SIM_LOG_INFO(4, &joy->obj, 0, "%s: Keydown B %d", __FUNCTION__, joy->value.byte);
+                                break;
+                        default:
+                                SIM_LOG_INFO(5, &joy->obj, 0, "%s: Other key pressed", __FUNCTION__);
+                                break;
+                        }
+                }
+                else if (event.type == SDL_KEYUP) {
+                        switch (event.key.keysym.sym) {
+                        case SDLK_UP:
+                                joy->value.map.U = 0;
+                                SIM_LOG_INFO(4, &joy->obj, 0, "%s: Keyup UP %d", __FUNCTION__, joy->value.byte);
+                                break;
+                        case SDLK_DOWN:
+                                joy->value.map.D = 0;
+                                SIM_LOG_INFO(4, &joy->obj, 0, "%s: Keyup DOWN %d", __FUNCTION__, joy->value.byte);
+                                break;
+                        case SDLK_LEFT:
+                                joy->value.map.L = 0;
+                                SIM_LOG_INFO(4, &joy->obj, 0, "%s: Keyup LEFT %d", __FUNCTION__, joy->value.byte);
+                                break;
+                        case SDLK_RIGHT:
+                                joy->value.map.R = 0;
+                                SIM_LOG_INFO(4, &joy->obj, 0, "%s: Keyup RIGHT %d", __FUNCTION__, joy->value.byte);
+                                break;
+                        case SDLK_END:
+                                joy->value.map.Slc = 0;
+                                SIM_LOG_INFO(4, &joy->obj, 0, "%s: Keyup SELECT %d", __FUNCTION__, joy->value.byte);
+                                break;
+                        case SDLK_RCTRL:
+                                joy->value.map.St = 0;
+                                SIM_LOG_INFO(4, &joy->obj, 0, "%s: Keyup START %d", __FUNCTION__, joy->value.byte);
+                                break;
+                        case SDLK_f:
+                                joy->value.map.A = 0;
+                                SIM_LOG_INFO(4, &joy->obj, 0, "%s: Keyup A %d", __FUNCTION__, joy->value.byte);
+                                break;
+                        case SDLK_g:
+                                joy->value.map.B = 0;
+                                SIM_LOG_INFO(4, &joy->obj, 0, "%s: Keyup B %d", __FUNCTION__, joy->value.byte);
+                                break;
+                        default:
+                                SIM_LOG_INFO(5, &joy->obj, 0, "%s: Other key released", __FUNCTION__);
+                                break;
+                        }
                  }
+                 else {ASSERT(!" Wrong keyboard event type! "); return SIM_make_attr_uint64(joy->value.byte);}
         }
 
-        return SIM_make_attr_uint64(joy->value);
+        return SIM_make_attr_uint64(joy->value.byte);
 }
 
 static set_error_t
@@ -195,8 +255,7 @@ init_local(void)
                 .init_object  = init_object,
                 .delete_instance = delete_instance,
                 .class_desc = "Joystick of CHIP16",
-                .description =
-                "Joystick device of CHIP16 system."
+                .description = "Joystick device of CHIP16 system."
         };
         conf_class_t *class = SIM_register_class("joy16", &funcs);
 
@@ -229,7 +288,7 @@ init_local(void)
                 Sim_Attr_Pseudo, "s", NULL,
                 "<i>Write-only</i>. Strings written to this"
                 " attribute will end up in the device's log file.");
-        
+
         if (SDL_WasInit(SDL_INIT_VIDEO | SDL_INIT_EVENTS) == 0) {
                 int res = 0;
                 SIM_printf("SDL video/events haven't been initialized, doing it now\n");
