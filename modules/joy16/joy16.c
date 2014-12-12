@@ -9,7 +9,7 @@
 #include <simics/simulator-api.h> // For SIM_printf()
 #include <simics/device-api.h>
 #include <simics/devs/io-memory.h>
-#include "sample-interface.h"
+#include <simics/devs/signal.h>
 
 #include "include/SDL2/SDL.h"
 
@@ -107,15 +107,6 @@ int delete_instance(conf_object_t *obj) {
         return 1;
 }
 
-/* Dummy function that doesn't really do anything. */
-static void
-simple_method(conf_object_t *obj, int arg)
-{
-        joy16_t *joy = (joy16_t *)obj;
-        SIM_LOG_INFO(1, &joy->obj, 0,
-                     "'simple_method' called with arg %d", arg);
-}
-
 static exception_type_t
 operation(conf_object_t *obj, generic_transaction_t *mop,
                  map_info_t info)
@@ -149,44 +140,51 @@ static attr_value_t
 get_value_attribute(void *arg, conf_object_t *obj, attr_value_t *idx)
 {
         joy16_t *joy = (joy16_t *)obj;
+        return SIM_make_attr_uint64(joy->value.byte);
+}
+
+static void
+joy16_signal_raise(conf_object_t *obj) 
+{
+        joy16_t *joy = (joy16_t *)obj;
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
                 if (event.type == SDL_KEYDOWN) {
                         switch (event.key.keysym.sym) {
                         case SDLK_UP:
                                 joy->value.map.U = 1;
-                                SIM_LOG_INFO(4, &joy->obj, 0, "%s: Keydown UP %d", __FUNCTION__, joy->value.byte);
+                                SIM_LOG_INFO(4, &joy->obj, 0, "Keydown UP");
                                 break;
                         case SDLK_DOWN:
                                 joy->value.map.D = 1;
-                                SIM_LOG_INFO(4, &joy->obj, 0, "%s: Keydown DOWN %d", __FUNCTION__, joy->value.byte);
+                                SIM_LOG_INFO(4, &joy->obj, 0, "Keydown DOWN");
                                 break;
                         case SDLK_LEFT:
                                 joy->value.map.L = 1;
-                                SIM_LOG_INFO(4, &joy->obj, 0, "%s: Keydown LEFT %d", __FUNCTION__, joy->value.byte);
+                                SIM_LOG_INFO(4, &joy->obj, 0, "Keydown LEFT");
                                 break;
                         case SDLK_RIGHT:
                                 joy->value.map.R = 1;
-                                SIM_LOG_INFO(4, &joy->obj, 0, "%s: Keydown RIGHT %d", __FUNCTION__, joy->value.byte);
+                                SIM_LOG_INFO(4, &joy->obj, 0, "Keydown RIGHT");
                                 break;
-                        case SDLK_END:
+                        case SDLK_TAB:
                                 joy->value.map.Slc = 1;
-                                SIM_LOG_INFO(4, &joy->obj, 0, "%s: Keydown SELECT %d", __FUNCTION__, joy->value.byte);
+                                SIM_LOG_INFO(4, &joy->obj, 0, "Keydown SELECT");
                                 break;
-                        case SDLK_RCTRL:
+                        case SDLK_RETURN:
                                 joy->value.map.St = 1;
-                                SIM_LOG_INFO(4, &joy->obj, 0, "%s: Keydown START %d", __FUNCTION__, joy->value.byte);
+                                SIM_LOG_INFO(4, &joy->obj, 0, "Keydown START");
                                 break;
                         case SDLK_f:
                                 joy->value.map.A = 1;
-                                SIM_LOG_INFO(4, &joy->obj, 0, "%s: Keydown A %d", __FUNCTION__, joy->value.byte);
+                                SIM_LOG_INFO(4, &joy->obj, 0, "Keydown A");
                                 break;
                         case SDLK_g:
                                 joy->value.map.B = 1;
-                                SIM_LOG_INFO(4, &joy->obj, 0, "%s: Keydown B %d", __FUNCTION__, joy->value.byte);
+                                SIM_LOG_INFO(4, &joy->obj, 0, "Keydown B");
                                 break;
                         default:
-                                SIM_LOG_INFO(5, &joy->obj, 0, "%s: Other key pressed", __FUNCTION__);
+                                SIM_LOG_INFO(5, &joy->obj, 0, "Other key pressed");
                                 break;
                         }
                 }
@@ -194,45 +192,50 @@ get_value_attribute(void *arg, conf_object_t *obj, attr_value_t *idx)
                         switch (event.key.keysym.sym) {
                         case SDLK_UP:
                                 joy->value.map.U = 0;
-                                SIM_LOG_INFO(4, &joy->obj, 0, "%s: Keyup UP %d", __FUNCTION__, joy->value.byte);
+                                SIM_LOG_INFO(4, &joy->obj, 0, "Keyup UP");
                                 break;
                         case SDLK_DOWN:
                                 joy->value.map.D = 0;
-                                SIM_LOG_INFO(4, &joy->obj, 0, "%s: Keyup DOWN %d", __FUNCTION__, joy->value.byte);
+                                SIM_LOG_INFO(4, &joy->obj, 0, "Keyup DOWN");
                                 break;
                         case SDLK_LEFT:
                                 joy->value.map.L = 0;
-                                SIM_LOG_INFO(4, &joy->obj, 0, "%s: Keyup LEFT %d", __FUNCTION__, joy->value.byte);
+                                SIM_LOG_INFO(4, &joy->obj, 0, "Keyup LEFT");
                                 break;
                         case SDLK_RIGHT:
                                 joy->value.map.R = 0;
-                                SIM_LOG_INFO(4, &joy->obj, 0, "%s: Keyup RIGHT %d", __FUNCTION__, joy->value.byte);
+                                SIM_LOG_INFO(4, &joy->obj, 0, "Keyup RIGHT");
                                 break;
-                        case SDLK_END:
+                        case SDLK_TAB:
                                 joy->value.map.Slc = 0;
-                                SIM_LOG_INFO(4, &joy->obj, 0, "%s: Keyup SELECT %d", __FUNCTION__, joy->value.byte);
+                                SIM_LOG_INFO(4, &joy->obj, 0, "Keyup SELECT");
                                 break;
-                        case SDLK_RCTRL:
+                        case SDLK_RETURN:
                                 joy->value.map.St = 0;
-                                SIM_LOG_INFO(4, &joy->obj, 0, "%s: Keyup START %d", __FUNCTION__, joy->value.byte);
+                                SIM_LOG_INFO(4, &joy->obj, 0, "Keyup START");
                                 break;
                         case SDLK_f:
                                 joy->value.map.A = 0;
-                                SIM_LOG_INFO(4, &joy->obj, 0, "%s: Keyup A %d", __FUNCTION__, joy->value.byte);
+                                SIM_LOG_INFO(4, &joy->obj, 0, "Keyup A");
                                 break;
                         case SDLK_g:
                                 joy->value.map.B = 0;
-                                SIM_LOG_INFO(4, &joy->obj, 0, "%s: Keyup B %d", __FUNCTION__, joy->value.byte);
+                                SIM_LOG_INFO(4, &joy->obj, 0, "Keyup B");
                                 break;
                         default:
-                                SIM_LOG_INFO(5, &joy->obj, 0, "%s: Other key released", __FUNCTION__);
+                                SIM_LOG_INFO(5, &joy->obj, 0, "Other key released");
                                 break;
                         }
                  }
-                 else {ASSERT(!" Wrong keyboard event type! "); return SIM_make_attr_uint64(joy->value.byte);}
+                 else
+                        ASSERT_MSG(0, "Wrong keyboard event type!");
         }
+}
 
-        return SIM_make_attr_uint64(joy->value.byte);
+static void
+joy16_signal_lower(conf_object_t *obj) 
+{
+        // nothing to do
 }
 
 static set_error_t
@@ -261,10 +264,11 @@ init_local(void)
 
         /* Register the 'sample-interface', which is an example of a unique,
            customized interface that we've implemented for this device. */
-        static const sample_interface_t sample_iface = {
-                .simple_method = simple_method
+        static const signal_interface_t vblank = {
+                .signal_raise = joy16_signal_raise,
+                .signal_lower = joy16_signal_lower
         };
-        SIM_register_interface(class, SAMPLE_INTERFACE, &sample_iface);
+        SIM_register_interface(class, SIGNAL_INTERFACE, &vblank);
 
         /* Register the 'io_memory' interface, which is an example of a generic
            interface that is implemented by all memory mapped devices. */
