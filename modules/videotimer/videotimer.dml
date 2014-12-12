@@ -107,5 +107,8 @@ bank regs {
         method after_write(memop) {
             call $counter.update_event;
         }
+        method after_set() {
+            call $counter.update_event;
+        }
     }
 }
