@@ -27,10 +27,10 @@ typedef struct {
                     unsigned D     :1; // Down
                     unsigned L     :1; // Left
                     unsigned R     :1; // Right
-                    unsigned Slc   :1; // Select
-                    unsigned St    :1; // Start     
-                    unsigned A     :1; // A
-                    unsigned B     :1; // B
+                    unsigned Slc   :1; // Select    <-- refers to --- Tab
+                    unsigned St    :1; // Start     <-- refers to --- Return    
+                    unsigned A     :1; // A         <-- refers to --- F
+                    unsigned B     :1; // B         <-- refers to --- G
                     unsigned empty :8;
                 } map;
         uint16 byte;
@@ -244,9 +244,12 @@ joy16_signal_lower(conf_object_t *obj)
 static void
 joy16_key_inject (conf_object_t* obj, int arg)
 {
-//        joy16_t *joy = (joy16_t *)obj;
         SDL_Event event = {0};
-        if(arg & (1 << 29)) {
+
+        /* because arg is signed int, 31`t bit is taken
+           we need somehow to determine whether it is Keyup or Keydown
+           thus we use 29`th bit and after the condition we clear it */ 
+        if(arg & (1 << 29)) { 
             arg = arg ^ (1<<29);
             event.type = SDL_KEYDOWN;
             event.key.keysym.sym = arg & ~(1 << 31);
@@ -297,7 +300,7 @@ init_local(void)
         };
         SIM_register_interface(class, IO_MEMORY_INTERFACE, &memory_iface);
 
-        /* Interface for user keyboard events */
+        /* Register the 'key_inject' interface for user keyboard events */
         static const sample_interface_t key_inject = {
                 .simple_method = joy16_key_inject
         };
