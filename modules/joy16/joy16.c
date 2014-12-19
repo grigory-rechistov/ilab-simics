@@ -326,7 +326,7 @@ init_local(void)
                 int res = 0;
                 SIM_printf("SDL video/events haven't been initialized, doing it now\n");
                 res = SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
-                ASSERT(res == 0);
+                if (res != 0) SIM_printf("Warning: SDL_INIT_SUBSYTEM returned not zero\n");
         }
 
         // FIXME we also need to call a cleanup, maybe something like this?

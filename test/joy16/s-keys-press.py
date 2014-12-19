@@ -7,9 +7,6 @@ cli.run_command("run-python-file %s/targets/chip16/machine.py" % conf.sim.worksp
 
 cpu = conf.chip0
 joy = conf.joy0
-timestep = conf.timer0.regs_reference
-
-cpu.iface.processor_info_v2.disable_processor
 
 # Instructions how to use the simple_method for joystick
 #
@@ -27,17 +24,19 @@ cpu.iface.processor_info_v2.disable_processor
 #
 #   8       7       6       5       4       3       2       1       0
 #   |-------|-------|-------|-------|-------|-------|-------|-------|
-#   |   A   |   B   | START |SELECT | RIGHT | LEFT  | DOWN  |  UP   |
+#   |   B   |   A   | START |SELECT | RIGHT | LEFT  | DOWN  |  UP   |
 
 # Passing SDL_KEYDOWN event for UP button
 joy.iface.sample.simple_method(82 | (3<<29))
-SIM_continue(timestep)
+joy.iface.signal.signal_raise()
+joy.iface.signal.signal_lower()
 stest.expect_equal(simics.SIM_read_phys_memory(cpu, 0xfff0, 2), 1)
 print "Joystick: (key_pressed) success"
 
 # Passing SDL_KEYUP event for UP button
 joy.iface.sample.simple_method(82 | (1<<30))
-SIM_continue(timestep)
+joy.iface.signal.signal_raise()
+joy.iface.signal.signal_lower()
 stest.expect_equal(simics.SIM_read_phys_memory(cpu, 0xfff0, 2), 0)
 print "Joystick: (key_unpressed) success"
 
@@ -45,6 +44,7 @@ print "Joystick: (key_unpressed) success"
 joy.iface.sample.simple_method(9 | (1<<29))
 # Passing SDL_KEYDOWN event for LEFT button
 joy.iface.sample.simple_method(80 | (3<<29))
-SIM_continue(timestep)
-stest.expect_equal(simics.SIM_read_phys_memory(cpu, 0xfff0, 2), 20)   
+joy.iface.signal.signal_raise()
+joy.iface.signal.signal_lower()
+stest.expect_equal(simics.SIM_read_phys_memory(cpu, 0xfff0, 2), 0b00010100)   
 print "Joystick: (keys_pressed) success"
