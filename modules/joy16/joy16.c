@@ -45,7 +45,7 @@ typedef struct {
 static conf_object_t *
 alloc_object(void *data)
 {
-            joy16_t *joy = MM_ZALLOC(1, joy16_t);
+        joy16_t *joy = MM_ZALLOC(1, joy16_t);
         return &joy->obj;
 }
 
@@ -56,8 +56,9 @@ int joy16_event_filter(void* userdata, SDL_Event* event) {
         ASSERT(joy);
         ASSERT(joy->window);
 
-        // Leave only events we are interested in. the way we want.
-        // others are not supposed to get into the event queue
+        /* Leave only events we are interested in. the way we want.
+        others are not supposed to get into the event queue
+        !!! except user events. Thus use key_inject interface with caution */ 
         switch (event->type) {
             case SDL_KEYDOWN: return 1;
             case SDL_KEYUP:   return 1;
@@ -118,7 +119,7 @@ operation(conf_object_t *obj, generic_transaction_t *mop,
 
         if (SIM_mem_op_is_read(mop)) {
                 SIM_set_mem_op_value_le(mop, joy->value.byte);
-                SIM_LOG_INFO(1, &joy->obj, 0, "read from offset %d: 0x%x",
+                SIM_LOG_INFO(4, &joy->obj, 0, "read from offset %d: 0x%x",
                              offset, joy->value.byte);
         } else {
                 SIM_LOG_SPEC_VIOLATION(1, &joy->obj, 0, "Write ignored %d %#llx",
@@ -245,7 +246,8 @@ joy16_key_inject (conf_object_t* obj, int arg)
 {
 //        joy16_t *joy = (joy16_t *)obj;
         SDL_Event event = {0};
-        if(arg & (1 << 31)) {
+        if(arg & (1 << 29)) {
+            arg = arg ^ (1<<29);
             event.type = SDL_KEYDOWN;
             event.key.keysym.sym = arg & ~(1 << 31);
         }
@@ -295,7 +297,7 @@ init_local(void)
         };
         SIM_register_interface(class, IO_MEMORY_INTERFACE, &memory_iface);
 
-        /* Interface for user keyboar devents */
+        /* Interface for user keyboard events */
         static const sample_interface_t key_inject = {
                 .simple_method = joy16_key_inject
         };
