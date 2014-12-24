@@ -36,11 +36,14 @@ timer0.regs_config = 3
 #joy1 = pre_conf_object(name_prefix + "joy1", "joy16")
 #joy1.queue = chip0
 
+graph0 = pre_conf_object(name_prefix + "graph0", "graph16")
+graph0.queue = chip0
+
 phys_mem0 = pre_conf_object(name_prefix + "phys_mem0", "memory-space")
 phys_mem0.queue = chip0
 phys_mem0.map = [[0x0,    ram0,     0, 0, 0xfff0],
                 [ 0xfff0, joy0,     0, 0, 0x2   ],
-                ]
+                [ 0xfff6, graph0,   0, 0, 0x2   ]]
 
 ctx0 = pre_conf_object(name_prefix + "ctx0", "context")
 ctx0.queue = chip0
