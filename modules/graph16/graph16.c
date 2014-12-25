@@ -3,7 +3,6 @@
    This Software is part of Wind River Simics. The rights to copy, distribute,
    modify, or otherwise make use of this Software may be licensed only
    pursuant to the terms of an applicable Wind River license agreement.
-  
    Copyright 2010-2014 Intel Corporation */
 
 #include <simics/device-api.h>
@@ -11,6 +10,31 @@
 #include "sample-interface.h"
 
 #include "include/SDL2/SDL.h"
+
+#define PAL_SIZE 16
+
+#define NIBBLE_MASK     0xF
+#define UCHAR_MASK      0xFF
+#define BOOLEAN_MASK    0x1
+
+#define BAD_OP          0xAD
+#define BAD_LEN         0xAD
+
+typedef struct {
+        uint8 opcode;
+        uint8 length;
+
+} graph16_instr_t;
+
+
+typedef enum {
+        DRW_op  = 0,
+        PAL_op  = 1,
+        BGC_op  = 2,
+        SPR_op  = 3,
+        FLIP_op = 4,
+
+} instr_op_graph16_t;
 
 typedef struct {
         /* Simics configuration object */
@@ -25,6 +49,10 @@ typedef struct {
         uint8   spriteh;        // (Unsigned byte) Height of sprite(s) to draw
         bool    hflip;          // (Boolean) Flip sprite(s) to draw, horizontally
         bool    vflip;          // (Boolean) Flip sprite(s) to draw, vertically
+
+        uint8   palette[PAL_SIZE];    // 1 colour in palette is coded like [00RRGGBB]
+
+        graph16_instr_t instruction;
 
         SDL_Window *window;
 
@@ -41,13 +69,28 @@ alloc_object(void *data)
 lang_void *init_object(conf_object_t *obj, lang_void *data) {
         graph16_t *sample = (graph16_t *)obj;
 
+        sample->bg      = 0;
+        sample->spritew = 0;
+        sample->spriteh = 0;
+        sample->hflip   = 0;
+        sample->vflip   = 0;
+
+        int i = 0;
+        for (i = 0; i < PAL_SIZE; i++) {
+                sample->palette[i] = 0;
+        }
+
+        sample->instruction.opcode = BAD_OP;
+        sample->instruction.length = BAD_LEN;
+
+
         sample->window = SDL_CreateWindow (
-        "CHIP16 monitor",                  // window title, TODO include SIM_object_name output
-        SDL_WINDOWPOS_UNDEFINED,           // initial x position
-        SDL_WINDOWPOS_UNDEFINED,           // initial y position
-        320,                               // width, in pixels
-        240,                               // height, in pixels
-        SDL_WINDOW_SHOWN                   // flags 
+                "CHIP16 monitor",                  // window title, TODO include SIM_object_name output
+                SDL_WINDOWPOS_UNDEFINED,           // initial x position
+                SDL_WINDOWPOS_UNDEFINED,           // initial y position
+                320,                               // width, in pixels
+                240,                               // height, in pixels
+                SDL_WINDOW_SHOWN                   // flags
         );
 
         if (sample->window == NULL) {
@@ -86,13 +129,73 @@ operation(conf_object_t *obj, generic_transaction_t *mop,
                 SIM_LOG_INFO(1, &sample->obj, 0, "read from offset %d: 0x%x",
                              offset, sample->value);
         } else {
-                sample->value = SIM_get_mem_op_value_le(mop);
-                SIM_LOG_INFO(1, &sample->obj, 0, "write to offset %d: 0x%x",
-                             offset, sample->value);
+
+                SIM_LOG_INFO(1, &sample->obj, 0, "opcode = %d\n", sample->instruction.opcode);
+
+                uint16 instr = SIM_get_mem_op_value_le(mop); // Instruction is 16 bit [XXYY]
+                uint8 XX = ((instr >> 8) & 0xFF);
+                uint8 YY = (instr & 0xFF);
+
+                int tmp = 0;
+                int instr_on_getting = 0;
+
+                if (sample->instruction.opcode == BAD_OP && sample->instruction.length == BAD_LEN) {
+                        sample->instruction.opcode = XX;
+                        sample->instruction.length = YY;
+
+                        instr_on_getting = 1;
+                }
+
+                if (!instr_on_getting) {
+
+                        switch (sample->instruction.opcode) {
+
+                        case BGC_op:
+                                sample->bg = ((XX >> 4) & 0xF);
+                                sample->instruction.opcode = BAD_OP;
+                                sample->instruction.length = BAD_LEN;
+                                break;
+
+                        case SPR_op:
+                                sample->spritew = YY;
+                                sample->spriteh = XX;
+                                sample->instruction.opcode = BAD_OP;
+                                sample->instruction.length = BAD_LEN;
+                                break;
+
+                        case FLIP_op:
+                                tmp = ((XX >> 4) & 0xF);
+                                if (tmp == 0) {
+                                        sample->hflip = 0;
+                                        sample->vflip = 0;
+                                }
+                                else if (tmp == 1) {
+                                        sample->hflip = 0;
+                                        sample->vflip = 1;
+                                }
+                                else if (tmp == 2) {
+                                        sample->hflip = 1;
+                                        sample->vflip = 0;
+                                }
+                                else if (tmp == 3) {
+                                        sample->hflip = 1;
+                                        sample->vflip = 1;
+                                }
+
+                                sample->instruction.opcode = BAD_OP;
+                                sample->instruction.length = BAD_LEN;
+                                break;
+
+                        default:
+                                SIM_LOG_INFO(1, &sample->obj, 0, "got unknown instruction: %x\n", sample->instruction.opcode);
+
+                        }
+                }
         }
         return Sim_PE_No_Exception;
 }
-/* 
+
+/*
  * value attribute functions
  */
 static set_error_t
@@ -102,7 +205,7 @@ set_value_attribute(void *arg, conf_object_t *obj,
         graph16_t *sample = (graph16_t *)obj;
         sample->value = SIM_attr_integer(*val);
         return Sim_Set_Ok;
-} 
+}
 
 static attr_value_t
 get_value_attribute(void *arg, conf_object_t *obj, attr_value_t *idx)
@@ -119,9 +222,9 @@ set_bg_attribute(void *arg, conf_object_t *obj,
                     attr_value_t *val, attr_value_t *idx)
 {
         graph16_t *sample = (graph16_t *)obj;
-        sample->bg = SIM_attr_integer(*val);
+        sample->bg = (NIBBLE_MASK & SIM_attr_integer(*val));
         return Sim_Set_Ok;
-} 
+}
 
 static attr_value_t
 get_bg_attribute(void *arg, conf_object_t *obj, attr_value_t *idx)
@@ -131,22 +234,79 @@ get_bg_attribute(void *arg, conf_object_t *obj, attr_value_t *idx)
 }
 
 /*
- * bg register attribute functions
+ * spritew register attribute functions
  */
 static set_error_t
 set_spritew_attribute(void *arg, conf_object_t *obj,
                     attr_value_t *val, attr_value_t *idx)
 {
         graph16_t *sample = (graph16_t *)obj;
-        sample->spritew = SIM_attr_integer(*val);
+        sample->spritew = (UCHAR_MASK & SIM_attr_integer(*val));
         return Sim_Set_Ok;
-} 
+}
 
 static attr_value_t
 get_spritew_attribute(void *arg, conf_object_t *obj, attr_value_t *idx)
 {
         graph16_t *sample = (graph16_t *)obj;
         return SIM_make_attr_uint64(sample->spritew);
+}
+
+/*
+ * spriteh register attribute functions
+ */
+static set_error_t
+set_spriteh_attribute(void *arg, conf_object_t *obj,
+                    attr_value_t *val, attr_value_t *idx)
+{
+        graph16_t *sample = (graph16_t *)obj;
+        sample->spriteh = (UCHAR_MASK & SIM_attr_integer(*val));
+        return Sim_Set_Ok;
+}
+
+static attr_value_t
+get_spriteh_attribute(void *arg, conf_object_t *obj, attr_value_t *idx)
+{
+        graph16_t *sample = (graph16_t *)obj;
+        return SIM_make_attr_uint64(sample->spriteh);
+}
+
+/*
+ * hflip register attribute functions
+ */
+static set_error_t
+set_hflip_attribute(void *arg, conf_object_t *obj,
+                    attr_value_t *val, attr_value_t *idx)
+{
+        graph16_t *sample = (graph16_t *)obj;
+        sample->hflip = (BOOLEAN_MASK & SIM_attr_integer(*val));
+        return Sim_Set_Ok;
+}
+
+static attr_value_t
+get_hflip_attribute(void *arg, conf_object_t *obj, attr_value_t *idx)
+{
+        graph16_t *sample = (graph16_t *)obj;
+        return SIM_make_attr_uint64(sample->hflip);
+}
+
+/*
+ * vflip register attribute functions
+ */
+static set_error_t
+set_vflip_attribute(void *arg, conf_object_t *obj,
+                    attr_value_t *val, attr_value_t *idx)
+{
+        graph16_t *sample = (graph16_t *)obj;
+        sample->vflip = (BOOLEAN_MASK & SIM_attr_integer(*val));
+        return Sim_Set_Ok;
+}
+
+static attr_value_t
+get_vflip_attribute(void *arg, conf_object_t *obj, attr_value_t *idx)
+{
+        graph16_t *sample = (graph16_t *)obj;
+        return SIM_make_attr_uint64(sample->vflip);
 }
 
 static set_error_t
@@ -195,18 +355,36 @@ init_local(void)
                 get_value_attribute, NULL, set_value_attribute, NULL,
                 Sim_Attr_Optional, "i", NULL,
                 "The <i>value</i> field.");
-                
+
         SIM_register_typed_attribute(
                 class, "bg",
                 get_bg_attribute, NULL, set_bg_attribute, NULL,
                 Sim_Attr_Optional, "i", NULL,
-                "The \"bg\" register.");
+                "Color index of background layer.");
 
         SIM_register_typed_attribute(
                 class, "spritew",
                 get_spritew_attribute, NULL, set_spritew_attribute, NULL,
                 Sim_Attr_Optional, "i", NULL,
-                "The \"spritew\" register.");
+                "Width of sprite(s) to draw.");
+
+        SIM_register_typed_attribute(
+                class, "spriteh",
+                get_spriteh_attribute, NULL, set_spriteh_attribute, NULL,
+                Sim_Attr_Optional, "i", NULL,
+                "Height of sprite(s) to draw.");
+
+        SIM_register_typed_attribute(
+                class, "hflip",
+                get_hflip_attribute, NULL, set_hflip_attribute, NULL,
+                Sim_Attr_Optional, "i", NULL,
+                "Flip sprite(s) to draw, horizontally.");
+
+        SIM_register_typed_attribute(
+                class, "vflip",
+                get_vflip_attribute, NULL, set_vflip_attribute, NULL,
+                Sim_Attr_Optional, "i", NULL,
+                "Flip sprite(s) to draw, vertically.");
 
 
         /* Pseudo attribute, not saved in configuration */
