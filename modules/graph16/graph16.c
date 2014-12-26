@@ -374,15 +374,16 @@ set_palette_attribute(void *arg, conf_object_t *obj,
                     attr_value_t *val, attr_value_t *idx)
 {
         graph16_t *sample = (graph16_t *)obj;
-/*
-        for (int i = 0; i < 16; i++) {
-                sample->palette[i] = 0;
-                sample->palette[i] |= ((SIM_attr_integer(SIM_attr_list_item(SIM_attr_list_item(*val, i)), 0) << 16) & 0xFF0000);
-                sample->palette[i] |= ((SIM_attr_integer(SIM_attr_list_item(SIM_attr_list_item(*val, i)), 1) << 8) & 0xFF00);
-                sample->palette[i] |= (SIM_attr_integer(SIM_attr_list_item(SIM_attr_list_item(*val, i)), 0) & 0xFF);
+
+        int i = 0, j = 0;
+        for (i = 0; i < 16 * 3; i += 3, j++) {
+                sample->palette[j] = 0;
+                sample->palette[j] |= ((SIM_attr_integer((SIM_attr_list_item(*val, i + 0))) << 16) & 0xFF0000);
+                sample->palette[j] |= ((SIM_attr_integer((SIM_attr_list_item(*val, i + 1))) << 8) & 0xFF00);
+                sample->palette[j] |= ( SIM_attr_integer((SIM_attr_list_item(*val, i + 2))) & 0xFF);
         }
-*/
-        SIM_LOG_INFO(1, &sample->obj, 0, "idx = %x\n", SIM_attr_integer(*idx));
+
+        //SIM_LOG_INFO(1, &sample->obj, 0, "val = %x\n", SIM_attr_integer(SIM_attr_list_item(*val, i + 0)));
         return Sim_Set_Ok;
 }
 
