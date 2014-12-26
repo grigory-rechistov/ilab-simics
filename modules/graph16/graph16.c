@@ -17,8 +17,8 @@
 #define UCHAR_MASK      0xFF
 #define BOOLEAN_MASK    0x1
 
-#define BAD_OP          0xAD
-#define BAD_LEN         0xAD
+#define NEW_OP          0xAD
+#define NEW_LEN         0xAD
 
 typedef struct {
         uint8 opcode;
@@ -26,6 +26,12 @@ typedef struct {
 
 } graph16_instr_t;
 
+typedef struct {
+        uint8 x;
+        uint8 y;
+        uint16 addr;
+
+} graph16_sprite_t;
 
 typedef enum {
         DRW_op  = 0,
@@ -34,7 +40,7 @@ typedef enum {
         SPR_op  = 3,
         FLIP_op = 4,
 
-} instr_op_graph16_t;
+} graph16_instr_op_t;
 
 typedef struct {
         /* Simics configuration object */
@@ -50,9 +56,13 @@ typedef struct {
         bool    hflip;          // (Boolean) Flip sprite(s) to draw, horizontally
         bool    vflip;          // (Boolean) Flip sprite(s) to draw, vertically
 
-        uint8   palette[PAL_SIZE];    // 1 colour in palette is coded like [00RRGGBB]
+        uint32 palette[PAL_SIZE];    // 1 colour in palette is coded like [00RRGGBB]
+
+        graph16_sprite_t sprite;
 
         graph16_instr_t instruction;
+
+        uint32 temp[24];
 
         SDL_Window *window;
 
@@ -80,9 +90,16 @@ lang_void *init_object(conf_object_t *obj, lang_void *data) {
                 sample->palette[i] = 0;
         }
 
-        sample->instruction.opcode = BAD_OP;
-        sample->instruction.length = BAD_LEN;
+        sample->instruction.opcode = NEW_OP;
+        sample->instruction.length = NEW_LEN;
 
+        sample->sprite.x = 0;
+        sample->sprite.y = 0;
+        sample->sprite.addr = 0;
+
+        for (i = 0; i < 24; i++) {
+                sample->temp[i] = 0;
+        }
 
         sample->window = SDL_CreateWindow (
                 "CHIP16 monitor",                  // window title, TODO include SIM_object_name output
@@ -137,9 +154,10 @@ operation(conf_object_t *obj, generic_transaction_t *mop,
                 uint8 YY = (instr & 0xFF);
 
                 int tmp = 0;
+                int i = 0, j = 0;
                 int instr_on_getting = 0;
 
-                if (sample->instruction.opcode == BAD_OP && sample->instruction.length == BAD_LEN) {
+                if (sample->instruction.opcode == NEW_OP && sample->instruction.length == NEW_LEN) {
                         sample->instruction.opcode = XX;
                         sample->instruction.length = YY;
 
@@ -150,17 +168,56 @@ operation(conf_object_t *obj, generic_transaction_t *mop,
 
                         switch (sample->instruction.opcode) {
 
+                        case DRW_op:
+
+                                sample->temp[3 - sample->instruction.length] = instr;
+                                sample->instruction.length --;
+
+                                if (sample->instruction.length == 0) {
+                                        sample->sprite.x    = (sample->temp[0] & 0xFF);
+                                        sample->sprite.y    = (sample->temp[1] & 0xFF);
+                                        sample->sprite.addr = (sample->temp[2] & 0xFFFF);
+
+                                        //for testing
+                                        SIM_LOG_INFO(1, &sample->obj, 0, "X = %d, Y = %d, addr = %x\n",
+                                                        sample->sprite.x, sample->sprite.y, sample->sprite.addr);
+
+                                        sample->instruction.opcode = NEW_OP;
+                                        sample->instruction.length = NEW_LEN;
+                                }
+
+                                break;
+
+                        case PAL_op:
+                                sample->temp[24 - sample->instruction.length] = instr;
+                                sample->instruction.length --;
+
+                                if (sample->instruction.length == 0) {
+                                        j = 0;
+                                        for (i = 0; i < 24; i += 3) {
+                                                sample->palette[j++] = ((sample->temp[i] << 8) & 0xFFFF00) | ((sample->temp[i + 1] >> 8) & 0xFF);
+                                                sample->palette[j++] = ((sample->temp[i + 1] << 16) & 0xFF0000) | (sample->temp[i + 2] & 0xFFFF);
+                                        }
+                                        sample->instruction.opcode = NEW_OP;
+                                        sample->instruction.length = NEW_LEN;
+                                        //for testing
+                                        for (i = 0; i < 16; i++) {
+                                                SIM_LOG_INFO(1, &sample->obj, 0, "palette[%d] = %x\n", i, sample->palette[i]);
+                                        }
+                                }
+                                break;
+
                         case BGC_op:
                                 sample->bg = ((XX >> 4) & 0xF);
-                                sample->instruction.opcode = BAD_OP;
-                                sample->instruction.length = BAD_LEN;
+                                sample->instruction.opcode = NEW_OP;
+                                sample->instruction.length = NEW_LEN;
                                 break;
 
                         case SPR_op:
                                 sample->spritew = YY;
                                 sample->spriteh = XX;
-                                sample->instruction.opcode = BAD_OP;
-                                sample->instruction.length = BAD_LEN;
+                                sample->instruction.opcode = NEW_OP;
+                                sample->instruction.length = NEW_LEN;
                                 break;
 
                         case FLIP_op:
@@ -182,8 +239,8 @@ operation(conf_object_t *obj, generic_transaction_t *mop,
                                         sample->vflip = 1;
                                 }
 
-                                sample->instruction.opcode = BAD_OP;
-                                sample->instruction.length = BAD_LEN;
+                                sample->instruction.opcode = NEW_OP;
+                                sample->instruction.length = NEW_LEN;
                                 break;
 
                         default:
@@ -309,6 +366,41 @@ get_vflip_attribute(void *arg, conf_object_t *obj, attr_value_t *idx)
         return SIM_make_attr_uint64(sample->vflip);
 }
 
+/*
+ * palette attribute functions
+ */
+static set_error_t
+set_palette_attribute(void *arg, conf_object_t *obj,
+                    attr_value_t *val, attr_value_t *idx)
+{
+        graph16_t *sample = (graph16_t *)obj;
+/*
+        for (int i = 0; i < 16; i++) {
+                sample->palette[i] = 0;
+                sample->palette[i] |= ((SIM_attr_integer(SIM_attr_list_item(SIM_attr_list_item(*val, i)), 0) << 16) & 0xFF0000);
+                sample->palette[i] |= ((SIM_attr_integer(SIM_attr_list_item(SIM_attr_list_item(*val, i)), 1) << 8) & 0xFF00);
+                sample->palette[i] |= (SIM_attr_integer(SIM_attr_list_item(SIM_attr_list_item(*val, i)), 0) & 0xFF);
+        }
+*/
+        SIM_LOG_INFO(1, &sample->obj, 0, "idx = %x\n", SIM_attr_integer(*idx));
+        return Sim_Set_Ok;
+}
+
+static attr_value_t
+get_palette_attribute(void *arg, conf_object_t *obj, attr_value_t *idx)
+{
+        graph16_t *sample = (graph16_t *)obj;
+
+        attr_value_t res = SIM_alloc_attr_list(16 * 3);
+        int i = 0, j = 0;
+        for (i = 0; i < 16 * 3; i += 3, j++) {
+                SIM_attr_list_set_item(&res, i + 0, SIM_make_attr_uint64((sample->palette[j] >> 16) & 0xFF));
+                SIM_attr_list_set_item(&res, i + 1, SIM_make_attr_uint64((sample->palette[j] >> 8 ) & 0xFF));
+                SIM_attr_list_set_item(&res, i + 2, SIM_make_attr_uint64((sample->palette[j] >> 0 ) & 0xFF));
+        }
+        return res;
+}
+
 static set_error_t
 set_add_log_attribute(void *arg, conf_object_t *obj, attr_value_t *val,
                       attr_value_t *idx)
@@ -386,6 +478,11 @@ init_local(void)
                 Sim_Attr_Optional, "i", NULL,
                 "Flip sprite(s) to draw, vertically.");
 
+        SIM_register_typed_attribute(
+                class, "palette",
+                get_palette_attribute, NULL, set_palette_attribute, NULL,
+                Sim_Attr_Optional, "[i*]", NULL,
+                "The <i>palette</i>.");
 
         /* Pseudo attribute, not saved in configuration */
         SIM_register_typed_attribute(
