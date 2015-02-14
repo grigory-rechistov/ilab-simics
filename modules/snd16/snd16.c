@@ -3,7 +3,7 @@
    This Software is part of Wind River Simics. The rights to copy, distribute,
    modify, or otherwise make use of this Software may be licensed only
    pursuant to the terms of an applicable Wind River license agreement.
-  
+
    Copyright 2010-2014 Intel Corporation */
 
 #include <simics/device-api.h>
@@ -103,8 +103,8 @@ set_value_attribute(void *arg, conf_object_t *obj,
             snd->audio_params.phase = 0;
             snd->audio_params.limit = 7000;
             snd->audio_params.sign = 1;
-            
-            SDL_PauseAudioDevice(snd->audiodev, 0); 
+
+            SDL_PauseAudioDevice(snd->audiodev, 0);
             SDL_Delay(500);
             SDL_PauseAudioDevice(snd->audiodev, 1);
         }

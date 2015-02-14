@@ -19,11 +19,11 @@
 #define SND_DEBUG 1 // Dump waveform to console
 
 // Fill stream with silence
-// IN:  userdata - converted to audio_params, current phase and parameters
-// IN   len_raw - length in bytes, NOT samples!
-// IN advance_time - whether to change phase or not
-// OUT: userdata - phase and waveform-specfic state updated
-// OUT  stream - samples for waveform
+// IN:  userdata        - converted to audio_params, current phase and parameters
+// IN:  len_raw         - length in bytes, NOT samples!
+// IN:  advance_time    - whether to change phase or not
+// OUT: userdata        - phase and waveform-specfic state updated
+// OUT: stream          - samples for waveform
 static void silence(void* userdata, uint8_t* stream, int len_raw, bool advance_time) {
     int len = len_raw / 2 /* 16 bit */;
     // silence is just zeroes in all formats
@@ -35,10 +35,10 @@ static void silence(void* userdata, uint8_t* stream, int len_raw, bool advance_t
 };
 
 // Fill stream with meandre (rectangular waveform)
-// IN:  userdata - converted to audio_params, current phase and parameters
-// IN   len_raw - length in bytes, NOT samples!
-// OUT: userdata - phase and waveform-specfic state updated
-// OUT  stream - samples for waveform
+// IN:  userdata        - converted to audio_params, current phase and parameters
+// IN:  len_raw         - length in bytes, NOT samples!
+// OUT: userdata        - phase and waveform-specfic state updated
+// OUT: stream          - samples for waveform
 static void meandre(void* userdata, uint8_t* stream, int len_raw) {
     int len = len_raw / 2; /* 16 bit */
     assert(userdata);
@@ -74,9 +74,9 @@ static void meandre(void* userdata, uint8_t* stream, int len_raw) {
 
 
 // Dump just generated sound buffer to textual representation for debug purposes.
-// IN userdata - current phase and parameters
-// IN stream - buffer to be dumped
-// IN len_raw - length of buffer in bytes.
+// IN:  userdata        - current phase and parameters
+// IN:  stream          - buffer to be dumped
+// IN:  len_raw         - length of buffer in bytes.
 static void dump_waveform(const void* userdata, const uint8_t* stream, int len_raw) {
     int len = len_raw / 2; /* 16 bit */
     assert(userdata);
@@ -94,14 +94,14 @@ static void dump_waveform(const void* userdata, const uint8_t* stream, int len_r
 }
 
 // Callback used by SDL when it needs a new portion of waveform.
-// IN:  userdata - converted to audio_params, current phase and signal parameters
-// IN   len_raw - length in bytes, NOT samples!
-// OUT: userdata - phase and waveform-specfic state updated
-// OUT  stream - samples for waveform
+// IN:  userdata        - converted to audio_params, current phase and signal parameters
+// IN:  len_raw         - length in bytes, NOT samples!
+// OUT: userdata        - phase and waveform-specfic state updated
+// OUT: stream          - samples for waveform
 void waveform_callback(void* userdata, uint8_t* stream, int len_raw) {
     assert(userdata);
     const audio_params_t *ap = (audio_params_t*)userdata;
-    
+
     if ((ap->signal_freq == 0) || // signal is not oscillating
          ap->limit <= ap->phase   // we are asked for sound while we've already given all we got
     ) {
@@ -117,4 +117,3 @@ void waveform_callback(void* userdata, uint8_t* stream, int len_raw) {
     }
     (void)(SND_DEBUG? dump_waveform(userdata, stream, len_raw): 0);
 }
-
