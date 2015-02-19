@@ -27,14 +27,20 @@ ram1.image = ram_image1
 joy0 = pre_conf_object(name_prefix + "joy0", "joy16")
 joy0.queue = chip0
 
-joy1 = pre_conf_object(name_prefix + "joy1", "joy16")
-joy1.queue = chip0
+timer0 = pre_conf_object(name_prefix + "timer0", "videotimer")
+timer0.queue = chip0
+timer0.irq_dev = joy0
+timer0.regs_step = 1
+timer0.regs_config = 3
+
+#joy1 = pre_conf_object(name_prefix + "joy1", "joy16")
+#joy1.queue = chip0
 
 phys_mem0 = pre_conf_object(name_prefix + "phys_mem0", "memory-space")
 phys_mem0.queue = chip0
 phys_mem0.map = [[0x0,    ram0,     0, 0, 0xfff0],
                 [ 0xfff0, joy0,     0, 0, 0x2   ],
-                [ 0xfff2, joy1,     0, 0, 0x2   ]]
+                ]
 
 ctx0 = pre_conf_object(name_prefix + "ctx0", "context")
 ctx0.queue = chip0
@@ -53,6 +59,7 @@ chip0.cell = cosim_cell
 graph0 = pre_conf_object(name_prefix + "graph0", "graph16")
 graph0.queue = chip0
 
-SIM_add_configuration([chip0, ctx0, cosim_cell, ram_image0, ram_image1, ram0, ram1, phys_mem0, joy0, joy1, graph0],
+SIM_add_configuration([chip0, ctx0, cosim_cell, ram_image0, ram_image1, ram0, ram1, phys_mem0, joy0, graph0, timer0],
                       None)
 
+conf.timer0.regs_reference = 1000
