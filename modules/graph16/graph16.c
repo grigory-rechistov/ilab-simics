@@ -90,8 +90,8 @@ lang_void *init_object(conf_object_t *obj, lang_void *data) {
                 sample->palette[i] = 0;
         }
 
-        sample->instruction.opcode = NEW_OP;
-        sample->instruction.length = NEW_LEN;
+        sample->instruction.opcode = 0; //NEW_OP;
+        sample->instruction.length = 0; //NEW_LEN;
 
         sample->sprite.x = 0;
         sample->sprite.y = 0;
@@ -155,16 +155,13 @@ operation(conf_object_t *obj, generic_transaction_t *mop,
 
                 int tmp = 0;
                 int i = 0, j = 0;
-                int instr_on_getting = 0;
 
-                if (sample->instruction.opcode == NEW_OP && sample->instruction.length == NEW_LEN) {
+                if (sample->instruction.length == 0) {
                         sample->instruction.opcode = XX;
                         sample->instruction.length = YY;
-
-                        instr_on_getting = 1;
                 }
 
-                if (!instr_on_getting) {
+                else {
 
                         switch (sample->instruction.opcode) {
 
@@ -181,9 +178,6 @@ operation(conf_object_t *obj, generic_transaction_t *mop,
                                         //for testing
                                         SIM_LOG_INFO(1, &sample->obj, 0, "X = %d, Y = %d, addr = %x\n",
                                                         sample->sprite.x, sample->sprite.y, sample->sprite.addr);
-
-                                        sample->instruction.opcode = NEW_OP;
-                                        sample->instruction.length = NEW_LEN;
                                 }
 
                                 break;
@@ -198,8 +192,7 @@ operation(conf_object_t *obj, generic_transaction_t *mop,
                                                 sample->palette[j++] = ((sample->temp[i] << 8) & 0xFFFF00) | ((sample->temp[i + 1] >> 8) & 0xFF);
                                                 sample->palette[j++] = ((sample->temp[i + 1] << 16) & 0xFF0000) | (sample->temp[i + 2] & 0xFFFF);
                                         }
-                                        sample->instruction.opcode = NEW_OP;
-                                        sample->instruction.length = NEW_LEN;
+
                                         //for testing
                                         for (i = 0; i < 16; i++) {
                                                 SIM_LOG_INFO(1, &sample->obj, 0, "palette[%d] = %x\n", i, sample->palette[i]);
@@ -209,15 +202,11 @@ operation(conf_object_t *obj, generic_transaction_t *mop,
 
                         case BGC_op:
                                 sample->bg = ((XX >> 4) & 0xF);
-                                sample->instruction.opcode = NEW_OP;
-                                sample->instruction.length = NEW_LEN;
                                 break;
 
                         case SPR_op:
                                 sample->spritew = YY;
                                 sample->spriteh = XX;
-                                sample->instruction.opcode = NEW_OP;
-                                sample->instruction.length = NEW_LEN;
                                 break;
 
                         case FLIP_op:
@@ -239,8 +228,6 @@ operation(conf_object_t *obj, generic_transaction_t *mop,
                                         sample->vflip = 1;
                                 }
 
-                                sample->instruction.opcode = NEW_OP;
-                                sample->instruction.length = NEW_LEN;
                                 break;
 
                         default:

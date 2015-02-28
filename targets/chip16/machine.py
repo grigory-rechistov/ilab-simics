@@ -1,7 +1,7 @@
 # This Software is part of Wind River Simics. The rights to copy, distribute,
 # modify, or otherwise make use of this Software may be licensed only
 # pursuant to the terms of an applicable Wind River license agreement.
-# 
+#
 # Copyright 2010-2014 Intel Corporation
 
 name_prefix = "" # Why is it here?
@@ -14,15 +14,15 @@ ram_image0 = pre_conf_object(name_prefix + "ram_image0", "image")
 ram_image0.queue = chip0
 ram_image0.size = 0x10000
 
-ram_image1 = pre_conf_object(name_prefix + "ram_image1", "image")
-ram_image1.queue = chip0
-ram_image1.size = 0x10000
+video_image = pre_conf_object(name_prefix + "video_image", "image")
+video_image.queue = chip0
+video_image.size = 0x10000
 
 ram0 = pre_conf_object(name_prefix + "ram0", "ram")
 ram0.image = ram_image0
 
-ram1 = pre_conf_object(name_prefix + "ram1", "ram")
-ram1.image = ram_image1
+video_ram = pre_conf_object(name_prefix + "video_ram", "ram")
+video_ram.image = video_image
 
 joy0 = pre_conf_object(name_prefix + "joy0", "joy16")
 joy0.queue = chip0
@@ -40,11 +40,17 @@ phys_mem0.map = [[0x0,    ram0,     0, 0, 0xfff0],
                 [ 0xfff2, joy1,     0, 0, 0x2   ],
                 [ 0xfff6, graph0,   0, 0, 0x2   ]]
 
+video_space = pre_conf_object(name_prefix + "video_space", "memory-space")
+video_space.queue = chip0
+video_space.map = [[0x0,  video_ram, 0, 0, 0x10000]]
+
 ctx0 = pre_conf_object(name_prefix + "ctx0", "context")
 ctx0.queue = chip0
 
 chip0.physical_memory_space = phys_mem0
 chip0.current_context = ctx0
+
+# LINK: graph0.physical_memory_space = ...
 
 cosim_cell = pre_conf_object(name_prefix + "cosim_cell", "cell")
 cosim_cell.current_processor = chip0
@@ -54,6 +60,6 @@ cosim_cell.scheduled_object = chip0
 
 chip0.cell = cosim_cell
 
-SIM_add_configuration([chip0, ctx0, cosim_cell, ram_image0, ram_image1, ram0, ram1, phys_mem0, joy0, joy1, graph0],
+SIM_add_configuration([chip0, ctx0, cosim_cell, ram_image0, video_image, ram0, video_ram, phys_mem0, joy0, joy1, graph0, video_space],
                       None)
 
