@@ -1,4 +1,4 @@
-# This test checks DIV instruction
+# This test checks PAL instruction
 
 import stest
 

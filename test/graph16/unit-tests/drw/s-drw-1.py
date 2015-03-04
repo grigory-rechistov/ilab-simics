@@ -1,4 +1,4 @@
-# This test checks DIV instruction
+# This test checks DRW instruction (MUST BE IMPROVED)
 
 import stest
 
