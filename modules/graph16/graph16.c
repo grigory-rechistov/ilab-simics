@@ -5,68 +5,13 @@
    pursuant to the terms of an applicable Wind River license agreement.
    Copyright 2010-2014 Intel Corporation */
 
+#include "graph16.h"
 #include <simics/device-api.h>
 #include <simics/devs/io-memory.h>
 #include "sample-interface.h"
 
 #include "include/SDL2/SDL.h"
 
-#define PAL_SIZE 16
-
-#define NIBBLE_MASK     0xF
-#define UCHAR_MASK      0xFF
-#define BOOLEAN_MASK    0x1
-
-#define NEW_OP          0xAD
-#define NEW_LEN         0xAD
-
-typedef struct {
-        uint8 opcode;
-        uint8 length;
-
-} graph16_instr_t;
-
-typedef struct {
-        uint8 x;
-        uint8 y;
-        uint16 addr;
-
-} graph16_sprite_t;
-
-typedef enum {
-        DRW_op  = 0,
-        PAL_op  = 1,
-        BGC_op  = 2,
-        SPR_op  = 3,
-        FLIP_op = 4,
-
-} graph16_instr_op_t;
-
-typedef struct {
-        /* Simics configuration object */
-        conf_object_t obj;
-
-        /* device specific data */
-        unsigned value;
-
-        /* registers */
-        uint8   bg;             // (Nibble) Color index of background layer
-        uint8   spritew;        // (Unsigned byte) Width of sprite(s) to draw
-        uint8   spriteh;        // (Unsigned byte) Height of sprite(s) to draw
-        bool    hflip;          // (Boolean) Flip sprite(s) to draw, horizontally
-        bool    vflip;          // (Boolean) Flip sprite(s) to draw, vertically
-
-        uint32 palette[PAL_SIZE];    // 1 colour in palette is coded like [00RRGGBB]
-
-        graph16_sprite_t sprite;
-
-        graph16_instr_t instruction;
-
-        uint32 temp[24];
-
-        SDL_Window *window;
-
-} graph16_t;
 
 /* Allocate memory for the object. */
 static conf_object_t *
@@ -90,8 +35,8 @@ lang_void *init_object(conf_object_t *obj, lang_void *data) {
                 sample->palette[i] = 0;
         }
 
-        sample->instruction.opcode = 0; //NEW_OP;
-        sample->instruction.length = 0; //NEW_LEN;
+        sample->instruction.opcode = 0;
+        sample->instruction.length = 0;
 
         sample->sprite.x = 0;
         sample->sprite.y = 0;
@@ -258,6 +203,7 @@ get_value_attribute(void *arg, conf_object_t *obj, attr_value_t *idx)
         return SIM_make_attr_uint64(sample->value);
 }
 
+
 /*
  * bg register attribute functions
  */
@@ -275,6 +221,55 @@ get_bg_attribute(void *arg, conf_object_t *obj, attr_value_t *idx)
 {
         graph16_t *sample = (graph16_t *)obj;
         return SIM_make_attr_uint64(sample->bg);
+}
+
+
+/*
+ * physical_memory_space attribute functions
+ */
+
+static attr_value_t
+graph16_get_physical_memory(void *arg, conf_object_t *obj,
+                                attr_value_t *idx)
+{
+        graph16_t *core = conf_to_graph16(obj);
+        return SIM_make_attr_object(core->phys_mem_obj);
+}
+
+static set_error_t
+graph16_set_physical_memory(void *arg, conf_object_t *obj,
+                                attr_value_t *val, attr_value_t *idx)
+{
+        graph16_t *core = conf_to_graph16(obj);
+        conf_object_t *oval = SIM_attr_object(*val);
+
+        core->phys_mem_obj = oval;
+
+        return Sim_Set_Ok;
+}
+
+/*
+ * video_memory_space attribute functions
+ */
+
+static attr_value_t
+graph16_get_video_memory(void *arg, conf_object_t *obj,
+                                attr_value_t *idx)
+{
+        graph16_t *core = conf_to_graph16(obj);
+        return SIM_make_attr_object(core->video_mem_obj);
+}
+
+static set_error_t
+graph16_set_video_memory(void *arg, conf_object_t *obj,
+                                attr_value_t *val, attr_value_t *idx)
+{
+        graph16_t *core = conf_to_graph16(obj);
+        conf_object_t *oval = SIM_attr_object(*val);
+
+        core->video_mem_obj = oval;
+
+        return Sim_Set_Ok;
 }
 
 /*
@@ -435,6 +430,23 @@ init_local(void)
                 get_value_attribute, NULL, set_value_attribute, NULL,
                 Sim_Attr_Optional, "i", NULL,
                 "The <i>value</i> field.");
+
+        SIM_register_typed_attribute(
+                class, "physical_memory_space",
+                graph16_get_physical_memory, NULL,
+                graph16_set_physical_memory, NULL,
+                Sim_Attr_Required,
+                "o", NULL,
+                "Physical memory video space.");
+
+        SIM_register_typed_attribute(
+                class, "video_memory_space",
+                graph16_get_video_memory, NULL,
+                graph16_set_video_memory, NULL,
+                Sim_Attr_Required,
+                "o", NULL,
+                "Physical memory video space.");
+
 
         SIM_register_typed_attribute(
                 class, "bg",
