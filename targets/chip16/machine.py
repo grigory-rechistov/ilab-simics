@@ -45,9 +45,9 @@ phys_mem0.map = [[0x0,    ram0,     0, 0, 0xfff0],
                 [ 0xfff0, joy0,     0, 0, 0x2   ],
                 [ 0xfff6, graph0,   0, 0, 0x2   ]]
 
-video_space = pre_conf_object(name_prefix + "video_space", "memory-space")
-video_space.queue = chip0
-video_space.map = [[0x0,  video_ram, 0, 0, 0x10000]]
+video_mem = pre_conf_object(name_prefix + "video_mem", "memory-space")
+video_mem.queue = chip0
+video_mem.map = [[0x0,  video_ram, 0, 0, 0x10000]]
 
 ctx0 = pre_conf_object(name_prefix + "ctx0", "context")
 ctx0.queue = chip0
@@ -55,7 +55,8 @@ ctx0.queue = chip0
 chip0.physical_memory_space = phys_mem0
 chip0.current_context = ctx0
 
-# LINK: graph0.physical_memory_space = ...
+graph0.physical_memory_space = phys_mem0
+graph0.video_memory_space = video_mem
 
 cosim_cell = pre_conf_object(name_prefix + "cosim_cell", "cell")
 cosim_cell.current_processor = chip0
@@ -68,7 +69,7 @@ chip0.cell = cosim_cell
 graph0 = pre_conf_object(name_prefix + "graph0", "graph16")
 graph0.queue = chip0
 
-SIM_add_configuration([chip0, ctx0, cosim_cell, ram_image0, video_image, ram0, video_ram, phys_mem0, joy0, joy1, graph0, video_space],
+SIM_add_configuration([chip0, ctx0, cosim_cell, ram_image0, video_image, ram0, video_ram, phys_mem0, joy0, joy1, graph0, video_mem],
                       None)
 
 conf.timer0.regs_reference = 1000
