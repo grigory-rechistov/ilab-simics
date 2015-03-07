@@ -62,7 +62,6 @@ def load_binary(file_path):
     offset = 0
     cpu = current_processor()
     while offset < rom:
-#        cli.conf.ram0.image.iface.image.set(0x0 + offset, bin_file.read(4))
         SIM_write_phys_memory(cpu, offset, reduce(lambda rst, d:rst*10+d, struct.unpack("<L", bin_file.read(4))), 4)
         offset = offset + 4
 
