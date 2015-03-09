@@ -109,6 +109,7 @@ operation(conf_object_t *obj, generic_transaction_t *mop,
                         sample->instruction.length = YY;
                 } else {
 
+
                         switch (sample->instruction.opcode) {
 
                         case DRW_op:
@@ -121,8 +122,7 @@ operation(conf_object_t *obj, generic_transaction_t *mop,
                                         sample->sprite.y    = (sample->temp[1] & 0xFF);
                                         sample->sprite.addr = (sample->temp[2] & 0xFFFF);
 
-                                        SIM_LOG_INFO(4, &sample->obj, 0, "X = %d, Y = %d, addr = %x\n",
-                                                        sample->sprite.x, sample->sprite.y, sample->sprite.addr);
+                                        SIM_LOG_INFO(4, &sample->obj, 0, "X = %d, Y = %d, addr = %x\n");                                        //for testing
                                 }
 
                                 break;
@@ -175,6 +175,7 @@ operation(conf_object_t *obj, generic_transaction_t *mop,
                                         sample->hflip = 1;
                                         sample->vflip = 1;
                                 }
+
                                 else  {
                                         ASSERT (0);
                                 }
