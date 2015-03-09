@@ -66,10 +66,8 @@ cosim_cell.scheduled_object = chip0
 
 chip0.cell = cosim_cell
 
-graph0 = pre_conf_object(name_prefix + "graph0", "graph16")
-graph0.queue = chip0
 
-SIM_add_configuration([chip0, ctx0, cosim_cell, ram_image0, video_image, ram0, video_ram, phys_mem0, joy0, joy1, graph0, video_mem],
+SIM_add_configuration([chip0, ctx0, cosim_cell, ram_image0, video_image, ram0, video_ram, phys_mem0, joy0, graph0, timer0, video_mem],
                       None)
 
 conf.timer0.regs_reference = 1000
