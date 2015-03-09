@@ -21,7 +21,8 @@ alloc_object(void *data)
         return &sample->obj;
 }
 
-lang_void *init_object(conf_object_t *obj, lang_void *data) {
+lang_void *init_object(conf_object_t *obj, lang_void *data)
+{
         graph16_t *sample = (graph16_t *)obj;
 
         sample->bg      = 0;
@@ -62,7 +63,8 @@ lang_void *init_object(conf_object_t *obj, lang_void *data) {
         return obj;
 }
 
-int delete_instance(conf_object_t *obj) {
+int delete_instance(conf_object_t *obj)
+{
         graph16_t *sample = (graph16_t *)obj;
         if (sample->window != NULL)
                 SDL_DestroyWindow(sample->window);
@@ -87,12 +89,13 @@ operation(conf_object_t *obj, generic_transaction_t *mop,
                            + info.start - info.base);
 
         if (SIM_mem_op_is_read(mop)) {
+
                 SIM_set_mem_op_value_le(mop, sample->value);
                 SIM_LOG_INFO(1, &sample->obj, 0, "read from offset %d: 0x%x",
                              offset, sample->value);
         } else {
 
-                SIM_LOG_INFO(1, &sample->obj, 0, "opcode = %d\n", sample->instruction.opcode);
+                SIM_LOG_INFO(4, &sample->obj, 0, "opcode = %d\n", sample->instruction.opcode);
 
                 uint16 instr = SIM_get_mem_op_value_le(mop); // Instruction is 16 bit [XXYY]
                 uint8 XX = ((instr >> 8) & 0xFF);
@@ -104,32 +107,30 @@ operation(conf_object_t *obj, generic_transaction_t *mop,
                 if (sample->instruction.length == 0) {
                         sample->instruction.opcode = XX;
                         sample->instruction.length = YY;
-                }
-
-                else {
+                } else {
 
                         switch (sample->instruction.opcode) {
 
                         case DRW_op:
 
                                 sample->temp[3 - sample->instruction.length] = instr;
-                                sample->instruction.length --;
+                                sample->instruction.length--;
 
                                 if (sample->instruction.length == 0) {
                                         sample->sprite.x    = (sample->temp[0] & 0xFF);
                                         sample->sprite.y    = (sample->temp[1] & 0xFF);
                                         sample->sprite.addr = (sample->temp[2] & 0xFFFF);
 
-                                        //for testing
-                                        SIM_LOG_INFO(1, &sample->obj, 0, "X = %d, Y = %d, addr = %x\n",
+                                        SIM_LOG_INFO(4, &sample->obj, 0, "X = %d, Y = %d, addr = %x\n",
                                                         sample->sprite.x, sample->sprite.y, sample->sprite.addr);
                                 }
 
                                 break;
 
                         case PAL_op:
+
                                 sample->temp[24 - sample->instruction.length] = instr;
-                                sample->instruction.length --;
+                                sample->instruction.length--;
 
                                 if (sample->instruction.length == 0) {
                                         j = 0;
@@ -138,23 +139,25 @@ operation(conf_object_t *obj, generic_transaction_t *mop,
                                                 sample->palette[j++] = ((sample->temp[i + 1] << 16) & 0xFF0000) | (sample->temp[i + 2] & 0xFFFF);
                                         }
 
-                                        //for testing
                                         for (i = 0; i < 16; i++) {
-                                                SIM_LOG_INFO(1, &sample->obj, 0, "palette[%d] = %x\n", i, sample->palette[i]);
+                                                SIM_LOG_INFO(4, &sample->obj, 0, "palette[%d] = %x\n", i, sample->palette[i]);
                                         }
                                 }
                                 break;
 
                         case BGC_op:
+
                                 sample->bg = ((XX >> 4) & 0xF);
                                 break;
 
                         case SPR_op:
+
                                 sample->spritew = YY;
                                 sample->spriteh = XX;
                                 break;
 
                         case FLIP_op:
+
                                 tmp = ((XX >> 4) & 0xF);
                                 if (tmp == 0) {
                                         sample->hflip = 0;
@@ -171,6 +174,9 @@ operation(conf_object_t *obj, generic_transaction_t *mop,
                                 else if (tmp == 3) {
                                         sample->hflip = 1;
                                         sample->vflip = 1;
+                                }
+                                else  {
+                                        ASSERT (0);
                                 }
 
                                 break;
@@ -212,7 +218,7 @@ set_bg_attribute(void *arg, conf_object_t *obj,
                     attr_value_t *val, attr_value_t *idx)
 {
         graph16_t *sample = (graph16_t *)obj;
-        sample->bg = (NIBBLE_MASK & SIM_attr_integer(*val));
+        sample->bg = (0xF & SIM_attr_integer(*val));
         return Sim_Set_Ok;
 }
 
@@ -280,7 +286,7 @@ set_spritew_attribute(void *arg, conf_object_t *obj,
                     attr_value_t *val, attr_value_t *idx)
 {
         graph16_t *sample = (graph16_t *)obj;
-        sample->spritew = (UCHAR_MASK & SIM_attr_integer(*val));
+        sample->spritew = (0xFF & SIM_attr_integer(*val));
         return Sim_Set_Ok;
 }
 
@@ -299,7 +305,7 @@ set_spriteh_attribute(void *arg, conf_object_t *obj,
                     attr_value_t *val, attr_value_t *idx)
 {
         graph16_t *sample = (graph16_t *)obj;
-        sample->spriteh = (UCHAR_MASK & SIM_attr_integer(*val));
+        sample->spriteh = (0xFF & SIM_attr_integer(*val));
         return Sim_Set_Ok;
 }
 
@@ -318,7 +324,7 @@ set_hflip_attribute(void *arg, conf_object_t *obj,
                     attr_value_t *val, attr_value_t *idx)
 {
         graph16_t *sample = (graph16_t *)obj;
-        sample->hflip = (BOOLEAN_MASK & SIM_attr_integer(*val));
+        sample->hflip = SIM_attr_boolean(*val);
         return Sim_Set_Ok;
 }
 
@@ -326,7 +332,7 @@ static attr_value_t
 get_hflip_attribute(void *arg, conf_object_t *obj, attr_value_t *idx)
 {
         graph16_t *sample = (graph16_t *)obj;
-        return SIM_make_attr_uint64(sample->hflip);
+        return SIM_make_attr_boolean(sample->hflip);
 }
 
 /*
@@ -337,7 +343,7 @@ set_vflip_attribute(void *arg, conf_object_t *obj,
                     attr_value_t *val, attr_value_t *idx)
 {
         graph16_t *sample = (graph16_t *)obj;
-        sample->vflip = (BOOLEAN_MASK & SIM_attr_integer(*val));
+        sample->vflip = SIM_attr_boolean(*val);;
         return Sim_Set_Ok;
 }
 
@@ -345,7 +351,7 @@ static attr_value_t
 get_vflip_attribute(void *arg, conf_object_t *obj, attr_value_t *idx)
 {
         graph16_t *sample = (graph16_t *)obj;
-        return SIM_make_attr_uint64(sample->vflip);
+        return SIM_make_attr_boolean(sample->vflip);
 }
 
 /*
@@ -469,13 +475,13 @@ init_local(void)
         SIM_register_typed_attribute(
                 class, "hflip",
                 get_hflip_attribute, NULL, set_hflip_attribute, NULL,
-                Sim_Attr_Optional, "i", NULL,
+                Sim_Attr_Optional, "b", NULL,
                 "Flip sprite(s) to draw, horizontally.");
 
         SIM_register_typed_attribute(
                 class, "vflip",
                 get_vflip_attribute, NULL, set_vflip_attribute, NULL,
-                Sim_Attr_Optional, "i", NULL,
+                Sim_Attr_Optional, "b", NULL,
                 "Flip sprite(s) to draw, vertically.");
 
         SIM_register_typed_attribute(

@@ -6,10 +6,6 @@
 
 #define PAL_SIZE 16
 
-#define NIBBLE_MASK     0xF
-#define UCHAR_MASK      0xFF
-#define BOOLEAN_MASK    0x1
-
 typedef struct {
         uint8 opcode;
         uint8 length;
