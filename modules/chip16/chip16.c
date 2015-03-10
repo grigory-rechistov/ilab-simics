@@ -93,9 +93,14 @@
 #define BIT_16(n)      (((n) >> 16) & 0x1)
 
 
+// devices memory mapping:
+#define SND_MEM_ADDR    0xFFF4
+
+
 // TODO: Expand me
 typedef enum {
         Instr_Op_Nop            = 0x00,
+        Instr_Op_Snd1_HHLL      = 0x0A,
         Instr_Op_Call_HHLL      = 0x14,
         Instr_Op_Ret            = 0x15,
         Instr_Op_Jmp_X          = 0x16,
@@ -351,6 +356,10 @@ chip16_string_decode(chip16_t *core, uint32 instr)
                 snprintf (disasm_str, numb_of_char, "nop");
                 break;
 
+        case Instr_Op_Snd1_HHLL:
+                snprintf (disasm_str, numb_of_char, "snd1 0x%x", HHLL);
+                break;
+
         case Instr_Op_Ldi_Sp:
                 snprintf (disasm_str, numb_of_char, "ldi sp, 0x%x", HHLL);
                 break;
@@ -454,6 +463,23 @@ chip16_execute(chip16_t *core, uint32 instr)
                 chip16_increment_cycles(core, 1);
                 chip16_increment_steps(core, 1);
                 INCREMENT_PC(core);
+                break;
+
+        case Instr_Op_Snd1_HHLL:
+
+//              chip16_write_memory16 (chip16_t *core, logical_address_t la,
+//                                         physical_address_t pa, uint16_t value)
+
+                // snd1 (command word: 0, 2) - play 500Hz tone for HHLL ms.
+                chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR, 0x0002);
+                chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR,    500);
+                chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR,   HHLL);
+
+
+                chip16_increment_cycles (core, 1);
+                chip16_increment_steps  (core, 1);
+                INCREMENT_PC(core);
+
                 break;
 
         case Instr_Op_Ldi_Sp:
@@ -614,7 +640,7 @@ chip16_execute(chip16_t *core, uint32 instr)
                     HHLL = ~HHLL + 1;
                     core->chip16_reg[X] = HHLL;
                     if (BIT_15(HHLL) != 0) {
-                        SET_NEG(core->flags); 
+                        SET_NEG(core->flags);
                     }
                     else CLR_NEG(core->flags);
                     CLR_ZERO(core->flags);
@@ -716,8 +742,8 @@ chip16_execute(chip16_t *core, uint32 instr)
         case Instr_Op_Call_HHLL:
 
                 chip16_write_memory16(
-                        core, 
-                        chip16_get_sp(core), 
+                        core,
+                        chip16_get_sp(core),
                         chip16_get_sp(core),
                         chip16_get_pc(core));
                 chip16_set_sp(core, chip16_get_sp(core) + 2);
@@ -731,7 +757,7 @@ chip16_execute(chip16_t *core, uint32 instr)
 
                 chip16_set_sp(core, chip16_get_sp(core) - 2);
                 tmp = chip16_read_memory16(core,
-                        chip16_get_sp(core), 
+                        chip16_get_sp(core),
                         chip16_get_sp(core));
                 chip16_set_pc(core, tmp);
 
