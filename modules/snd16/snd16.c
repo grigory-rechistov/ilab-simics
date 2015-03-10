@@ -14,6 +14,7 @@
 #include "include/SDL2/SDL.h"
 #include "audio.h"
 
+
 typedef struct
         {
         /* Simics configuration object */
@@ -86,6 +87,9 @@ operation (conf_object_t *obj, generic_transaction_t *mop, map_info_t info)
         return Sim_PE_No_Exception;
         }
 
+//------------------------------------------------------------------------------
+// Getters and setters
+//------------------------------------------------------------------------------
 static attr_value_t
 get_value_attribute (void *arg, conf_object_t *obj, attr_value_t *idx)
         {
@@ -127,6 +131,82 @@ set_value_attribute (void *arg, conf_object_t *obj,
         return Sim_Set_Ok;
         }
 
+static attr_value_t
+get_wave_type (void *arg, conf_object_t *obj, attr_value_t *idx)
+        {
+        snd16_t *snd = (snd16_t *)obj;
+        wave_type_t tmp = snd->audio_params.wave_type;
+        return SIM_make_attr_uint64(tmp);
+        }
+
+static set_error_t
+set_wave_type (void *arg, conf_object_t *obj,
+                          attr_value_t *val, attr_value_t *idx)
+        {
+        snd16_t *snd = (snd16_t *)obj;
+        uint16 new_wave_type = SIM_attr_integer(*val);
+
+        set_error_t ret = Sim_Set_Ok;
+
+        if ((0 <= new_wave_type) && (new_wave_type < numb_of_wavetypes))
+                snd->audio_params.wave_type = new_wave_type;
+        else
+                ret = Sim_Set_Illegal_Value;
+
+        return ret;
+        }
+
+static attr_value_t
+get_signal_freq (void *arg, conf_object_t *obj, attr_value_t *idx)
+        {
+        snd16_t *snd = (snd16_t *)obj;
+        uint32_t tmp = snd->audio_params.signal_freq;
+        return SIM_make_attr_uint64(tmp);
+        }
+
+static set_error_t
+set_signal_freq (void *arg, conf_object_t *obj,
+                          attr_value_t *val, attr_value_t *idx)
+        {
+        snd16_t *snd = (snd16_t *)obj;
+        uint32_t new_signal_freq = SIM_attr_integer(*val);
+
+        set_error_t ret = Sim_Set_Ok;
+
+        if ((0 <= new_signal_freq) && (new_signal_freq < UINT32_MAX))
+                snd->audio_params.signal_freq = new_signal_freq;
+        else
+                ret = Sim_Set_Illegal_Value;
+
+        return ret;
+        }
+
+static attr_value_t
+get_waveform_limit (void *arg, conf_object_t *obj, attr_value_t *idx)
+        {
+        snd16_t *snd = (snd16_t *)obj;
+        uint64_t tmp = snd->audio_params.limit;
+        return SIM_make_attr_uint64(tmp);
+        }
+
+static set_error_t
+set_waveform_limit (void *arg, conf_object_t *obj,
+                          attr_value_t *val, attr_value_t *idx)
+        {
+        snd16_t *snd = (snd16_t *)obj;
+        uint64_t new_limit = SIM_attr_integer(*val);
+
+        set_error_t ret = Sim_Set_Ok;
+
+        if ((0 <= new_limit) && (new_limit < UINT64_MAX))
+                snd->audio_params.limit = new_limit;
+        else
+                ret = Sim_Set_Illegal_Value;
+
+        return ret;
+        }
+//------------------------------------------------------------------------------
+
 /* called once when the device module is loaded into Simics */
 void
 init_local (void)
@@ -157,6 +237,30 @@ init_local (void)
                 get_value_attribute, NULL, set_value_attribute, NULL,
                 Sim_Attr_Optional, "i", NULL,
                 "The <i>value</i> field.");
+
+        SIM_register_typed_attribute(
+                class, "wave_type",
+                get_wave_type, NULL,
+                set_wave_type, NULL,
+                Sim_Attr_Optional,
+                "i", NULL,
+                "Type of wave: Meandre, Triangle, Sawtooth, Pulse, Noise.");
+
+        SIM_register_typed_attribute(
+                class, "signal_freq",
+                get_signal_freq, NULL,
+                set_signal_freq, NULL,
+                Sim_Attr_Optional,
+                "i", NULL,
+                "Frequency of signal.");
+
+        SIM_register_typed_attribute(
+                class, "limit",
+                get_waveform_limit, NULL,
+                set_waveform_limit, NULL,
+                Sim_Attr_Optional,
+                "i", NULL,
+                "Limit - maximum sample for this waveform.");
 
         if (SDL_WasInit(SDL_INIT_AUDIO) == 0) {
                 SIM_printf("SDL audio hasn't been initialized, doing it now\n");
