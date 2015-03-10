@@ -13,7 +13,24 @@
 
 #include "include/SDL2/SDL.h"
 #include "audio.h"
+#include "snd16.h"
 
+#define SND 0x0002
+#define SNG 0x0102
+
+
+// States of snd_card
+typedef enum
+        {
+        Waiting_new_op = 0,
+
+        Waiting_op_after_snd,   // and snp too
+        after_freq,
+
+        Waiting_op_after_sng,
+        after_advt,
+
+        } states_type_t;
 
 typedef struct
         {
@@ -22,6 +39,8 @@ typedef struct
 
         /* device specific data */
         unsigned value;
+
+        states_type_t current_state; // switch
 
         SDL_AudioDeviceID audiodev; // an audiodevice opened
         audio_params_t audio_params; // parameters to control waveform
@@ -68,9 +87,9 @@ static exception_type_t
 operation (conf_object_t *obj, generic_transaction_t *mop, map_info_t info)
         {
         snd16_t *snd = (snd16_t *)obj;
-        unsigned offset = (SIM_get_mem_op_physical_address(mop)
-                           + info.start - info.base);
+        // unsigned offset = (SIM_get_mem_op_physical_address(mop) + info.start - info.base);
 
+        /*
         if (SIM_mem_op_is_read(mop))
                 {
                 SIM_set_mem_op_value_le(mop, snd->value);
@@ -83,7 +102,72 @@ operation (conf_object_t *obj, generic_transaction_t *mop, map_info_t info)
                 SIM_LOG_INFO(1, &snd->obj, 0, "write to offset %d: 0x%x",
                              offset, snd->value);
                 }
+        */
 
+        if (SIM_mem_op_is_write (mop))
+                {
+                snd->value = SIM_get_mem_op_value_le(mop);      // le - little endian
+
+                if (snd->current_state == Waiting_new_op)
+                        {
+                        if (snd->value == SND)
+                                {
+                                snd->current_state = Waiting_op_after_snd;
+                                goto return_ok;
+                                }
+
+                        if (snd->value == SNG)
+                                {
+                                SIM_LOG_ERROR(&snd->obj, 0, "snd0: not realised yet");
+                                // snd->current_state = Waiting_op_after_sng;
+                                // goto return_ok;
+                                }
+
+                        // TODO: what should function return after error?
+                        SIM_LOG_ERROR(&snd->obj, 0, "snd0: unknown instruction");
+                        }
+
+                if (snd->current_state == Waiting_op_after_snd)
+                        {
+                        attr_value_t tmp = SIM_make_attr_uint64(snd->value);
+                        set_error_t ret_val = set_signal_freq (NULL, &snd->obj, &tmp, NULL);
+                        if (ret_val == Sim_Set_Ok)
+                                {
+                                snd->current_state = after_freq;
+                                goto return_ok;
+                                }
+
+                        SIM_LOG_ERROR(&snd->obj, 0, "snd0: smth wrong with Waiting_op_after_snd");
+                        }
+
+                if (snd->current_state == after_freq)
+                        {
+                        attr_value_t tmp = SIM_make_attr_uint64(snd->value);
+                        set_error_t ret_val = set_waveform_limit (NULL, &snd->obj, &tmp, NULL);
+                        if (ret_val == Sim_Set_Ok)
+                                {
+                                snd->current_state = Waiting_new_op;
+                                goto return_ok;
+                                }
+
+                        SIM_LOG_ERROR(&snd->obj, 0, "snd0: smth wrong with after_freq");
+                        }
+
+                if (snd->current_state == Waiting_op_after_sng)
+                        {
+                        SIM_LOG_ERROR(&snd->obj, 0, "snd0: not realised yet");
+                        }
+
+                if (snd->current_state == after_advt)
+                        {
+                        SIM_LOG_ERROR(&snd->obj, 0, "snd0: not realised yet");
+                        }
+                }
+
+        else
+                SIM_LOG_SPEC_VIOLATION (1, &snd->obj, 0, "snd memory is write-only");
+
+return_ok:
         return Sim_PE_No_Exception;
         }
 
