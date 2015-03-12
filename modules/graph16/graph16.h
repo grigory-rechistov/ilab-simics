@@ -1,6 +1,9 @@
+#include "sample-interface.h"
+
 #include <simics/device-api.h>
 #include <simics/devs/io-memory.h>
-#include "sample-interface.h"
+#include <simics/devs/memory-space.h>
+#include <simics/model-iface/memory-page.h>
 
 #include "include/SDL2/SDL.h"
 
@@ -32,10 +35,19 @@ typedef struct {
         /* Simics configuration object */
         conf_object_t obj;
 
-        /* for memory */
-        conf_object_t *phys_mem_obj;
+        /* memory */
+        conf_object_t *physical_mem_obj;
         conf_object_t *video_mem_obj;
 
+        /* physical memory interfaces */
+        const memory_space_interface_t *physical_mem_space_iface;
+        const memory_page_interface_t *physical_mem_page_iface;
+        const breakpoint_trigger_interface_t *physical_mem_bp_trig_iface;
+
+        /* video memory interfaces */
+        const memory_space_interface_t *video_mem_space_iface;
+        const memory_page_interface_t *video_mem_page_iface;
+        const breakpoint_trigger_interface_t *video_mem_bp_trig_iface;
 
         /* device specific data */
         unsigned value;
