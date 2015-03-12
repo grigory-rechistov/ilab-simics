@@ -244,7 +244,7 @@ graph16_get_physical_memory(void *arg, conf_object_t *obj,
                                 attr_value_t *idx)
 {
         graph16_t *core = conf_to_graph16(obj);
-        return SIM_make_attr_object(core->phys_mem_obj);
+        return SIM_make_attr_object(core->physical_mem_obj);
 }
 
 static set_error_t
@@ -270,10 +270,11 @@ graph16_set_physical_memory(void *arg, conf_object_t *obj,
                 return Sim_Set_Interface_Not_Found;
         }
 
-        core->phys_mem_obj = oval;
-        core->phys_mem_space_iface = mem_space_iface;
-        core->phys_mem_page_iface = mem_page_iface;
-        core->phys_mem_bp_trig_iface = bp_trig_iface;
+        core->physical_mem_obj = oval;
+
+        core->physical_mem_space_iface = mem_space_iface;
+        core->physical_mem_page_iface = mem_page_iface;
+        core->physical_mem_bp_trig_iface = bp_trig_iface;
 
         return Sim_Set_Ok;
 }
@@ -313,10 +314,11 @@ graph16_set_video_memory(void *arg, conf_object_t *obj,
                 return Sim_Set_Interface_Not_Found;
         }
 
-        core->phys_mem_obj = oval;
-        core->phys_mem_space_iface = mem_space_iface;
-        core->phys_mem_page_iface = mem_page_iface;
-        core->phys_mem_bp_trig_iface = bp_trig_iface;
+        core->video_mem_obj = oval;
+
+        core->video_mem_space_iface = mem_space_iface;
+        core->video_mem_page_iface = mem_page_iface;
+        core->video_mem_bp_trig_iface = bp_trig_iface;
 
         return Sim_Set_Ok;
 }

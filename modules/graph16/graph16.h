@@ -36,14 +36,18 @@ typedef struct {
         conf_object_t obj;
 
         /* memory */
-        conf_object_t *phys_mem_obj;
+        conf_object_t *physical_mem_obj;
         conf_object_t *video_mem_obj;
 
-        /* memory interfaces */
-        const memory_space_interface_t *phys_mem_space_iface;
-        const memory_page_interface_t *phys_mem_page_iface;
-        const breakpoint_trigger_interface_t *phys_mem_bp_trig_iface;
+        /* physical memory interfaces */
+        const memory_space_interface_t *physical_mem_space_iface;
+        const memory_page_interface_t *physical_mem_page_iface;
+        const breakpoint_trigger_interface_t *physical_mem_bp_trig_iface;
 
+        /* video memory interfaces */
+        const memory_space_interface_t *video_mem_space_iface;
+        const memory_page_interface_t *video_mem_page_iface;
+        const breakpoint_trigger_interface_t *video_mem_bp_trig_iface;
 
         /* device specific data */
         unsigned value;
