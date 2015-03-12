@@ -6,9 +6,10 @@
    Copyright 2010-2014 Intel Corporation */
 
 #include "graph16.h"
+#include "sample-interface.h"
+
 #include <simics/device-api.h>
 #include <simics/devs/io-memory.h>
-#include "sample-interface.h"
 
 #include "include/SDL2/SDL.h"
 
@@ -251,9 +252,28 @@ graph16_set_physical_memory(void *arg, conf_object_t *obj,
                                 attr_value_t *val, attr_value_t *idx)
 {
         graph16_t *core = conf_to_graph16(obj);
+
+        const memory_space_interface_t *mem_space_iface;
         conf_object_t *oval = SIM_attr_object(*val);
+        mem_space_iface = (memory_space_interface_t *)SIM_c_get_interface(
+                oval, MEMORY_SPACE_INTERFACE);
+
+        memory_page_interface_t *mem_page_iface;
+        mem_page_iface = (memory_page_interface_t *)SIM_c_get_interface(
+                oval, MEMORY_PAGE_INTERFACE);
+
+        breakpoint_trigger_interface_t *bp_trig_iface;
+        bp_trig_iface = (breakpoint_trigger_interface_t *)SIM_c_get_interface(
+                oval, BREAKPOINT_TRIGGER_INTERFACE);
+
+        if (!mem_space_iface || !mem_page_iface || !bp_trig_iface) {
+                return Sim_Set_Interface_Not_Found;
+        }
 
         core->phys_mem_obj = oval;
+        core->phys_mem_space_iface = mem_space_iface;
+        core->phys_mem_page_iface = mem_page_iface;
+        core->phys_mem_bp_trig_iface = bp_trig_iface;
 
         return Sim_Set_Ok;
 }
@@ -275,9 +295,28 @@ graph16_set_video_memory(void *arg, conf_object_t *obj,
                                 attr_value_t *val, attr_value_t *idx)
 {
         graph16_t *core = conf_to_graph16(obj);
-        conf_object_t *oval = SIM_attr_object(*val);
 
-        core->video_mem_obj = oval;
+        const memory_space_interface_t *mem_space_iface;
+        conf_object_t *oval = SIM_attr_object(*val);
+        mem_space_iface = (memory_space_interface_t *)SIM_c_get_interface(
+                oval, MEMORY_SPACE_INTERFACE);
+
+        memory_page_interface_t *mem_page_iface;
+        mem_page_iface = (memory_page_interface_t *)SIM_c_get_interface(
+                oval, MEMORY_PAGE_INTERFACE);
+
+        breakpoint_trigger_interface_t *bp_trig_iface;
+        bp_trig_iface = (breakpoint_trigger_interface_t *)SIM_c_get_interface(
+                oval, BREAKPOINT_TRIGGER_INTERFACE);
+
+        if (!mem_space_iface || !mem_page_iface || !bp_trig_iface) {
+                return Sim_Set_Interface_Not_Found;
+        }
+
+        core->phys_mem_obj = oval;
+        core->phys_mem_space_iface = mem_space_iface;
+        core->phys_mem_page_iface = mem_page_iface;
+        core->phys_mem_bp_trig_iface = bp_trig_iface;
 
         return Sim_Set_Ok;
 }
@@ -384,9 +423,9 @@ get_palette_attribute(void *arg, conf_object_t *obj, attr_value_t *idx)
 {
         graph16_t *sample = (graph16_t *)obj;
 
-        attr_value_t res = SIM_alloc_attr_list(16 * 3);
+        attr_value_t res = SIM_alloc_attr_list(PAL_SIZE * 3);
         int i = 0, j = 0;
-        for (i = 0; i < 16 * 3; i += 3, j++) {
+        for (i = 0; i < PAL_SIZE * 3; i += 3, j++) {
                 SIM_attr_list_set_item(&res, i + 0, SIM_make_attr_uint64((sample->palette[j] >> 16) & 0xFF));
                 SIM_attr_list_set_item(&res, i + 1, SIM_make_attr_uint64((sample->palette[j] >> 8 ) & 0xFF));
                 SIM_attr_list_set_item(&res, i + 2, SIM_make_attr_uint64((sample->palette[j] >> 0 ) & 0xFF));
