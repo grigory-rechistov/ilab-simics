@@ -122,7 +122,10 @@ operation(conf_object_t *obj, generic_transaction_t *mop,
                                         sample->sprite.y    = (sample->temp[1] & 0xFF);
                                         sample->sprite.addr = (sample->temp[2] & 0xFFFF);
 
-                                        SIM_LOG_INFO(4, &sample->obj, 0, "X = %d, Y = %d, addr = %x\n");                                        //for testing
+                                        SIM_LOG_INFO(4, &sample->obj, 0, "DRW: X = %d, Y = %d, addr = %x\n",
+                                                                                        sample->sprite.x,
+                                                                                        sample->sprite.y,
+                                                                                        sample->sprite.addr);                                        //for testing
                                 }
 
                                 break;
