@@ -137,12 +137,12 @@ operation(conf_object_t *obj, generic_transaction_t *mop,
 
                                 if (sample->instruction.length == 0) {
                                         j = 0;
-                                        for (i = 0; i < 24; i += 3) {
+                                        for (i = 0; i < 24; i += 3) {  // PAL command is transmitted in 24 transactions
                                                 sample->palette[j++] = ((sample->temp[i] << 8) & 0xFFFF00) | ((sample->temp[i + 1] >> 8) & 0xFF);
                                                 sample->palette[j++] = ((sample->temp[i + 1] << 16) & 0xFF0000) | (sample->temp[i + 2] & 0xFFFF);
                                         }
 
-                                        for (i = 0; i < 16; i++) {
+                                        for (i = 0; i < PAL_SIZE; i++) {
                                                 SIM_LOG_INFO(4, &sample->obj, 0, "palette[%d] = %x\n", i, sample->palette[i]);
                                         }
                                 }
@@ -368,7 +368,7 @@ set_palette_attribute(void *arg, conf_object_t *obj,
         graph16_t *sample = (graph16_t *)obj;
 
         int i = 0, j = 0;
-        for (i = 0; i < 16 * 3; i += 3, j++) {
+        for (i = 0; i < PAL_SIZE * 3; i += 3, j++) {
                 sample->palette[j] = 0;
                 sample->palette[j] |= ((SIM_attr_integer((SIM_attr_list_item(*val, i + 0))) << 16) & 0xFF0000);
                 sample->palette[j] |= ((SIM_attr_integer((SIM_attr_list_item(*val, i + 1))) << 8) & 0xFF00);
@@ -392,15 +392,6 @@ get_palette_attribute(void *arg, conf_object_t *obj, attr_value_t *idx)
                 SIM_attr_list_set_item(&res, i + 2, SIM_make_attr_uint64((sample->palette[j] >> 0 ) & 0xFF));
         }
         return res;
-}
-
-static set_error_t
-set_add_log_attribute(void *arg, conf_object_t *obj, attr_value_t *val,
-                      attr_value_t *idx)
-{
-        graph16_t *sample = (graph16_t *)obj;
-        SIM_LOG_INFO(1, &sample->obj, 0, "%s", SIM_attr_string(*val));
-        return Sim_Set_Ok;
 }
 
 /* called once when the device module is loaded into Simics */
@@ -493,15 +484,6 @@ init_local(void)
                 get_palette_attribute, NULL, set_palette_attribute, NULL,
                 Sim_Attr_Optional, "[i*]", NULL,
                 "The <i>palette</i>.");
-
-        /* Pseudo attribute, not saved in configuration */
-        SIM_register_typed_attribute(
-                class, "add_log",
-                0, NULL, set_add_log_attribute, NULL,
-                Sim_Attr_Pseudo, "s", NULL,
-                "<i>Write-only</i>. Strings written to this"
-                " attribute will end up in the device's log file.");
-
 
         SDL_Init(SDL_INIT_VIDEO);
         // FIXME we also need to call a cleanup, maybe something like this?
