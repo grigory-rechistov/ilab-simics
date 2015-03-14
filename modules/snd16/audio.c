@@ -27,9 +27,11 @@
 static void silence (void* userdata, uint8_t* stream, int len_raw, bool advance_time)
         {
         int len = len_raw / 2 /* 16 bit */;
+
         // silence is just zeroes in all formats
         assert (userdata);
         audio_params_t *ap = (audio_params_t*)userdata;
+
         memset (stream, 0, len_raw);
         if (advance_time)
                 ap->phase += len;
@@ -40,7 +42,7 @@ static void silence (void* userdata, uint8_t* stream, int len_raw, bool advance_
 // IN:  len_raw         - length in bytes, NOT samples!
 // OUT: userdata        - phase and waveform-specfic state updated
 // OUT: stream          - samples for waveform
-static void meandre(void* userdata, uint8_t* stream, int len_raw)
+static void meandre (void* userdata, uint8_t* stream, int len_raw)
         {
         int len = len_raw / 2; /* 16 bit */
 

@@ -15,36 +15,28 @@
 #include "audio.h"
 #include "snd16.h"
 
+#define SDL_VOL       16000
+#define SND_WAVE_TYPE Audio_Meandre
+
 #define SND 0x0002
 #define SNG 0x0102
 
 
-// States of snd_card
-typedef enum
-        {
-        Waiting_new_op = 0,
+static attr_value_t
+get_wave_type (void *arg, conf_object_t *obj, attr_value_t *idx);
+static set_error_t
+set_wave_type (void *arg, conf_object_t *obj, attr_value_t *val, attr_value_t *idx);
 
-        Waiting_op_after_snd,   // and snp too
-        after_freq,
+static attr_value_t
+get_signal_freq (void *arg, conf_object_t *obj, attr_value_t *idx);
+static set_error_t
+set_signal_freq (void *arg, conf_object_t *obj, attr_value_t *val, attr_value_t *idx);
 
-        Waiting_op_after_sng,
-        after_advt,
+static attr_value_t
+get_waveform_limit (void *arg, conf_object_t *obj, attr_value_t *idx);
+static set_error_t
+set_waveform_limit (void *arg, conf_object_t *obj, attr_value_t *val, attr_value_t *idx);
 
-        } states_type_t;
-
-typedef struct
-        {
-        /* Simics configuration object */
-        conf_object_t obj;
-
-        /* device specific data */
-        unsigned value;
-
-        states_type_t current_state; // switch
-
-        SDL_AudioDeviceID audiodev; // an audiodevice opened
-        audio_params_t audio_params; // parameters to control waveform
-        } snd16_t;
 
 /* Allocate memory for the object. */
 static conf_object_t *
@@ -106,20 +98,29 @@ operation (conf_object_t *obj, generic_transaction_t *mop, map_info_t info)
 
         if (SIM_mem_op_is_write (mop))
                 {
-                snd->value = SIM_get_mem_op_value_le(mop);      // le - little endian
+                snd->mop_var = SIM_get_mem_op_value_le(mop);      // le - little endian
 
-                if (snd->current_state == Waiting_new_op)
+                if (snd->current_state == State_waiting_new_op)
                         {
-                        if (snd->value == SND)
+                        if (snd->mop_var == SND)
                                 {
-                                snd->current_state = Waiting_op_after_snd;
+                                if (SND_WAVE_TYPE == Audio_Meandre)
+                                        {
+                                        snd->audio_params.wave_type = Audio_Meandre;
+                                        snd->audio_params.sign      = 1;
+                                        }
+
+                                snd->audio_params.sdl_vol   = SDL_VOL;
+                                snd->audio_params.phase     = 0;
+
+                                snd->current_state = State_waiting_op_after_snd;
                                 goto return_ok;
                                 }
 
-                        if (snd->value == SNG)
+                        if (snd->mop_var == SNG)
                                 {
                                 SIM_LOG_ERROR(&snd->obj, 0, "snd0: not realised yet");
-                                // snd->current_state = Waiting_op_after_sng;
+                                // snd->current_state = State_waiting_op_after_sng;
                                 // goto return_ok;
                                 }
 
@@ -127,38 +128,45 @@ operation (conf_object_t *obj, generic_transaction_t *mop, map_info_t info)
                         SIM_LOG_ERROR(&snd->obj, 0, "snd0: unknown instruction");
                         }
 
-                if (snd->current_state == Waiting_op_after_snd)
+                if (snd->current_state == State_waiting_op_after_snd)
                         {
-                        attr_value_t tmp = SIM_make_attr_uint64(snd->value);
+                        attr_value_t tmp = SIM_make_attr_uint64(snd->mop_var);
                         set_error_t ret_val = set_signal_freq (NULL, &snd->obj, &tmp, NULL);
                         if (ret_val == Sim_Set_Ok)
                                 {
-                                snd->current_state = after_freq;
+                                if (snd->mop_var != 0)
+                                        snd->audio_params.period = 1.0d / snd->audio_params.signal_freq;
+                                else
+                                        snd->audio_params.period = -1;
+
+                                snd->current_state = State_after_freq;
                                 goto return_ok;
                                 }
 
-                        SIM_LOG_ERROR(&snd->obj, 0, "snd0: smth wrong with Waiting_op_after_snd");
+                        SIM_LOG_ERROR(&snd->obj, 0, "snd0: smth wrong with State_waiting_op_after_snd");
                         }
 
-                if (snd->current_state == after_freq)
+                if (snd->current_state == State_after_freq)
                         {
-                        attr_value_t tmp = SIM_make_attr_uint64(snd->value);
+                        attr_value_t tmp = SIM_make_attr_uint64(snd->mop_var);
                         set_error_t ret_val = set_waveform_limit (NULL, &snd->obj, &tmp, NULL);
                         if (ret_val == Sim_Set_Ok)
                                 {
-                                snd->current_state = Waiting_new_op;
+                                // here should be launch of sound generating
+
+                                snd->current_state = State_waiting_new_op;
                                 goto return_ok;
                                 }
 
-                        SIM_LOG_ERROR(&snd->obj, 0, "snd0: smth wrong with after_freq");
+                        SIM_LOG_ERROR(&snd->obj, 0, "snd0: smth wrong with State_after_freq");
                         }
 
-                if (snd->current_state == Waiting_op_after_sng)
+                if (snd->current_state == State_waiting_op_after_sng)
                         {
                         SIM_LOG_ERROR(&snd->obj, 0, "snd0: not realised yet");
                         }
 
-                if (snd->current_state == after_advt)
+                if (snd->current_state == State_after_advt)
                         {
                         SIM_LOG_ERROR(&snd->obj, 0, "snd0: not realised yet");
                         }
@@ -197,6 +205,8 @@ set_value_attribute (void *arg, conf_object_t *obj,
                 SDL_PauseAudioDevice(snd->audiodev, 1);
         else
                 {
+                SDL_PauseAudioDevice(snd->audiodev, 0);
+                /*
                 SDL_PauseAudioDevice(snd->audiodev, 1);
                 // prepare meandre parameters
                 snd->audio_params.wave_type = Audio_Meandre;
@@ -210,6 +220,7 @@ set_value_attribute (void *arg, conf_object_t *obj,
                 SDL_PauseAudioDevice(snd->audiodev, 0);
                 SDL_Delay(500);
                 SDL_PauseAudioDevice(snd->audiodev, 1);
+                */
                 }
 
         return Sim_Set_Ok;
