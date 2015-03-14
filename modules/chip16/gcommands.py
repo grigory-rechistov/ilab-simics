@@ -61,9 +61,20 @@ def load_binary(file_path):
     # copy data into device memory
     offset = 0
     cpu = current_processor()
-    while offset < rom:
+    while offset < (rom - rom % 4):
         SIM_write_phys_memory(cpu, offset, reduce(lambda rst, d:rst*10+d, struct.unpack("<L", bin_file.read(4))), 4)
-        offset = offset + 4
+        offset += 4
+
+    if rom % 4 != 0:
+        SIM_log_info(4, current_processor(), 0, 
+        """Input file size is not aligned on 4 bytes""")
+
+    for k in range(rom % 4):
+        SIM_write_phys_memory(cpu, offset, reduce(lambda rst, d:rst*10+d, struct.unpack("B", bin_file.read(1))), 1)
+        offset += 1
+
+    # setting the initial PC
+    cpu.pc = header['pc_start_addr']
 
     bin_file.close()
 
