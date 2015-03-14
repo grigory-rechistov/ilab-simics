@@ -79,29 +79,23 @@ static exception_type_t
 operation (conf_object_t *obj, generic_transaction_t *mop, map_info_t info)
         {
         snd16_t *snd = (snd16_t *)obj;
-        // unsigned offset = (SIM_get_mem_op_physical_address(mop) + info.start - info.base);
-
-        /*
-        if (SIM_mem_op_is_read(mop))
-                {
-                SIM_set_mem_op_value_le(mop, snd->value);
-                SIM_LOG_INFO(1, &snd->obj, 0, "read from offset %d: 0x%x",
-                             offset, snd->value);
-                }
-        else
-                {
-                snd->value = SIM_get_mem_op_value_le(mop);
-                SIM_LOG_INFO(1, &snd->obj, 0, "write to offset %d: 0x%x",
-                             offset, snd->value);
-                }
-        */
+        unsigned offset = (SIM_get_mem_op_physical_address(mop) + info.start - info.base);
 
         if (SIM_mem_op_is_write (mop))
                 {
-                snd->mop_var = SIM_get_mem_op_value_le(mop);      // le - little endian
-
-                if (snd->current_state == State_waiting_new_op)
+                if (offset != 0)
                         {
+                        SIM_LOG_ERROR(&snd->obj, 0, "mop offset != 0, but = %d", offset);
+                        return Sim_PE_IO_Error;
+                        }
+
+                snd->mop_var = SIM_get_mem_op_value_le(mop);      // le - little endian
+                attr_value_t mop_var_attr = SIM_make_attr_uint64(0); // TODO: is it right?
+                set_error_t  ret_val      = 0;
+
+                switch (snd->current_state)
+                {
+                case State_waiting_new_op:
                         if (snd->mop_var == SND)
                                 {
                                 if (SND_WAVE_TYPE == Audio_Meandre)
@@ -124,14 +118,13 @@ operation (conf_object_t *obj, generic_transaction_t *mop, map_info_t info)
                                 // goto return_ok;
                                 }
 
-                        // TODO: what should function return after error?
                         SIM_LOG_ERROR(&snd->obj, 0, "snd0: unknown instruction");
-                        }
+                        return Sim_PE_IO_Error;
+                        break;
 
-                if (snd->current_state == State_waiting_op_after_snd)
-                        {
-                        attr_value_t tmp = SIM_make_attr_uint64(snd->mop_var);
-                        set_error_t ret_val = set_signal_freq (NULL, &snd->obj, &tmp, NULL);
+                case State_waiting_op_after_snd:
+                        mop_var_attr = SIM_make_attr_uint64(snd->mop_var);
+                        ret_val = set_signal_freq (NULL, &snd->obj, &mop_var_attr, NULL);
                         if (ret_val == Sim_Set_Ok)
                                 {
                                 if (snd->mop_var != 0)
@@ -144,12 +137,12 @@ operation (conf_object_t *obj, generic_transaction_t *mop, map_info_t info)
                                 }
 
                         SIM_LOG_ERROR(&snd->obj, 0, "snd0: smth wrong with State_waiting_op_after_snd");
-                        }
+                        return Sim_PE_IO_Error;
+                        break;
 
-                if (snd->current_state == State_after_freq)
-                        {
-                        attr_value_t tmp = SIM_make_attr_uint64(snd->mop_var);
-                        set_error_t ret_val = set_waveform_limit (NULL, &snd->obj, &tmp, NULL);
+                case State_after_freq:
+                        mop_var_attr = SIM_make_attr_uint64(snd->mop_var);
+                        ret_val = set_waveform_limit (NULL, &snd->obj, &mop_var_attr, NULL);
                         if (ret_val == Sim_Set_Ok)
                                 {
                                 // here should be launch of sound generating
@@ -159,18 +152,21 @@ operation (conf_object_t *obj, generic_transaction_t *mop, map_info_t info)
                                 }
 
                         SIM_LOG_ERROR(&snd->obj, 0, "snd0: smth wrong with State_after_freq");
-                        }
+                        return Sim_PE_IO_Error;
+                        break;
 
-                if (snd->current_state == State_waiting_op_after_sng)
-                        {
+                case State_waiting_op_after_sng:
                         SIM_LOG_ERROR(&snd->obj, 0, "snd0: not realised yet");
-                        }
+                        break;
 
-                if (snd->current_state == State_after_advt)
-                        {
+                case State_after_advt:
                         SIM_LOG_ERROR(&snd->obj, 0, "snd0: not realised yet");
-                        }
-                }
+                        break;
+
+                default:
+                        ASSERT(0);
+                } // end of switch
+                } // end of if (SIM_mem_op_is_write (mop)), before else
 
         else
                 SIM_LOG_SPEC_VIOLATION (1, &snd->obj, 0, "snd memory is write-only");
