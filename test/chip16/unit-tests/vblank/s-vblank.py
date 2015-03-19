@@ -2,15 +2,15 @@
 
 import stest
 
-cli.run_command("run-python-file %s/targets/chip16/machine.py" % conf.sim.workspace)
+cli.run_command("run-python-file %s/test/chip16-setup.py" % conf.sim.workspace)
 
 def test_instruction(cpu):
     paddr = 0
     cpu.pc = paddr
     # VBLANK
-    simics.SIM_write_phys_memory(cpu, paddr,   0x00000002, 4)
+    chip16_write_phys_memory_BE(cpu, paddr,   0x00000002, 4)
     # NOP
-    simics.SIM_write_phys_memory(cpu, paddr+4, 0x00000000, 4)
+    chip16_write_phys_memory_BE(cpu, paddr+4, 0x00000000, 4)
     SIM_continue(1)
     stest.expect_equal(cpu.pc, paddr + 4)
     SIM_run_command("sc 1")

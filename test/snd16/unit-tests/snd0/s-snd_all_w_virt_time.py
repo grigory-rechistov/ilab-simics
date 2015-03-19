@@ -3,7 +3,7 @@
 import stest
 import time
 
-cli.run_command("run-python-file %s/targets/chip16/machine.py" % conf.sim.workspace)
+cli.run_command("run-python-file %s/test/chip16-setup.py" % conf.sim.workspace)
 cli.run_command("enable-real-time-mode")
 
 def test_snd1_hhll_availability(cpu):
@@ -11,13 +11,13 @@ def test_snd1_hhll_availability(cpu):
         cpu.pc = paddr;
 
         # SND1_HHLL
-        simics.SIM_write_phys_memory(cpu, paddr, 0x0A006400, 4)
+        chip16_write_phys_memory_BE(cpu, paddr, 0x0A006400, 4)
         paddr += 4;
 
-        simics.SIM_write_phys_memory(cpu, paddr, 0x0B006400, 4)
+        chip16_write_phys_memory_BE(cpu, paddr, 0x0B006400, 4)
         paddr += 4;
 
-        simics.SIM_write_phys_memory(cpu, paddr, 0x0C006400, 4)
+        chip16_write_phys_memory_BE(cpu, paddr, 0x0C006400, 4)
         paddr += 4;
 
         SIM_continue (1);

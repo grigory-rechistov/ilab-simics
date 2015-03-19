@@ -1,0 +1,53 @@
+/* Code specific to CHIP16 */
+
+#include <string.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "chip16.h"
+#include "chip16-memory.h"
+
+/*
+ * Flags mapping:
+ *
+ *           7 6 5 4 3 2 1 0
+ *          |-------|-------|
+ *          |N|O|-|-|-|Z|C|-|
+ *           | |       | |
+ * Where:    N - negative|
+ *             |       | |
+ *             O - overflow
+ *                     | |
+ *                     Z - zero
+ *                       |
+ *                       C - carry
+ *
+ */
+
+#define CLR_CARRY(f)    ((f).map.C = 0)
+#define CLR_ZERO(f)     ((f).map.Z = 0)
+#define CLR_OVRFLW(f)   ((f).map.O = 0)
+#define CLR_NEG(f)      ((f).map.N = 0)
+
+#define SET_CARRY(f)    ((f).map.C = 1)
+#define SET_ZERO(f)     ((f).map.Z = 1)
+#define SET_OVRFLW(f)   ((f).map.O = 1)
+#define SET_NEG(f)      ((f).map.N = 1)
+
+#define BIT_15(n)      (((n) >> 15) & 0x1)
+#define BIT_16(n)      (((n) >> 16) & 0x1)
+
+#define MAX_REG 0xffff
+
+// devices memory mapping:
+#define SND_MEM_ADDR    0xFFF4
+
+
+typedef struct {
+    logical_address_t pc; /* Address of instruction being processed */
+    chip16_t *cpu;
+} chip16_decode_data_t;
+
+int chip16_decode(int32_t instr, chip16_decode_data_t decode_data);
+char* chip16_disasm(int32_t instr, chip16_decode_data_t decode_data);

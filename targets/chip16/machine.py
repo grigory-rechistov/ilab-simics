@@ -77,4 +77,3 @@ SIM_add_configuration([chip0, ctx0, cosim_cell, ram_image0, video_image, ram0, v
                       None)
 
 conf.timer0.regs_reference = 1000
-

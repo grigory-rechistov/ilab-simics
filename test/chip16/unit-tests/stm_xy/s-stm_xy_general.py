@@ -2,7 +2,7 @@
 
 import stest
 
-cli.run_command("run-python-file %s/targets/chip16/machine.py" % conf.sim.workspace)
+cli.run_command("run-python-file %s/test/chip16-setup.py" % conf.sim.workspace)
 
 def test_stm_xy_availability(cpu):
         paddr = 0
@@ -12,7 +12,7 @@ def test_stm_xy_availability(cpu):
         cpu.gprs[5] = 0xabcd
         cpu.gprs[7] = 0x1234
 
-        simics.SIM_write_phys_memory(cpu, paddr, 0x31750000, 4)
+        chip16_write_phys_memory_BE(cpu, paddr, 0x31750000, 4)
         SIM_continue(1)
 
         # check pc
@@ -31,7 +31,7 @@ def test_stm_xy_availability(cpu):
         cpu.gprs[0x0] = 0xabc
         cpu.gprs[0xf] = 0x4321
 
-        simics.SIM_write_phys_memory(cpu, paddr + 4, 0x31f00000, 4)
+        chip16_write_phys_memory_BE(cpu, paddr + 4, 0x31f00000, 4)
         SIM_continue(1)
 
         # check pc

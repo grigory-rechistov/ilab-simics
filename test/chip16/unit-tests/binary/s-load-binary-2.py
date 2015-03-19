@@ -2,7 +2,7 @@
 
 import stest
 
-cli.run_command("run-python-file %s/targets/chip16/machine.py" % conf.sim.workspace)
+cli.run_command("run-python-file %s/test/chip16-setup.py" % conf.sim.workspace)
 
 # this file consists delibirately damaged raw data, while checksum left untouched
 incorrect_crc = "%s/test/chip16/unit-tests/binary/file2.c16" % conf.sim.workspace

@@ -2,7 +2,7 @@
 
 import stest
 
-cli.run_command("run-python-file %s/targets/chip16/machine.py" % conf.sim.workspace)
+cli.run_command("run-python-file %s/test/chip16-setup.py" % conf.sim.workspace)
 
 def test_ldi_sp_availability(cpu):
         paddr = 0
@@ -12,7 +12,7 @@ def test_ldi_sp_availability(cpu):
         res &= 0xffff
 
         # LDI_SP
-        simics.SIM_write_phys_memory(cpu, paddr, 0x2100f2fd, 4)
+        chip16_write_phys_memory_BE(cpu, paddr, 0x2100f2fd, 4)
         SIM_continue(1)
 
         # check regs

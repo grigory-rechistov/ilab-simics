@@ -2,7 +2,7 @@
 
 import stest
 
-cli.run_command("run-python-file %s/targets/chip16/machine.py" % conf.sim.workspace)
+cli.run_command("run-python-file %s/test/chip16-setup.py" % conf.sim.workspace)
 
 def test_one_availability(cpu):
 
@@ -12,7 +12,7 @@ def test_one_availability(cpu):
         HHLL = 0x1011
 
         # NEGI RX, HHLL
-        simics.SIM_write_phys_memory(cpu, paddr, 0xE3011110, 4)
+        chip16_write_phys_memory_BE(cpu, paddr, 0xE3011110, 4)
         SIM_continue(1)
 
         stest.expect_equal(cpu.pc, paddr + 4)
@@ -23,14 +23,14 @@ def test_one_availability(cpu):
 
         cpu.gprs[2] = 0x0
 
-        simics.SIM_write_phys_memory(cpu, cpu.pc, 0xE3020000, 4)
+        chip16_write_phys_memory_BE(cpu, cpu.pc, 0xE3020000, 4)
         SIM_continue(1)
         stest.expect_equal(cpu.flags, 0b00000100)
         print "NEGI: (ZERO) success"
 
         cpu.gprs[3] = 0x100;
 
-        simics.SIM_write_phys_memory(cpu, cpu.pc, 0xE3031011, 4)
+        chip16_write_phys_memory_BE(cpu, cpu.pc, 0xE3031011, 4)
         SIM_continue(1)
         stest.expect_equal(cpu.flags, 0b10000000)
         print "NEGI: (NEG) success"
