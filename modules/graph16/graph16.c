@@ -48,8 +48,8 @@ lang_void *init_object(conf_object_t *obj, lang_void *data)
                 "CHIP16 monitor",                  // window title, TODO include SIM_object_name output
                 SDL_WINDOWPOS_UNDEFINED,           // initial x position
                 SDL_WINDOWPOS_UNDEFINED,           // initial y position
-                320,                               // width, in pixels
-                240,                               // height, in pixels
+                SCREEN_W,                          // width, in pixels
+                SCREEN_H,                          // height, in pixels
                 SDL_WINDOW_SHOWN                   // flags
         );
 
@@ -125,12 +125,14 @@ operation(conf_object_t *obj, generic_transaction_t *mop,
                                         sprite.y    = (sample->temp[1] & 0xFF);
                                         sprite.addr = (sample->temp[2] & 0xFFFF);
 
-                                        graph16_draw_sprite (sample, &sprite);
-
                                         SIM_LOG_INFO(4, &sample->obj, 0, "DRW: X = %d, Y = %d, addr = %x\n",
                                                                                         sprite.x,
                                                                                         sprite.y,
-                                                                                        sprite.addr);                                        //for testing
+                                                                                        sprite.addr);
+
+                                        graph16_draw_sprite (sample, &sprite);
+                                        graph16_update_screen (sample);
+
                                 }
 
                                 break;
@@ -658,7 +660,10 @@ int
 graph16_draw_sprite (graph16_t *core, graph16_sprite_t *sprite)
 {
         int ret = 0;
-        int sprite_size = core->spriteh * core->spritew;
+
+        int sprite_w = core->spritew;
+        int sprite_h = core->spriteh;
+        int sprite_size = sprite_w * sprite_h;
 
         uint8 data[sprite_size];
 
@@ -670,15 +675,91 @@ graph16_draw_sprite (graph16_t *core, graph16_sprite_t *sprite)
                 return false;
         }
 
-        ret = graph16_write_memory (core, VIDEO_MEM, 0x00,
-                                    sprite_size, data);
 
-        if (ret == false) {
-                SIM_LOG_ERROR(graph16_to_conf(core), 0,
-                             "failed to write sprite to video memory");
-                return false;
+        // There is no wrapping; what is drawn offscreen stays offscreen, and is thrown away.
+        if ((SCREEN_W - sprite->x) < sprite_w)
+                sprite_w = SCREEN_W - sprite->x;
+
+        if ((SCREEN_H - sprite->y) < sprite_h)
+                sprite_h = SCREEN_H - sprite->y;
+
+        int i = 0;
+        for (i = 0; i < sprite_h; i++) {
+
+                // Here we write sprite line by line. Memory is linear, so the offset is calculated
+                // like a 3rd arg. Then we write line of sprite (we use sprite_w, not core->spritew,
+                // because of posible wrapping of screen). The 5th arg an offet in sprite, here we
+                // must use the real width of sprite (core->spritew)
+                // TODO: arch incorrect (2 bytes transactions)
+
+                ret = graph16_write_memory (core, VIDEO_MEM, SCREEN_W * (sprite->y + i) + sprite->x,
+                                            sprite_w, data + i * core->spritew);
+
+                if (ret == false) {
+                        SIM_LOG_ERROR(graph16_to_conf(core), 0,
+                                     "failed to write sprite to video memory");
+                        return false;
+                }
+
         }
 
         return true;
 }
 
+int
+graph16_update_screen (graph16_t *core) {
+
+        // Setup renderer
+        SDL_Renderer* renderer = NULL;
+        renderer =  SDL_CreateRenderer(core->window, 0, SDL_RENDERER_ACCELERATED);
+
+        // Set render color to red ( background will be rendered in this color )
+        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+
+        // Clear winow
+        SDL_RenderClear(renderer);
+
+        // Set render color to blue ( rect will be rendered in this color )
+        SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+
+        int ret = 0;
+
+        uint8 data[SCREEN_W * SCREEN_H];
+        ret = graph16_read_memory (core, VIDEO_MEM, 0x00, SCREEN_W * SCREEN_H, data);
+        if (ret == false) {
+                SIM_LOG_ERROR(graph16_to_conf(core), 0,
+                             "failed to read from video memory");
+                return false;
+        }
+
+
+        int i = 0, j = 0;
+
+        for (i = 0; i < SCREEN_W; i++) {
+
+                for (j = 0; j < SCREEN_H; j++) {
+
+                        // Create a rect at pos ( 50, 50 ) that's 50 pixels wide and 50 pixels high.
+                        SDL_Rect rect;
+                        rect.x = i;
+                        rect.y = j;
+                        rect.w = 1;
+                        rect.h = 1;
+
+                        if (data[j * SCREEN_W + i]) {
+                                // Render rect
+                                SDL_RenderFillRect(renderer, &rect);
+
+                                // Render the rect to the screen
+                                SDL_RenderPresent(renderer);
+
+                        }
+                }
+        }
+
+
+        // Render the rect to the screen
+        SDL_RenderPresent(renderer);
+
+        return true;
+}

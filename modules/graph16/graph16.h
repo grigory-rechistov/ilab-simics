@@ -7,6 +7,9 @@
 
 #include "include/SDL2/SDL.h"
 
+#define SCREEN_W 320
+#define SCREEN_H 240
+
 #define PAL_SIZE 16
 
 #define PHYS_MEM  0
@@ -80,6 +83,9 @@ simple_method(conf_object_t *obj, int arg);
 
 int
 graph16_draw_sprite (graph16_t *core, graph16_sprite_t *sprite);
+
+int
+graph16_update_screen (graph16_t *core);
 
 static inline graph16_t *
 conf_to_graph16(conf_object_t *obj)
