@@ -9,6 +9,9 @@
 
 #define PAL_SIZE 16
 
+#define PHYS_MEM  0
+#define VIDEO_MEM 1
+
 typedef struct {
         uint8 opcode;
         uint8 length;
@@ -61,8 +64,6 @@ typedef struct {
 
         uint32 palette[PAL_SIZE];    // 1 colour in palette is coded like [00RRGGBB]
 
-        graph16_sprite_t sprite;
-
         graph16_instr_t instruction;
 
         uint32 temp[24];
@@ -71,13 +72,38 @@ typedef struct {
 
 } graph16_t;
 
-int delete_instance(conf_object_t *obj);
+int
+delete_instance(conf_object_t *obj);
 
 static void
 simple_method(conf_object_t *obj, int arg);
+
+int
+graph16_draw_sprite (graph16_t *core, graph16_sprite_t *sprite);
 
 static inline graph16_t *
 conf_to_graph16(conf_object_t *obj)
 {
         return SIM_object_data(obj);
 }
+
+static inline conf_object_t *
+graph16_to_conf(graph16_t *sr)
+{
+        return &sr->obj;
+}
+
+static generic_transaction_t
+create_generic_transaction (conf_object_t *initiator, mem_op_type_t type,
+                           physical_address_t phys_address,
+                           physical_address_t len, uint8 *data,
+                           endianness_t endian);
+
+bool
+graph16_write_memory (graph16_t *core, int mem_switch, physical_address_t phys_address,
+                    physical_address_t len, uint8 *data);
+
+bool
+graph16_read_memory (graph16_t *core, int mem_switch, physical_address_t phys_address,
+                   physical_address_t len, uint8 *data);
+

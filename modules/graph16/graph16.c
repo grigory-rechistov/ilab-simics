@@ -40,10 +40,6 @@ lang_void *init_object(conf_object_t *obj, lang_void *data)
         sample->instruction.opcode = 0;
         sample->instruction.length = 0;
 
-        sample->sprite.x = 0;
-        sample->sprite.y = 0;
-        sample->sprite.addr = 0;
-
         for (i = 0; i < 24; i++) {
                 sample->temp[i] = 0;
         }
@@ -105,6 +101,11 @@ operation(conf_object_t *obj, generic_transaction_t *mop,
                 int tmp = 0;
                 int i = 0, j = 0;
 
+                graph16_sprite_t sprite;
+                sprite.x = 0;
+                sprite.y = 0;
+                sprite.addr = 0;
+
                 if (sample->instruction.length == 0) {
                         sample->instruction.opcode = XX;
                         sample->instruction.length = YY;
@@ -119,14 +120,17 @@ operation(conf_object_t *obj, generic_transaction_t *mop,
                                 sample->instruction.length--;
 
                                 if (sample->instruction.length == 0) {
-                                        sample->sprite.x    = (sample->temp[0] & 0xFF);
-                                        sample->sprite.y    = (sample->temp[1] & 0xFF);
-                                        sample->sprite.addr = (sample->temp[2] & 0xFFFF);
+
+                                        sprite.x    = (sample->temp[0] & 0xFF);
+                                        sprite.y    = (sample->temp[1] & 0xFF);
+                                        sprite.addr = (sample->temp[2] & 0xFFFF);
+
+                                        graph16_draw_sprite (sample, &sprite);
 
                                         SIM_LOG_INFO(4, &sample->obj, 0, "DRW: X = %d, Y = %d, addr = %x\n",
-                                                                                        sample->sprite.x,
-                                                                                        sample->sprite.y,
-                                                                                        sample->sprite.addr);                                        //for testing
+                                                                                        sprite.x,
+                                                                                        sprite.y,
+                                                                                        sprite.addr);                                        //for testing
                                 }
 
                                 break;
@@ -152,12 +156,15 @@ operation(conf_object_t *obj, generic_transaction_t *mop,
                         case BGC_op:
 
                                 sample->bg = ((XX >> 4) & 0xF);
+                                sample->instruction.length--;
                                 break;
 
                         case SPR_op:
 
                                 sample->spritew = YY;
                                 sample->spriteh = XX;
+
+                                sample->instruction.length--;
                                 break;
 
                         case FLIP_op:
@@ -184,6 +191,7 @@ operation(conf_object_t *obj, generic_transaction_t *mop,
                                         ASSERT (0);
                                 }
 
+                                sample->instruction.length--;
                                 break;
 
                         default:
@@ -532,3 +540,145 @@ init_local(void)
         atexit(SDL_Quit);
 
 } // init_local()
+
+static generic_transaction_t
+create_generic_transaction (conf_object_t *initiator, mem_op_type_t type,
+                           physical_address_t phys_address,
+                           physical_address_t len, uint8 *data,
+                           endianness_t endian)
+{
+        generic_transaction_t ret;
+        memset(&ret, 0, sizeof(ret));
+        ret.logical_address = 0;
+        ret.physical_address = phys_address;
+        ret.real_address = data;
+        ret.size = len;
+        ret.ini_type = Sim_Initiator_CPU;
+        ret.ini_ptr = initiator;
+        ret.use_page_cache = 1;
+        ret.inquiry = 0;
+        SIM_set_mem_op_type(&ret, type);
+
+#if defined(HOST_LITTLE_ENDIAN)
+        if (endian == Sim_Endian_Host_From_BE)
+                ret.inverse_endian = 1;
+#else
+        if (endian == Sim_Endian_Host_From_LE)
+                ret.inverse_endian = 1;
+#endif
+
+        return ret;
+}
+
+bool
+graph16_write_memory (graph16_t *core, int mem_switch, physical_address_t phys_address,
+                    physical_address_t len, uint8 *data)
+{
+
+        conf_object_t *mem_obj = NULL;
+        const memory_space_interface_t *mem_space_iface = NULL;
+
+        if (mem_switch == PHYS_MEM) {
+
+                mem_obj = core->physical_mem_obj;
+                mem_space_iface = core->physical_mem_space_iface;
+        }
+        else if (mem_switch == VIDEO_MEM) {
+
+                mem_obj = core->video_mem_obj;
+                mem_space_iface = core->video_mem_space_iface;
+        }
+        else {
+                // We'll never be here. Maybe.
+                ASSERT (0);
+        }
+
+        generic_transaction_t mem_op = create_generic_transaction(
+                graph16_to_conf(core),
+                Sim_Trans_Store,
+                phys_address, len,
+                data,
+                Sim_Endian_Target);
+
+        exception_type_t exc =
+             mem_space_iface->access(mem_obj, &mem_op);
+
+        if (exc != Sim_PE_No_Exception) {
+                SIM_LOG_ERROR(graph16_to_conf(core), 0,
+                              "write error to physical address 0x%llx",
+                              phys_address);
+                return false;
+        }
+
+        return true;
+}
+
+bool
+graph16_read_memory (graph16_t *core, int mem_switch, physical_address_t phys_address,
+                   physical_address_t len, uint8 *data)
+{
+        conf_object_t *mem_obj = NULL;
+        const memory_space_interface_t *mem_space_iface = NULL;
+
+        if (mem_switch == PHYS_MEM) {
+
+                mem_obj = core->physical_mem_obj;
+                mem_space_iface = core->physical_mem_space_iface;
+        }
+        else if (mem_switch == VIDEO_MEM) {
+
+                mem_obj = core->video_mem_obj;
+                mem_space_iface = core->video_mem_space_iface;
+        }        else {
+                // We'll never be here. Maybe.
+                ASSERT (0);
+        }
+
+        generic_transaction_t mem_op = create_generic_transaction(
+                graph16_to_conf(core),
+                Sim_Trans_Load,
+                phys_address, len,
+                data,
+                Sim_Endian_Target);
+
+        exception_type_t exc =
+             mem_space_iface->access(mem_obj, &mem_op);
+
+        if (exc != Sim_PE_No_Exception) {
+                SIM_LOG_ERROR(graph16_to_conf(core), 0,
+                             "read error from physical address 0x%llx",
+                              phys_address);
+                return false;
+        }
+
+        return true;
+}
+
+int
+graph16_draw_sprite (graph16_t *core, graph16_sprite_t *sprite)
+{
+        int ret = 0;
+        int sprite_size = core->spriteh * core->spritew;
+
+        uint8 data[sprite_size];
+
+        ret = graph16_read_memory (core, PHYS_MEM, sprite->addr,
+                                   sprite_size, data);
+        if (ret == false) {
+                SIM_LOG_ERROR(graph16_to_conf(core), 0,
+                             "failed to read sprite from phys memory");
+                return false;
+        }
+
+        ret = graph16_write_memory (core, VIDEO_MEM, 0x00,
+                                    sprite_size, data);
+
+        if (ret == false) {
+                SIM_LOG_ERROR(graph16_to_conf(core), 0,
+                             "failed to write sprite to video memory");
+                return false;
+        }
+
+        return true;
+}
+
