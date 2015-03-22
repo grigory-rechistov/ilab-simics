@@ -129,11 +129,12 @@ lang_void *init_object(conf_object_t *obj, lang_void *data) {
                 SDL_Texture *texture = SDL_CreateTextureFromSurface(joy->renderer, image);
                 ASSERT(texture);
                 SDL_RenderCopy(joy->renderer, texture, NULL, NULL);
+                SDL_FreeSurface(image);
         } else {
                 SIM_LOG_INFO(1, obj, 0, "Failed to load a BMP image");
                 /* This is not critical though */
         }
-        /* FIXME: a set of cleanup calls for image and texture should be in delete_instance() */
+        /* FIXME: a set of cleanup calls for texture should be in delete_instance() */
 
         SDL_RenderPresent(joy->renderer);
 
