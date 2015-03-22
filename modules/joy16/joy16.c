@@ -4,7 +4,7 @@
    modify, or otherwise make use of this Software may be licensed only
    pursuant to the terms of an applicable Wind River license agreement.
 
-   Copyright 2010-2014 Intel Corporation */
+   Copyright 2014-2015 Intel Corporation */
 
 #include <simics/simulator-api.h> // For SIM_printf()
 #include <simics/device-api.h>
@@ -13,6 +13,7 @@
 
 #include "sample-interface.h"
 #include "include/SDL2/SDL.h"
+#include "include/SDL2/SDL_thread.h"
 
 typedef struct {
         /* Simics configuration object */
@@ -28,7 +29,7 @@ typedef struct {
                     unsigned L     :1; // Left
                     unsigned R     :1; // Right
                     unsigned Slc   :1; // Select    <-- refers to --- Tab
-                    unsigned St    :1; // Start     <-- refers to --- Return    
+                    unsigned St    :1; // Start     <-- refers to --- Return
                     unsigned A     :1; // A         <-- refers to --- F
                     unsigned B     :1; // B         <-- refers to --- G
                     unsigned empty :8;
@@ -39,6 +40,8 @@ typedef struct {
 
         SDL_Window *window;
         SDL_Renderer *renderer;
+        SDL_Thread *refresh_thread;
+        bool refresh_active;
 } joy16_t;
 
 /* Allocate memory for the object. */
@@ -49,8 +52,8 @@ alloc_object(void *data)
         return &joy->obj;
 }
 
-// Asynchronously process SDL events
-int joy16_event_filter(void* userdata, SDL_Event* event) {
+/* Filter events to leave only ones from keyboard */
+static int joy16_event_filter(void* userdata, SDL_Event* event) {
         // TODO lock joystick state?
         joy16_t *joy = (joy16_t *)userdata;
         ASSERT(joy);
@@ -58,13 +61,25 @@ int joy16_event_filter(void* userdata, SDL_Event* event) {
 
         /* Leave only events we are interested in. the way we want.
         others are not supposed to get into the event queue
-        !!! except user events. Thus use key_inject interface with caution */ 
+        !!! except user events. Thus use key_inject interface with caution */
         switch (event->type) {
             case SDL_KEYDOWN: return 1;
             case SDL_KEYUP:   return 1;
             default:          return 0;
         }
         return 0;
+}
+static int joy16_refresh_screen(void *arg) {
+        joy16_t *joy = (joy16_t *)arg;
+        ASSERT(joy);
+        /* TODO proper locking of joy should be implemented */
+        if (!joy->renderer) return 0;
+        while (joy->refresh_active) {
+                SDL_RenderPresent(joy->renderer);
+                SDL_Delay(1000);
+        }
+        printf("Shutting down...\n");
+        return 1;
 }
 
 lang_void *init_object(conf_object_t *obj, lang_void *data) {
@@ -98,12 +113,26 @@ lang_void *init_object(conf_object_t *obj, lang_void *data) {
         // Filter events before entering the event queue
         SDL_SetEventFilter(joy16_event_filter, (void*)joy);
 
+        /* Create a separate thread to refresh SDL GUI window */
+        joy->refresh_active = true; /* A memory barrier would be nice here */
+        joy->refresh_thread = SDL_CreateThread(joy16_refresh_screen, "joy16 refresh screen thread", (void *)joy);
+        ASSERT(joy->refresh_thread);
+
         return obj;
 }
 
 int delete_instance(conf_object_t *obj) {
+        /* NOTE: a session with GDB showed that this function is actually
+           not called at all. Therefore, no cleanup is done, right?
+           This has to be investigated eventually. */
+
         joy16_t *joy = (joy16_t *)obj;
 
+        /* Shut down the GUI refresh thread */
+        joy->refresh_active = false; // A poor man's synchronization method
+        /* A memory barrier would be nice here */
+        SIM_LOG_INFO(4, obj, 0, "Waiting for the refresh thread to return...");
+        SDL_WaitThread(joy->refresh_thread, NULL);
         SDL_DestroyRenderer(joy->renderer);
         SDL_DestroyWindow(joy->window);
         return 1;
@@ -232,6 +261,8 @@ joy16_signal_raise(conf_object_t *obj)
                  else
                         ASSERT_MSG(0, "Wrong keyboard event type!");
         }
+        if (joy->renderer) /* Update GUI window state */
+                SDL_RenderPresent(joy->renderer);
 }
 
 static void
@@ -240,16 +271,16 @@ joy16_signal_lower(conf_object_t *obj)
         // nothing to do
 }
 
-/* Posting keydown event to the queue */
+/* Inject a keyup/keydown event to the queue */
 static void
 joy16_key_inject (conf_object_t* obj, int arg)
 {
         SDL_Event event = {0};
 
-        /* because arg is signed int, 31`t bit is taken
+        /* because arg is signed int, the 31st bit is taken
            we need somehow to determine whether it is Keyup or Keydown
-           thus we use 29`th bit and after the condition we clear it */ 
-        if(arg & (1 << 29)) { 
+           thus we use 29th bit and after the condition we clear it */
+        if(arg & (1 << 29)) {
             arg = arg ^ (1<<29);
             event.type = SDL_KEYDOWN;
             event.key.keysym.sym = arg & ~(1 << 31);
@@ -285,8 +316,7 @@ init_local(void)
         };
         conf_class_t *class = SIM_register_class("joy16", &funcs);
 
-        /* Register the 'sample-interface', which is an example of a unique,
-           customized interface that we've implemented for this device. */
+        /* Register VBLANK interrupt interface */
         static const signal_interface_t vblank = {
                 .signal_raise = joy16_signal_raise,
                 .signal_lower = joy16_signal_lower
