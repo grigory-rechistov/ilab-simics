@@ -216,7 +216,7 @@ joy16_signal_raise(conf_object_t *obj)
                                 SIM_LOG_INFO(4, &joy->obj, 0, "Keydown B");
                                 break;
                         default:
-                                SIM_LOG_INFO(5, &joy->obj, 0, "Other key pressed");
+                                SIM_LOG_INFO(4, &joy->obj, 0, "Other key pressed");
                                 break;
                         }
                 }
@@ -255,7 +255,7 @@ joy16_signal_raise(conf_object_t *obj)
                                 SIM_LOG_INFO(4, &joy->obj, 0, "Keyup B");
                                 break;
                         default:
-                                SIM_LOG_INFO(5, &joy->obj, 0, "Other key released");
+                                SIM_LOG_INFO(4, &joy->obj, 0, "Other key released");
                                 break;
                         }
                  }
