@@ -5,7 +5,7 @@
 MODULE_CLASSES = joy16
 
 SRC_FILES= joy16.c
-SRC_IMAGES+=joy16.bmp
+SRC_IMAGES+=joy16.bmp # an image taken from https://openclipart.org/detail/4436/Old%20School%20Game%20Controller
 
 THREAD_SAFE = yes
 SIMICS_API := 4.6

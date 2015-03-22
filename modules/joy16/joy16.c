@@ -134,8 +134,7 @@ lang_void *init_object(conf_object_t *obj, lang_void *data) {
                 /* This is not critical though */
         }
         /* FIXME: a set of cleanup calls for image and texture should be in delete_instance() */
-        /* https://openclipart.org/detail/4436/Old%20School%20Game%20Controller */
-        
+
         SDL_RenderPresent(joy->renderer);
 
         // Filter events before entering the event queue
