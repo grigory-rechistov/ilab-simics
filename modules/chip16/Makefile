@@ -17,8 +17,6 @@ EXTRA_MODULE_VPATH = cycle-common
 
 SRC_FILES += generic-cycle-iface.c
 
-CFLAGS+= -Wall -Werror
-
 SIMICS_API := 4.6
 THREAD_SAFE:= yes
 
