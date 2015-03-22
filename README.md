@@ -9,7 +9,7 @@ Licenses for third-party components are provided within the corresponding direct
 
 # Source code
 
-Authors: Grigory Rechistov, 2014, and contributors of the MIPT Ilab project.
+Authors: Grigory Rechistov, 2014, 2015, and contributors of the MIPT Ilab project.
 The source code is subject to University Software License Agreement between
 Intel Corporation and the participating university. Please refer to the text
 of the agreement for terms and conditions.
