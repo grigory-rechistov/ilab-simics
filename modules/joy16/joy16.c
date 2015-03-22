@@ -6,7 +6,7 @@
 
    Copyright 2014-2015 Intel Corporation */
 
-#include <simics/simulator-api.h> // For SIM_printf()
+#include <simics/simulator-api.h> // For SIM_printf(), SIM_lookup_file()
 #include <simics/device-api.h>
 #include <simics/devs/io-memory.h>
 #include <simics/devs/signal.h>
@@ -14,6 +14,20 @@
 #include "sample-interface.h"
 #include "include/SDL2/SDL.h"
 #include "include/SDL2/SDL_thread.h"
+
+#ifndef HOST_TYPE
+#error HOST_TYPE must be defined when compiling this file: linux64, win64 etc
+#endif
+
+/* Use two level macro voodoo to convert HOST_TYPE to string
+ See https://gcc.gnu.org/onlinedocs/cpp/Stringification.html for explanations */
+#define XMACRO_STR(s) MACRO_STR(s)
+#define MACRO_STR(s) #s
+#define HOST_LIB_DIR XMACRO_STR(HOST_TYPE) "/lib"
+
+#define BMP_NAME "images/joy16.bmp"
+/* THREAD_SAFE_GLOBAL: joy16_bmp_path init */
+static const char* joy16_bmp_path = NULL;
 
 typedef struct {
         /* Simics configuration object */
@@ -79,7 +93,7 @@ static int joy16_refresh_screen(void *arg) {
                 SDL_RenderPresent(joy->renderer);
                 SDL_Delay(100);
         }
-        printf("Shutting down...\n");
+        // printf("Shutting down...\n");
         return 1;
 }
 
@@ -108,7 +122,20 @@ lang_void *init_object(conf_object_t *obj, lang_void *data) {
         SDL_SetRenderDrawColor(joy->renderer, 0xaa, 0xbb, 0xcc, 0xdd);
         SDL_RenderClear(joy->renderer);
         SDL_SetRenderDrawColor(joy->renderer, 0xff, 0, 0, 0);
-        SDL_RenderDrawLine(joy->renderer, 0, 0, 127, 63);
+
+        /* Load a nice picture */
+        SDL_Surface *image = SDL_LoadBMP(joy16_bmp_path);
+        if (image) {
+                SDL_Texture *texture = SDL_CreateTextureFromSurface(joy->renderer, image);
+                ASSERT(texture);
+                SDL_RenderCopy(joy->renderer, texture, NULL, NULL);
+        } else {
+                SIM_LOG_INFO(1, obj, 0, "Failed to load a BMP image");
+                /* This is not critical though */
+        }
+        /* FIXME: a set of cleanup calls for image and texture should be in delete_instance() */
+        /* https://openclipart.org/detail/4436/Old%20School%20Game%20Controller */
+        
         SDL_RenderPresent(joy->renderer);
 
         // Filter events before entering the event queue
@@ -360,7 +387,17 @@ init_local(void)
                 if (res != 0) SIM_printf("Warning: SDL_INIT_SUBSYTEM returned not zero\n");
         }
 
+        /* We will need to know a path to a BMP file with joy16 bitmap.
+           Add a directory with it to Simics directory list, and do the lookup.
+           FIXME not sure if this will work for a packaged installation, not locally built one.
+          */
+        SIM_add_directory(HOST_LIB_DIR, false);
+        joy16_bmp_path = SIM_lookup_file(BMP_NAME); /* NOTE: returned memory won't be freed anywhere */
+
         // FIXME we also need to call a cleanup, maybe something like this?
         // But see this: https://developer.palm.com/distribution/viewtopic.php?f=82&t=6643
         atexit(SDL_Quit);
 }
+
+#undef XMACRO_STR
+#undef MACRO_STR
