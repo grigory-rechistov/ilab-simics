@@ -38,6 +38,7 @@ typedef struct {
 
         } value;
 
+        /* SDL related data */
         SDL_Window *window;
         SDL_Renderer *renderer;
         SDL_Thread *refresh_thread;
@@ -72,11 +73,11 @@ static int joy16_event_filter(void* userdata, SDL_Event* event) {
 static int joy16_refresh_screen(void *arg) {
         joy16_t *joy = (joy16_t *)arg;
         ASSERT(joy);
-        /* TODO proper locking of joy should be implemented */
+        /* TODO proper locking of joy should be implemented; SDL_Atomic? */
         if (!joy->renderer) return 0;
         while (joy->refresh_active) {
                 SDL_RenderPresent(joy->renderer);
-                SDL_Delay(1000);
+                SDL_Delay(100);
         }
         printf("Shutting down...\n");
         return 1;
@@ -114,7 +115,7 @@ lang_void *init_object(conf_object_t *obj, lang_void *data) {
         SDL_SetEventFilter(joy16_event_filter, (void*)joy);
 
         /* Create a separate thread to refresh SDL GUI window */
-        joy->refresh_active = true; /* A memory barrier would be nice here */
+        joy->refresh_active = true; /* A memory barrier would be nice here; SDL_Atomic? */
         joy->refresh_thread = SDL_CreateThread(joy16_refresh_screen, "joy16 refresh screen thread", (void *)joy);
         ASSERT(joy->refresh_thread);
 
@@ -130,7 +131,7 @@ int delete_instance(conf_object_t *obj) {
 
         /* Shut down the GUI refresh thread */
         joy->refresh_active = false; // A poor man's synchronization method
-        /* A memory barrier would be nice here */
+        /* A memory barrier would be nice here; SDL_Atomic? */
         SIM_LOG_INFO(4, obj, 0, "Waiting for the refresh thread to return...");
         SDL_WaitThread(joy->refresh_thread, NULL);
         SDL_DestroyRenderer(joy->renderer);
