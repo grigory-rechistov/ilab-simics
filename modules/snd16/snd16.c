@@ -37,6 +37,9 @@ get_waveform_limit (void *arg, conf_object_t *obj, attr_value_t *idx);
 static set_error_t
 set_waveform_limit (void *arg, conf_object_t *obj, attr_value_t *val, attr_value_t *idx);
 
+/* THREAD_SAFE_GLOBAL: pause_snd_event init */
+static event_class_t* pause_snd_event;
+static void snd_mute (conf_object_t *obj, void *param);
 
 /* Allocate memory for the object. */
 static conf_object_t *
@@ -79,6 +82,8 @@ static exception_type_t
 operation (conf_object_t *obj, generic_transaction_t *mop, map_info_t info)
         {
         snd16_t *snd = (snd16_t *)obj;
+        conf_object_t* queue_obj = SIM_attr_object (SIM_get_attribute(&snd->obj, "queue"));
+                ASSERT (queue_obj != NULL);
         unsigned offset = (SIM_get_mem_op_physical_address(mop) + info.start - info.base);
 
         if (SIM_mem_op_is_write (mop))
@@ -90,8 +95,9 @@ operation (conf_object_t *obj, generic_transaction_t *mop, map_info_t info)
                         }
 
                 snd->mop_var = SIM_get_mem_op_value_le(mop);      // le - little endian
-                attr_value_t mop_var_attr = SIM_make_attr_uint64(0); // TODO: is it right?
-                set_error_t  ret_val      = 0;
+                attr_value_t mop_var_attr = SIM_make_attr_uint64(0);
+                double mop_var_double = (double) snd->mop_var;
+                set_error_t ret_val = 0;
 
                 switch (snd->current_state)
                 {
@@ -145,7 +151,17 @@ operation (conf_object_t *obj, generic_transaction_t *mop, map_info_t info)
                         ret_val = set_waveform_limit (NULL, &snd->obj, &mop_var_attr, NULL);
                         if (ret_val == Sim_Set_Ok)
                                 {
-                                // here should be launch of sound generating
+                                SIM_event_cancel_time(queue_obj, pause_snd_event, &snd->obj, NULL, NULL);
+                                if (snd->audio_params.signal_freq == 0)
+                                        SDL_PauseAudioDevice(snd->audiodev, 1);
+                                else
+                                        {
+                                        // here should be launch of sound generating
+                                        SDL_PauseAudioDevice(snd->audiodev, 0);
+                                        // SDL_Delay(snd->mop_var);
+                                        // SDL_PauseAudioDevice(snd->audiodev, 1);
+                                        SIM_event_post_time (queue_obj, pause_snd_event, &snd->obj, mop_var_double / 1000, NULL);
+                                        }
 
                                 snd->current_state = State_waiting_new_op;
                                 goto return_ok;
@@ -178,7 +194,7 @@ return_ok:
 //------------------------------------------------------------------------------
 // Getters and setters
 //------------------------------------------------------------------------------
-static attr_value_t
+/*static attr_value_t
 get_value_attribute (void *arg, conf_object_t *obj, attr_value_t *idx)
         {
         snd16_t *snd = (snd16_t *)obj;
@@ -202,6 +218,7 @@ set_value_attribute (void *arg, conf_object_t *obj,
         else
                 {
                 SDL_PauseAudioDevice(snd->audiodev, 0);
+                */
                 /*
                 SDL_PauseAudioDevice(snd->audiodev, 1);
                 // prepare meandre parameters
@@ -217,10 +234,12 @@ set_value_attribute (void *arg, conf_object_t *obj,
                 SDL_Delay(500);
                 SDL_PauseAudioDevice(snd->audiodev, 1);
                 */
+                /*
                 }
 
         return Sim_Set_Ok;
         }
+*/
 
 static attr_value_t
 get_wave_type (void *arg, conf_object_t *obj, attr_value_t *idx)
@@ -296,6 +315,13 @@ set_waveform_limit (void *arg, conf_object_t *obj,
 
         return ret;
         }
+
+static void snd_mute (conf_object_t *obj, void *param)
+        {
+        snd16_t *snd = (snd16_t *)obj;
+        SDL_PauseAudioDevice(snd->audiodev, 1);
+        SIM_LOG_INFO (4, obj, 0, "sdl_mute was called");
+        }
 //------------------------------------------------------------------------------
 
 /* called once when the device module is loaded into Simics */
@@ -323,11 +349,13 @@ init_local (void)
 
         /* Register attributes (device specific data) together with functions
            for getting and setting these attributes. */
+        /*
         SIM_register_typed_attribute(
                 class, "value",
                 get_value_attribute, NULL, set_value_attribute, NULL,
                 Sim_Attr_Optional, "i", NULL,
                 "The <i>value</i> field.");
+                */
 
         SIM_register_typed_attribute(
                 class, "wave_type",
@@ -357,6 +385,15 @@ init_local (void)
                 SIM_printf("SDL audio hasn't been initialized, doing it now\n");
                 SDL_InitSubSystem(SDL_INIT_AUDIO);
                 }
+
+
+        pause_snd_event = SIM_register_event(
+                                "Mute sound", class,
+                                0 /*Sim_EC_Notsaved*/, snd_mute,
+                                0, 0, 0, 0);
+        ASSERT (pause_snd_event != NULL);
+
+
         // FIXME we also need to call a cleanup, maybe something like this?
         // But see this: https://developer.palm.com/distribution/viewtopic.php?f=82&t=6643
         atexit(SDL_Quit);

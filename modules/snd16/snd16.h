@@ -21,7 +21,7 @@ typedef struct snd16
         conf_object_t obj;
 
         /* device specific data */
-        unsigned value;
+        // unsigned value;
 
         uinteger_t mop_var;
         states_type_t current_state; // switch

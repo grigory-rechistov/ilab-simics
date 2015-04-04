@@ -100,7 +100,10 @@
 // TODO: Expand me
 typedef enum {
         Instr_Op_Nop            = 0x00,
+        Instr_Op_Snd0           = 0x09,
         Instr_Op_Snd1_HHLL      = 0x0A,
+        Instr_Op_Snd2_HHLL      = 0x0B,
+        Instr_Op_Snd3_HHLL      = 0x0C,
         Instr_Op_Call_HHLL      = 0x14,
         Instr_Op_Ret            = 0x15,
         Instr_Op_Jmp_X          = 0x16,
@@ -356,8 +359,20 @@ chip16_string_decode(chip16_t *core, uint32 instr)
                 snprintf (disasm_str, numb_of_char, "nop");
                 break;
 
+        case Instr_Op_Snd0:
+                snprintf (disasm_str, numb_of_char, "snd0");
+                break;
+
         case Instr_Op_Snd1_HHLL:
                 snprintf (disasm_str, numb_of_char, "snd1 0x%x", HHLL);
+                break;
+
+        case Instr_Op_Snd2_HHLL:
+                snprintf (disasm_str, numb_of_char, "snd2 0x%x", HHLL);
+                break;
+
+        case Instr_Op_Snd3_HHLL:
+                snprintf (disasm_str, numb_of_char, "snd3 0x%x", HHLL);
                 break;
 
         case Instr_Op_Ldi_Sp:
@@ -465,16 +480,61 @@ chip16_execute(chip16_t *core, uint32 instr)
                 INCREMENT_PC(core);
                 break;
 
-        case Instr_Op_Snd1_HHLL:
+        case Instr_Op_Snd0:
 
-//              chip16_write_memory16 (chip16_t *core, logical_address_t la,
-//                                         physical_address_t pa, uint16_t value)
+                if (HHLL != 0)
+                        {
+                        SIM_LOG_SPEC_VIOLATION (1, core->obj, 0,
+                                                "snd0 mustn't have args");
+                        break;
+                        }
+
+                // snd0 (command word: 0, 2) - stop playing sounds (freq = 0).
+                chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR, 0x0002);
+                chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR,      0);
+                chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR,      0);
+
+                chip16_increment_cycles (core, 1);
+                chip16_increment_steps  (core, 1);
+                INCREMENT_PC(core);
+
+                break;
+
+       case Instr_Op_Snd1_HHLL:
+
+                // chip16_write_memory16 (chip16_t *core, logical_address_t la,
+                //                           physical_address_t pa, uint16_t value)
 
                 // snd1 (command word: 0, 2) - play 500Hz tone for HHLL ms.
                 chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR, 0x0002);
                 chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR,    500);
                 chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR,   HHLL);
 
+                chip16_increment_cycles (core, 1);
+                chip16_increment_steps  (core, 1);
+                INCREMENT_PC(core);
+
+                break;
+
+        case Instr_Op_Snd2_HHLL:
+
+                // snd2 (command word: 0, 2) - play 1000Hz tone for HHLL ms.
+                chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR, 0x0002);
+                chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR,   1000);
+                chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR,   HHLL);
+
+                chip16_increment_cycles (core, 1);
+                chip16_increment_steps  (core, 1);
+                INCREMENT_PC(core);
+
+                break;
+
+        case Instr_Op_Snd3_HHLL:
+
+                // snd3 (command word: 0, 2) - play 1500Hz tone for HHLL ms.
+                chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR, 0x0002);
+                chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR,   1500);
+                chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR,   HHLL);
 
                 chip16_increment_cycles (core, 1);
                 chip16_increment_steps  (core, 1);
