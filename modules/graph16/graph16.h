@@ -92,43 +92,33 @@ typedef struct {
 
 } graph16_t;
 
-int
-delete_instance(conf_object_t *obj);
+int delete_instance(conf_object_t *obj);
 
-static void
-simple_method(conf_object_t *obj, int arg);
+static void simple_method(conf_object_t *obj, int arg);
 
-int
-graph16_draw_sprite (graph16_t *core, graph16_sprite_t *sprite);
+int graph16_draw_sprite (graph16_t *core, graph16_sprite_t *sprite);
 
-int
-graph16_update_screen (graph16_t *core);
+int graph16_update_screen (graph16_t *core);
 
-static inline graph16_t *
-conf_to_graph16(conf_object_t *obj)
+static inline graph16_t * conf_to_graph16(conf_object_t *obj)
 {
         return SIM_object_data(obj);
 }
 
-static inline conf_object_t *
-graph16_to_conf(graph16_t *sr)
+static inline conf_object_t * graph16_to_conf(graph16_t *sr)
 {
         return &sr->obj;
 }
 
-static generic_transaction_t
-create_generic_transaction (conf_object_t *initiator, mem_op_type_t type,
+static generic_transaction_t create_generic_transaction (conf_object_t *initiator, mem_op_type_t type,
                            physical_address_t phys_address,
                            physical_address_t len, uint8 *data,
                            endianness_t endian);
 
-bool
-graph16_write_memory (graph16_t *core, int mem_switch, physical_address_t phys_address,
+bool graph16_write_memory (graph16_t *core, int mem_switch, physical_address_t phys_address,
                     physical_address_t len, uint8 *data);
 
-bool
-graph16_read_memory (graph16_t *core, int mem_switch, physical_address_t phys_address,
+bool graph16_read_memory (graph16_t *core, int mem_switch, physical_address_t phys_address,
                    physical_address_t len, uint8 *data);
 
-static int
-graph16_refresh_screen(void *arg);
+static int graph16_refresh_screen(void *arg);

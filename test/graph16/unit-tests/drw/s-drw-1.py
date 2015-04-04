@@ -23,7 +23,7 @@ def test_one_availability(cpu):
         simics.SIM_write_phys_memory(cpu, smile_addr + smile_width/2 * 7, 0x33333333, smile_width/2)
 
 
-        # DRW (0x009c, 0x00e4 , 0) (Drawing slime in the center of window)
+        # DRW (0x009c, 0x00e4 , 0) (Drawing smile in the center of window)
         simics.SIM_write_phys_memory(cpu, graph0_addr, 0x0003, 2)
 
 

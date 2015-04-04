@@ -16,7 +16,7 @@ ram_image0.size = 0x10000
 
 video_image = pre_conf_object(name_prefix + "video_image", "image")
 video_image.queue = chip0
-video_image.size = 320*240
+video_image.size = (320 / 2) *240
 
 ram0 = pre_conf_object(name_prefix + "ram0", "ram")
 ram0.image = ram_image0

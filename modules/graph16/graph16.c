@@ -13,8 +13,6 @@
 
 #include "include/SDL2/SDL.h"
 
-#include <unistd.h>
-
 const graph16_pal_item default_palette[PAL_SIZE] = {{0x00, 0x00, 0x00}, {0x00, 0x00, 0x00}, {0x88, 0x88, 0x88}, {0xBF, 0x39, 0x32},
                                                     {0xDE, 0x7A, 0xAE}, {0x4C, 0x3D, 0x21}, {0x90, 0x5F, 0x25}, {0xE4, 0x94, 0x52},
                                                     {0xEA, 0xD9, 0x79}, {0x53, 0x7A, 0x3B}, {0xAB, 0xD5, 0x4A}, {0x25, 0x2E, 0x38},
@@ -67,7 +65,8 @@ lang_void *init_object(conf_object_t *obj, lang_void *data)
 
         sample->renderer = SDL_CreateRenderer (sample->window, 0, SDL_RENDERER_ACCELERATED);
         if (sample->renderer == NULL) {
-                SIM_LOG_INFO(1, obj, 0, "Failed to create SDL renderer: %s", SDL_GetError());
+                SIM_LOG_ERROR(obj, 0, "Failed to create SDL renderer: %s", SDL_GetError());
+                goto end;
         }
 
         sample->texture = SDL_CreateTexture (sample->renderer,
@@ -77,7 +76,8 @@ lang_void *init_object(conf_object_t *obj, lang_void *data)
                                              SCREEN_H
         );
         if (sample->texture == NULL) {
-                SIM_LOG_INFO(1, obj, 0, "Failed to create SDL texture: %s", SDL_GetError());
+                SIM_LOG_ERROR(obj, 0, "Failed to create SDL texture: %s", SDL_GetError());
+                goto end;
         }
 
         sample->screen = SDL_CreateRGBSurface (0,
@@ -90,13 +90,16 @@ lang_void *init_object(conf_object_t *obj, lang_void *data)
                                                0
         );
         if (sample->screen == NULL) {
-                SIM_LOG_INFO(1, obj, 0, "Failed to create SDL surface (screen)");
+                SIM_LOG_ERROR(obj, 0, "Failed to create SDL surface (screen)");
+                goto end;
         }
 
         /* Create a separate thread to refresh SDL GUI window */
         sample->refresh_active = true;
         sample->refresh_thread = SDL_CreateThread(graph16_refresh_screen, "graph16 refresh screen thread", (void *)sample);
         ASSERT(sample->refresh_thread);
+
+        end:
 
         return obj;
 }
@@ -702,7 +705,7 @@ graph16_read_memory (graph16_t *core, int mem_switch, physical_address_t phys_ad
 
                 mem_obj = core->video_mem_obj;
                 mem_space_iface = core->video_mem_space_iface;
-        }        else {
+        } else {
                 // We'll never be here. Maybe.
                 ASSERT (0);
         }
@@ -742,12 +745,13 @@ graph16_draw_sprite (graph16_t *core, graph16_sprite_t *sprite)
                 sprite_size = spritew_on_screen / 2  * spriteh_on_screen;
         } else {
 
-                SIM_LOG_ERROR (graph16_to_conf(core), 0,
-                               "sprite's width is odd");
+                SIM_log_spec_violation (1, graph16_to_conf(core), 0,
+                                        "sprite's width is odd");
         }
 
         uint8 data[sprite_size];
 
+        // TODO: read in chunks (because it is architecture rigth)
         ret = graph16_read_memory (core, PHYS_MEM, sprite->addr,
                                    sprite_size, data);
         if (ret == false) {
@@ -828,7 +832,13 @@ graph16_update_screen (graph16_t *core)
                 pixels[i * 2]     = color1;
                 pixels[i * 2 + 1] = color2;
 
-                if (data[i] != 0) {
+
+                uint32 background = SDL_MapRGB (core->screen->format,
+                                                core->palette[core->bg].R,
+                                                core->palette[core->bg].G,
+                                                core->palette[core->bg].B
+                );
+                if (data[i] != background) {
                         SIM_log_info (4, graph16_to_conf(core), 0, "X: %d, Y: %d, Color: %x\n",
                                                                    i * 2 % (SCREEN_W / 2),
                                                                    i / (SCREEN_W / 2),
@@ -843,7 +853,7 @@ graph16_update_screen (graph16_t *core)
         SDL_UnlockSurface(core->screen);
 
         // Drawing on the screen pixels' buffer
-        SDL_UpdateTexture(core->texture, NULL, pixels, SCREEN_W * sizeof (uint32));
+        SDL_UpdateTexture(core->texture, NULL, pixels, SCREEN_W * sizeof (uint32)); // uint32 because we use ARGB format
 
         SDL_RenderClear(core->renderer);
         SDL_RenderCopy(core->renderer, core->texture, NULL, NULL);
