@@ -24,9 +24,10 @@
 // IN:  advance_time    - whether to change phase or not
 // OUT: userdata        - phase and waveform-specfic state updated
 // OUT: stream          - samples for waveform
+/*
 static void silence (void* userdata, uint8_t* stream, int len_raw, bool advance_time)
         {
-        int len = len_raw / 2 /* 16 bit */;
+        int len = len_raw / 2; // 16 bit
 
         // silence is just zeroes in all formats
         assert (userdata);
@@ -36,6 +37,7 @@ static void silence (void* userdata, uint8_t* stream, int len_raw, bool advance_
         if (advance_time)
                 ap->phase += len;
         };
+*/
 
 // Fill stream with meandre (rectangular waveform)
 // IN:  userdata        - converted to audio_params, current phase and parameters
@@ -49,11 +51,12 @@ static void meandre (void* userdata, uint8_t* stream, int len_raw)
         assert (userdata);
         audio_params_t *ap = (audio_params_t*)userdata;
 
-        assert (ap->limit > ap->phase);
+        // assert (ap->limit > ap->phase);
         int16_t* buf = (int16_t*)stream;
-        int newlen = ap->limit - ap->phase;
+        // int newlen = ap->limit - ap->phase;
 
         int silent_samples = 0;
+        /*
         if (len > newlen)
                 {
                 // sound should stop earlier than buffer
@@ -62,6 +65,7 @@ static void meandre (void* userdata, uint8_t* stream, int len_raw)
                 silence (userdata, stream + newlen*2, silent_samples*2, false);
                 len = newlen;
                 }
+                */
 
         int16_t sign = (ap->sign != 0)? ap->sign: 1;
         assert (sign == 1 || sign == -1);
@@ -88,9 +92,10 @@ static void meandre (void* userdata, uint8_t* stream, int len_raw)
 // IN:  userdata        - current phase and parameters
 // IN:  stream          - buffer to be dumped
 // IN:  len_raw         - length of buffer in bytes.
+/*
 static void dump_waveform(const void* userdata, const uint8_t* stream, int len_raw)
         {
-        int len = len_raw / 2; /* 16 bit */
+        int len = len_raw / 2; // 16 bit
         assert (userdata);
         const audio_params_t *ap = (audio_params_t*)userdata;
         const int16_t* buf = (int16_t*)stream;
@@ -107,6 +112,7 @@ static void dump_waveform(const void* userdata, const uint8_t* stream, int len_r
                 cursample++;
                 }
         }
+*/
 
 // Callback used by SDL when it needs a new portion of waveform.
 // IN:  userdata        - converted to audio_params, current phase and signal parameters
@@ -118,12 +124,14 @@ void waveform_callback(void* userdata, uint8_t* stream, int len_raw)
         assert (userdata);
         const audio_params_t *ap = (audio_params_t*)userdata;
 
+        /*
         if ((ap->signal_freq == 0) || // signal is not oscillating
              ap->limit <= ap->phase)  // we are asked for sound while we've already given all we got
                 {
                 silence (userdata, stream, len_raw, true);
                 }
         else
+        */
                 {
                 switch (ap->wave_type)
                         {
@@ -134,5 +142,6 @@ void waveform_callback(void* userdata, uint8_t* stream, int len_raw)
                                 assert (0 && "unimplemented waveform");
                         }
                 }
-        (void)(SND_DEBUG? dump_waveform (userdata, stream, len_raw): 0);
+        // (void)(SND_DEBUG? dump_waveform (userdata, stream, len_raw): 0);
         }
+

@@ -24,6 +24,74 @@ def test_disasm(cpu):
 
 
 #------------------------------------------------------------------------------#
+        print "SND0_disasm_unit-test:"
+#------------------------------------------------------------------------------#
+        print "{"
+
+        paddr = 0
+        cpu.pc = paddr
+
+        print "writing 'snd0'..."
+        simics.SIM_write_phys_memory(cpu, paddr, 0x09000000, 4)
+        stest.expect_equal('p:0x0000  snd0', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'snd0' is OK."
+        print "}"
+        print " "
+#------------------------------------------------------------------------------#
+
+
+#------------------------------------------------------------------------------#
+        print "SND1_HHLL_disasm_unit-test:"
+#------------------------------------------------------------------------------#
+        print "{"
+
+        paddr = 0
+        cpu.pc = paddr
+
+        print "writing 'snd1 0x1234'..."
+        simics.SIM_write_phys_memory(cpu, paddr, 0x0A003412, 4)
+        stest.expect_equal('p:0x0000  snd1 0x1234', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'snd1 0x1234' is OK."
+        print "}"
+        print " "
+#------------------------------------------------------------------------------#
+
+
+#------------------------------------------------------------------------------#
+        print "SND2_HHLL_disasm_unit-test:"
+#------------------------------------------------------------------------------#
+        print "{"
+
+        paddr = 0
+        cpu.pc = paddr
+
+        print "writing 'snd2 0x1234'..."
+        simics.SIM_write_phys_memory(cpu, paddr, 0x0B003412, 4)
+        stest.expect_equal('p:0x0000  snd2 0x1234', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'snd2 0x1234' is OK."
+        print "}"
+        print " "
+#------------------------------------------------------------------------------#
+
+
+#------------------------------------------------------------------------------#
+        print "SND3_HHLL_disasm_unit-test:"
+#------------------------------------------------------------------------------#
+        print "{"
+
+        paddr = 0
+        cpu.pc = paddr
+
+        print "writing 'snd3 0x1234'..."
+        simics.SIM_write_phys_memory(cpu, paddr, 0x0C003412, 4)
+        stest.expect_equal('p:0x0000  snd3 0x1234', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'snd3 0x1234' is OK."
+        print "}"
+        print " "
+#------------------------------------------------------------------------------#
+
+
+#------------------------------------------------------------------------------#
         print "LDI_SP_disasm_unit-test:"
 #------------------------------------------------------------------------------#
         print "{"
