@@ -11,16 +11,16 @@ def test_one_availability(cpu):
         SIM_write_phys_memory(cpu, graph0_addr, 0x0301, 2)
         SIM_write_phys_memory(cpu, graph0_addr, 0xAABB, 2)
 
-        stest.expect_equal(conf.graph0.spriteh, 0xAA)
-        stest.expect_equal(conf.graph0.spritew, 0xBB)
+        stest.expect_equal(conf.graph0.spritew, 0xAA)
+        stest.expect_equal(conf.graph0.spriteh, 0xBB)
         print "SPR(1): success"
 
         # SPR 0xCCDD
         SIM_write_phys_memory(cpu, graph0_addr, 0x0301, 2)
         SIM_write_phys_memory(cpu, graph0_addr, 0xCCDD, 2)
 
-        stest.expect_equal(conf.graph0.spriteh, 0xCC)
-        stest.expect_equal(conf.graph0.spritew, 0xDD)
+        stest.expect_equal(conf.graph0.spritew, 0xCC)
+        stest.expect_equal(conf.graph0.spriteh, 0xDD)
         print "SPR(2): success"
 
 test_one_availability(conf.chip0)

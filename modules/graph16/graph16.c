@@ -13,6 +13,13 @@
 
 #include "include/SDL2/SDL.h"
 
+#include <unistd.h>
+
+const graph16_pal_item default_palette[PAL_SIZE] = {{0x00, 0x00, 0x00}, {0x00, 0x00, 0x00}, {0x88, 0x88, 0x88}, {0xBF, 0x39, 0x32},
+                                                    {0xDE, 0x7A, 0xAE}, {0x4C, 0x3D, 0x21}, {0x90, 0x5F, 0x25}, {0xE4, 0x94, 0x52},
+                                                    {0xEA, 0xD9, 0x79}, {0x53, 0x7A, 0x3B}, {0xAB, 0xD5, 0x4A}, {0x25, 0x2E, 0x38},
+                                                    {0x00, 0x46, 0x7F}, {0x68, 0xAB, 0xCC}, {0xBC, 0xDE, 0xE4}, {0xFF, 0xFF, 0xFF}};
+
 
 /* Allocate memory for the object. */
 static conf_object_t *
@@ -33,9 +40,10 @@ lang_void *init_object(conf_object_t *obj, lang_void *data)
         sample->vflip   = 0;
 
         int i = 0;
-        for (i = 0; i < PAL_SIZE; i++) {
-                sample->palette[i] = 0;
-        }
+
+
+        // Initializing palette with default colours
+        memcpy (sample->palette, default_palette, sizeof (default_palette));
 
         sample->instruction.opcode = 0;
         sample->instruction.length = 0;
@@ -43,6 +51,7 @@ lang_void *init_object(conf_object_t *obj, lang_void *data)
         for (i = 0; i < 24; i++) {
                 sample->temp[i] = 0;
         }
+
 
         sample->window = SDL_CreateWindow (
                 "CHIP16 monitor",                  // window title, TODO include SIM_object_name output
@@ -52,9 +61,36 @@ lang_void *init_object(conf_object_t *obj, lang_void *data)
                 SCREEN_H,                          // height, in pixels
                 SDL_WINDOW_SHOWN                   // flags
         );
-
         if (sample->window == NULL) {
                 SIM_LOG_INFO(1, obj, 0, "Failed to create SDL window");
+        }
+
+        sample->renderer = SDL_CreateRenderer (sample->window, 0, SDL_RENDERER_ACCELERATED);
+        if (sample->renderer == NULL) {
+                SIM_LOG_INFO(1, obj, 0, "Failed to create SDL renderer: %s", SDL_GetError());
+        }
+
+        sample->texture = SDL_CreateTexture (sample->renderer,
+                                             SDL_PIXELFORMAT_ARGB8888,    // Format of 32bit ARGB color
+                                             SDL_TEXTUREACCESS_STATIC,
+                                             SCREEN_W,
+                                             SCREEN_H
+        );
+        if (sample->texture == NULL) {
+                SIM_LOG_INFO(1, obj, 0, "Failed to create SDL texture: %s", SDL_GetError());
+        }
+
+        sample->screen = SDL_CreateRGBSurface (0,
+                                               SCREEN_W,
+                                               SCREEN_H,
+                                               32,
+                                               0,
+                                               0,
+                                               0,
+                                               0
+        );
+        if (sample->screen == NULL) {
+                SIM_LOG_INFO(1, obj, 0, "Failed to create SDL surface (screen)");
         }
 
         return obj;
@@ -63,8 +99,10 @@ lang_void *init_object(conf_object_t *obj, lang_void *data)
 int delete_instance(conf_object_t *obj)
 {
         graph16_t *sample = (graph16_t *)obj;
+
         if (sample->window != NULL)
                 SDL_DestroyWindow(sample->window);
+
         return 1;
 }
 
@@ -121,8 +159,8 @@ operation(conf_object_t *obj, generic_transaction_t *mop,
 
                                 if (sample->instruction.length == 0) {
 
-                                        sprite.x    = (sample->temp[0] & 0xFF);
-                                        sprite.y    = (sample->temp[1] & 0xFF);
+                                        sprite.x    = (sample->temp[0] & 0xFFFF);
+                                        sprite.y    = (sample->temp[1] & 0xFFFF);
                                         sprite.addr = (sample->temp[2] & 0xFFFF);
 
                                         SIM_LOG_INFO(4, &sample->obj, 0, "DRW: X = %d, Y = %d, addr = %x\n",
@@ -145,12 +183,23 @@ operation(conf_object_t *obj, generic_transaction_t *mop,
                                 if (sample->instruction.length == 0) {
                                         j = 0;
                                         for (i = 0; i < 24; i += 3) {  // PAL command is transmitted in 24 transactions
-                                                sample->palette[j++] = ((sample->temp[i] << 8) & 0xFFFF00) | ((sample->temp[i + 1] >> 8) & 0xFF);
-                                                sample->palette[j++] = ((sample->temp[i + 1] << 16) & 0xFF0000) | (sample->temp[i + 2] & 0xFFFF);
+                                                sample->palette[j].R = (sample->temp[i] >> 8) & 0xFF;
+                                                sample->palette[j].G =  sample->temp[i] & 0xFF;
+                                                sample->palette[j].B = (sample->temp[i + 1] >> 8) & 0xFF;
+                                                j++;
+
+                                                sample->palette[j].R =  sample->temp[i + 1] & 0xFF;
+                                                sample->palette[j].G = (sample->temp[i + 2] >> 8) & 0xFF;
+                                                sample->palette[j].B =  sample->temp[i + 2] & 0xFF;
+                                                j++;
                                         }
 
                                         for (i = 0; i < PAL_SIZE; i++) {
-                                                SIM_LOG_INFO(4, &sample->obj, 0, "palette[%d] = %x\n", i, sample->palette[i]);
+                                                SIM_LOG_INFO(4, &sample->obj, 0, "palette[%d] = %x, %x, %x\n",
+                                                                                                i,
+                                                                                                sample->palette[i].R,
+                                                                                                sample->palette[i].G,
+                                                                                                sample->palette[i].B);
                                         }
                                 }
                                 break;
@@ -163,8 +212,8 @@ operation(conf_object_t *obj, generic_transaction_t *mop,
 
                         case SPR_op:
 
-                                sample->spritew = YY;
-                                sample->spriteh = XX;
+                                sample->spritew = XX;
+                                sample->spriteh = YY;
 
                                 sample->instruction.length--;
                                 break;
@@ -420,13 +469,12 @@ set_palette_attribute(void *arg, conf_object_t *obj,
 
         int i = 0, j = 0;
         for (i = 0; i < PAL_SIZE * 3; i += 3, j++) {
-                sample->palette[j] = 0;
-                sample->palette[j] |= ((SIM_attr_integer((SIM_attr_list_item(*val, i + 0))) << 16) & 0xFF0000);
-                sample->palette[j] |= ((SIM_attr_integer((SIM_attr_list_item(*val, i + 1))) << 8) & 0xFF00);
-                sample->palette[j] |= ( SIM_attr_integer((SIM_attr_list_item(*val, i + 2))) & 0xFF);
+
+                sample->palette[j].R = ((SIM_attr_integer((SIM_attr_list_item(*val, i + 0))) << 16) & 0xFF0000);
+                sample->palette[j].G = ((SIM_attr_integer((SIM_attr_list_item(*val, i + 1))) << 8) & 0xFF00);
+                sample->palette[j].B = ( SIM_attr_integer((SIM_attr_list_item(*val, i + 2))) & 0xFF);
         }
 
-        //SIM_LOG_INFO(1, &sample->obj, 0, "val = %x\n", SIM_attr_integer(SIM_attr_list_item(*val, i + 0)));
         return Sim_Set_Ok;
 }
 
@@ -436,11 +484,12 @@ get_palette_attribute(void *arg, conf_object_t *obj, attr_value_t *idx)
         graph16_t *sample = (graph16_t *)obj;
 
         attr_value_t res = SIM_alloc_attr_list(PAL_SIZE * 3);
+
         int i = 0, j = 0;
         for (i = 0; i < PAL_SIZE * 3; i += 3, j++) {
-                SIM_attr_list_set_item(&res, i + 0, SIM_make_attr_uint64((sample->palette[j] >> 16) & 0xFF));
-                SIM_attr_list_set_item(&res, i + 1, SIM_make_attr_uint64((sample->palette[j] >> 8 ) & 0xFF));
-                SIM_attr_list_set_item(&res, i + 2, SIM_make_attr_uint64((sample->palette[j] >> 0 ) & 0xFF));
+                SIM_attr_list_set_item(&res, i + 0, SIM_make_attr_uint64(sample->palette[j].R));
+                SIM_attr_list_set_item(&res, i + 1, SIM_make_attr_uint64(sample->palette[j].G));
+                SIM_attr_list_set_item(&res, i + 2, SIM_make_attr_uint64(sample->palette[j].B));
         }
         return res;
 }
@@ -574,7 +623,7 @@ create_generic_transaction (conf_object_t *initiator, mem_op_type_t type,
 
 bool
 graph16_write_memory (graph16_t *core, int mem_switch, physical_address_t phys_address,
-                    physical_address_t len, uint8 *data)
+                      physical_address_t len, uint8 *data)
 {
 
         conf_object_t *mem_obj = NULL;
@@ -617,7 +666,7 @@ graph16_write_memory (graph16_t *core, int mem_switch, physical_address_t phys_a
 
 bool
 graph16_read_memory (graph16_t *core, int mem_switch, physical_address_t phys_address,
-                   physical_address_t len, uint8 *data)
+                     physical_address_t len, uint8 *data)
 {
         conf_object_t *mem_obj = NULL;
         const memory_space_interface_t *mem_space_iface = NULL;
@@ -663,7 +712,17 @@ graph16_draw_sprite (graph16_t *core, graph16_sprite_t *sprite)
 
         int sprite_w = core->spritew;
         int sprite_h = core->spriteh;
-        int sprite_size = sprite_w * sprite_h;
+
+        int sprite_size = 0;
+
+        if (sprite_w % 2 == 0) {
+
+                sprite_size = sprite_w / 2  * sprite_h;
+        } else {
+
+                SIM_LOG_ERROR (graph16_to_conf(core), 0,
+                               "sprite's width is odd");
+        }
 
         uint8 data[sprite_size];
 
@@ -688,12 +747,11 @@ graph16_draw_sprite (graph16_t *core, graph16_sprite_t *sprite)
 
                 // Here we write sprite line by line. Memory is linear, so the offset is calculated
                 // like a 3rd arg. Then we write line of sprite (we use sprite_w, not core->spritew,
-                // because of posible wrapping of screen). The 5th arg an offet in sprite, here we
+                // because of posible wrapping of screen). The 5th arg an offet in sprite data, here we
                 // must use the real width of sprite (core->spritew)
-                // TODO: arch incorrect (2 bytes transactions)
 
-                ret = graph16_write_memory (core, VIDEO_MEM, SCREEN_W * (sprite->y + i) + sprite->x,
-                                            sprite_w, data + i * core->spritew);
+                ret = graph16_write_memory (core, VIDEO_MEM, SCREEN_W / 2 * (sprite->y + i) + sprite->x / 2,
+                                            sprite_w / 2, data + i * core->spritew / 2);
 
                 if (ret == false) {
                         SIM_LOG_ERROR(graph16_to_conf(core), 0,
@@ -707,59 +765,61 @@ graph16_draw_sprite (graph16_t *core, graph16_sprite_t *sprite)
 }
 
 int
-graph16_update_screen (graph16_t *core) {
-
-        // Setup renderer
-        SDL_Renderer* renderer = NULL;
-        renderer =  SDL_CreateRenderer(core->window, 0, SDL_RENDERER_ACCELERATED);
-
-        // Set render color to red ( background will be rendered in this color )
-        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-
-        // Clear winow
-        SDL_RenderClear(renderer);
-
-        // Set render color to blue ( rect will be rendered in this color )
-        SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
-
+graph16_update_screen (graph16_t *core)
+{
         int ret = 0;
+        int screen_size = SCREEN_W * SCREEN_H;
 
-        uint8 data[SCREEN_W * SCREEN_H];
-        ret = graph16_read_memory (core, VIDEO_MEM, 0x00, SCREEN_W * SCREEN_H, data);
+        uint8 data[screen_size / 2];
+        ret = graph16_read_memory (core, VIDEO_MEM, 0x00, screen_size / 2, data);
         if (ret == false) {
                 SIM_LOG_ERROR(graph16_to_conf(core), 0,
                              "failed to read from video memory");
                 return false;
         }
 
+        uint32 *pixels = core->screen->pixels;
 
-        int i = 0, j = 0;
+        SDL_LockSurface(core->screen);
 
-        for (i = 0; i < SCREEN_W; i++) {
+        int i = 0;
+        for (i = 0; i < screen_size / 2; i++) {
 
-                for (j = 0; j < SCREEN_H; j++) {
+                uint32 color1 = SDL_MapRGB (core->screen->format,
+                                            core->palette[(data[i] >> 4) & 0xF].R,
+                                            core->palette[(data[i] >> 4) & 0xF].G,
+                                            core->palette[(data[i] >> 4) & 0xF].B
+                );
 
-                        // Create a rect at pos ( 50, 50 ) that's 50 pixels wide and 50 pixels high.
-                        SDL_Rect rect;
-                        rect.x = i;
-                        rect.y = j;
-                        rect.w = 1;
-                        rect.h = 1;
+                uint32 color2 = SDL_MapRGB (core->screen->format,
+                                            core->palette[(data[i]) & 0xF].R,
+                                            core->palette[(data[i]) & 0xF].G,
+                                            core->palette[(data[i]) & 0xF].B
+                );
 
-                        if (data[j * SCREEN_W + i]) {
-                                // Render rect
-                                SDL_RenderFillRect(renderer, &rect);
+                pixels[i * 2]     = color1;
+                pixels[i * 2 + 1] = color2;
 
-                                // Render the rect to the screen
-                                SDL_RenderPresent(renderer);
+                if (data[i] != 0) {
+                        SIM_log_info (4, graph16_to_conf(core), 0, "X: %d, Y: %d, Color: %x\n",
+                                                                   i * 2 % (SCREEN_W / 2),
+                                                                   i / (SCREEN_W / 2),
+                                                                   (data[i] >> 4) & 0xF);
 
-                        }
+                        SIM_log_info (4, graph16_to_conf(core), 0, "X: %d, Y: %d, Color: %x\n",
+                                                                   (i * 2 + 1) % (SCREEN_W / 2),
+                                                                   (i + 1) / (SCREEN_W / 2),
+                                                                   (data[i] >> 4) & 0xF);
                 }
         }
 
+        SDL_UnlockSurface(core->screen);
 
-        // Render the rect to the screen
-        SDL_RenderPresent(renderer);
+        SDL_UpdateTexture(core->texture, NULL, pixels, SCREEN_W * sizeof (uint32));
+
+        SDL_RenderClear(core->renderer);
+        SDL_RenderCopy(core->renderer, core->texture, NULL, NULL);
+        SDL_RenderPresent(core->renderer);
 
         return true;
 }

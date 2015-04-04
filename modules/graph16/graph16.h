@@ -22,11 +22,18 @@ typedef struct {
 } graph16_instr_t;
 
 typedef struct {
-        uint8 x;
-        uint8 y;
+        uint16 x;
+        uint16 y;
         uint16 addr;
 
 } graph16_sprite_t;
+
+typedef struct {
+        uint8 R;
+        uint8 G;
+        uint8 B;
+
+} graph16_pal_item;
 
 typedef enum {
         DRW_op  = 0,
@@ -65,13 +72,18 @@ typedef struct {
         bool    hflip;          // (Boolean) Flip sprite(s) to draw, horizontally
         bool    vflip;          // (Boolean) Flip sprite(s) to draw, vertically
 
-        uint32 palette[PAL_SIZE];    // 1 colour in palette is coded like [00RRGGBB]
+        graph16_pal_item palette[PAL_SIZE];
+
 
         graph16_instr_t instruction;
 
         uint32 temp[24];
 
+        // SDL objects
         SDL_Window *window;
+        SDL_Surface *screen;
+        SDL_Texture *texture;
+        SDL_Renderer *renderer;
 
 } graph16_t;
 
