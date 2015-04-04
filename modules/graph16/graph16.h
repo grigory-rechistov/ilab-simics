@@ -6,6 +6,7 @@
 #include <simics/model-iface/memory-page.h>
 
 #include "include/SDL2/SDL.h"
+#include "include/SDL2/SDL_thread.h"
 
 #define SCREEN_W 320
 #define SCREEN_H 240
@@ -81,9 +82,13 @@ typedef struct {
 
         // SDL objects
         SDL_Window *window;
-        SDL_Surface *screen;
-        SDL_Texture *texture;
+
+        SDL_Surface  *screen;
+        SDL_Texture  *texture;
         SDL_Renderer *renderer;
+
+        SDL_Thread *refresh_thread;
+        bool refresh_active;
 
 } graph16_t;
 
@@ -125,3 +130,5 @@ bool
 graph16_read_memory (graph16_t *core, int mem_switch, physical_address_t phys_address,
                    physical_address_t len, uint8 *data);
 
+static int
+graph16_refresh_screen(void *arg);

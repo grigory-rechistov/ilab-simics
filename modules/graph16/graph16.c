@@ -93,6 +93,11 @@ lang_void *init_object(conf_object_t *obj, lang_void *data)
                 SIM_LOG_INFO(1, obj, 0, "Failed to create SDL surface (screen)");
         }
 
+        /* Create a separate thread to refresh SDL GUI window */
+        sample->refresh_active = true;
+        sample->refresh_thread = SDL_CreateThread(graph16_refresh_screen, "graph16 refresh screen thread", (void *)sample);
+        ASSERT(sample->refresh_thread);
+
         return obj;
 }
 
@@ -102,6 +107,23 @@ int delete_instance(conf_object_t *obj)
 
         if (sample->window != NULL)
                 SDL_DestroyWindow(sample->window);
+
+        if (sample->screen != NULL)
+                SDL_FreeSurface(sample->screen);
+
+        if (sample->renderer != NULL)
+                SDL_DestroyRenderer(sample->renderer);
+
+
+        if (sample->texture != NULL)
+                SDL_DestroyTexture(sample->texture);
+
+        /* Shut down the GUI refresh thread */
+        sample->refresh_active = false;
+
+        /* A memory barrier would be nice here */
+        SIM_LOG_INFO(4, obj, 0, "Waiting for the refresh thread to return...");
+        SDL_WaitThread(sample->refresh_thread, NULL);
 
         return 1;
 }
@@ -710,14 +732,14 @@ graph16_draw_sprite (graph16_t *core, graph16_sprite_t *sprite)
 {
         int ret = 0;
 
-        int sprite_w = core->spritew;
-        int sprite_h = core->spriteh;
+        int spritew_on_screen = core->spritew;
+        int spriteh_on_screen = core->spriteh;
 
         int sprite_size = 0;
 
-        if (sprite_w % 2 == 0) {
+        if (spritew_on_screen % 2 == 0) {
 
-                sprite_size = sprite_w / 2  * sprite_h;
+                sprite_size = spritew_on_screen / 2  * spriteh_on_screen;
         } else {
 
                 SIM_LOG_ERROR (graph16_to_conf(core), 0,
@@ -736,22 +758,22 @@ graph16_draw_sprite (graph16_t *core, graph16_sprite_t *sprite)
 
 
         // There is no wrapping; what is drawn offscreen stays offscreen, and is thrown away.
-        if ((SCREEN_W - sprite->x) < sprite_w)
-                sprite_w = SCREEN_W - sprite->x;
+        if ((SCREEN_W - sprite->x) < spritew_on_screen)
+                spritew_on_screen = SCREEN_W - sprite->x;
 
-        if ((SCREEN_H - sprite->y) < sprite_h)
-                sprite_h = SCREEN_H - sprite->y;
+        if ((SCREEN_H - sprite->y) < spriteh_on_screen)
+                spriteh_on_screen = SCREEN_H - sprite->y;
 
         int i = 0;
-        for (i = 0; i < sprite_h; i++) {
+        for (i = 0; i < spriteh_on_screen; i++) {
 
                 // Here we write sprite line by line. Memory is linear, so the offset is calculated
-                // like a 3rd arg. Then we write line of sprite (we use sprite_w, not core->spritew,
+                // like a 3rd arg. Then we write line of sprite (we use spritew_on_screen, not core->spritew,
                 // because of posible wrapping of screen). The 5th arg an offet in sprite data, here we
                 // must use the real width of sprite (core->spritew)
 
                 ret = graph16_write_memory (core, VIDEO_MEM, SCREEN_W / 2 * (sprite->y + i) + sprite->x / 2,
-                                            sprite_w / 2, data + i * core->spritew / 2);
+                                            spritew_on_screen / 2, data + i * core->spritew / 2);
 
                 if (ret == false) {
                         SIM_LOG_ERROR(graph16_to_conf(core), 0,
@@ -770,7 +792,8 @@ graph16_update_screen (graph16_t *core)
         int ret = 0;
         int screen_size = SCREEN_W * SCREEN_H;
 
-        uint8 data[screen_size / 2];
+        uint8 data[screen_size / 2]; // 2 pixels is coded by 1 byte
+
         ret = graph16_read_memory (core, VIDEO_MEM, 0x00, screen_size / 2, data);
         if (ret == false) {
                 SIM_LOG_ERROR(graph16_to_conf(core), 0,
@@ -779,9 +802,14 @@ graph16_update_screen (graph16_t *core)
         }
 
         uint32 *pixels = core->screen->pixels;
+        if (pixels == NULL) {
+                SIM_LOG_ERROR(graph16_to_conf(core), 0,
+                             "pixels field in SDL_Surface screen is NULL");
+                return false;
+        }
 
+        // Filling pixels' buffer
         SDL_LockSurface(core->screen);
-
         int i = 0;
         for (i = 0; i < screen_size / 2; i++) {
 
@@ -812,9 +840,9 @@ graph16_update_screen (graph16_t *core)
                                                                    (data[i] >> 4) & 0xF);
                 }
         }
-
         SDL_UnlockSurface(core->screen);
 
+        // Drawing on the screen pixels' buffer
         SDL_UpdateTexture(core->texture, NULL, pixels, SCREEN_W * sizeof (uint32));
 
         SDL_RenderClear(core->renderer);
@@ -822,4 +850,23 @@ graph16_update_screen (graph16_t *core)
         SDL_RenderPresent(core->renderer);
 
         return true;
+}
+
+static int
+graph16_refresh_screen(void *arg)
+{
+        graph16_t *core = (graph16_t *)arg;
+        SDL_Event event;
+        ASSERT(core);
+
+        /* TODO proper locking of core should be implemented */
+        if (!core->renderer) return 0;
+        while (core->refresh_active) {
+                while (SDL_PollEvent(&event));
+                SDL_Delay(1000);
+        }
+
+        SIM_log_info (4, graph16_to_conf(core), 0, "Screen refreshing thread: shutting down...\n");
+
+        return 1;
 }

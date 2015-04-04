@@ -13,7 +13,7 @@ def test_one_availability(cpu):
         simics.SIM_write_phys_memory(cpu, graph0_addr, 0x0301, 2)
         simics.SIM_write_phys_memory(cpu, graph0_addr, 0x0808, 2)
 
-        simics.SIM_write_phys_memory(cpu, smile_addr                  , 0x33333333, smile_width/2)
+        simics.SIM_write_phys_memory(cpu, smile_addr                    , 0x33333333, smile_width/2)
         simics.SIM_write_phys_memory(cpu, smile_addr + smile_width/2 * 1, 0xc33cc33c, smile_width/2)
         simics.SIM_write_phys_memory(cpu, smile_addr + smile_width/2 * 2, 0xc33cc33c, smile_width/2)
         simics.SIM_write_phys_memory(cpu, smile_addr + smile_width/2 * 3, 0x33333333, smile_width/2)
