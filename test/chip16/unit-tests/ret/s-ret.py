@@ -11,7 +11,7 @@ def test_one_availability(cpu):
         cpu.gprs[1] = 0x1000
         cpu.sp = 0xfdf4
         target = 0xff00
-        chip16_write_phys_memory_BE(cpu, cpu.sp - 2, target, 2)
+        SIM_write_phys_memory(cpu, cpu.sp - 2, target, 2)
 
         # RET
         chip16_write_phys_memory_BE(cpu, paddr, 0x15000000, 4)

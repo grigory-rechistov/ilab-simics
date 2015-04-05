@@ -11,7 +11,7 @@ def test_one_availability(cpu):
         data = 0xDEAD;
 
         cpu_sp_prev = cpu.sp
-        chip16_write_phys_memory_BE(cpu, cpu.sp, data, 2)
+        SIM_write_phys_memory(cpu, cpu.sp, data, 2)
         cpu.sp += 2
 
         # POP RX
@@ -19,7 +19,7 @@ def test_one_availability(cpu):
         SIM_continue(1)
 
         stest.expect_equal(cpu.pc, paddr + 4)
-        print "XOR: (pc) success"
+        print "POP: (pc) success"
 
         stest.expect_equal(cpu.gprs[1], data)
         print "POP: (result) success"

@@ -308,12 +308,9 @@ chip16_execute(chip16_t *core, uint32 instr)
     int res = chip16_decode(instr, dd);
     if (!res) {
         SIM_break_simulation("Unknown instruction");
-    } else {
-        INCREMENT_PC(core);
     }
     chip16_increment_cycles(core, 1);
     chip16_increment_steps(core, 1);
-
 }
 
 void
@@ -1030,4 +1027,29 @@ init_local(void)
 
         cr_register_attributes(sr_class);
         cr_register_interfaces(sr_class);
+}
+
+bool
+chip16_check_conditional_code(chip16_t *cpu, uint8 x)
+{
+    // TODO: implement me
+    return false;
+}
+
+void
+prologue(chip16_t *cpu)
+{
+        // do nothing
+}
+
+void
+epilogue(chip16_t *cpu)
+{
+        INCREMENT_PC(cpu);
+}
+
+void
+branch_epilogue(chip16_t *cpu)
+{
+        // do nothing
 }

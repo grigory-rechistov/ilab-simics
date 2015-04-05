@@ -14,7 +14,7 @@ def test_popall_availability(cpu):
         cpu.sp = 0xfdf0 + 30
 
         for x in range(0, 16):
-                chip16_write_phys_memory_BE(cpu, cpu.sp - (2 * x), x + 10, 2)
+                SIM_write_phys_memory(cpu, cpu.sp - (2 * x), x + 10, 2)
 
         cpu.sp = 0xfdf0 + 32
 

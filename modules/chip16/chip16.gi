@@ -22,7 +22,7 @@ endinstruction
 
 instruction: SND0
 pattern: opcode == 0x09
-mnemonic: "snd0 0x%x%x", hh, ll
+mnemonic: "snd0"
 // snd0 (command word: 0, 2) - stop playing sounds (freq = 0).
 chip16_t *core = decode_data.cpu;
 chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR, 0x0002);
@@ -89,6 +89,37 @@ if (BIT_15(res) == 1)
     SET_NEG(decode_data.cpu->flags);
 else
     CLR_NEG(decode_data.cpu->flags);
+
+endinstruction
+
+instruction: ADD_XYZ
+pattern: opcode == 0x42
+mnemonic: "add r%d, r%d, r%d", x, y, z
+
+chip16_t* core = decode_data.cpu;
+uint16 X = core->chip16_reg[x];
+uint16 Y = core->chip16_reg[y];
+core->chip16_reg[z] = X + Y;
+uint32 Z = X + Y;
+
+if (BIT_16(Z) == 1)
+    SET_CARRY(core->flags);
+else
+    CLR_CARRY(core->flags);
+
+if (BIT_15(core->chip16_reg[z]) == 1)
+    SET_NEG(core->flags);
+else
+    CLR_NEG(core->flags);
+
+if (core->chip16_reg[z] == 0) SET_ZERO(core->flags);
+else        CLR_ZERO(core->flags);
+
+if (((BIT_15(X) == 0) && (BIT_15(Y) == 0) && (BIT_15(Z) == 1)) ||
+    ((BIT_15(X) == 1) && (BIT_15(Y) == 1) && (BIT_15(Z) == 0)))
+    SET_OVRFLW(core->flags);
+else
+    CLR_OVRFLW(core->flags);
 
 endinstruction
 
@@ -304,6 +335,7 @@ endinstruction
 instruction: CALL_HHLL
 pattern: opcode == 0x14
 mnemonic: "call 0x%x", (hh<<8)+ll
+attributes: branch
 
 chip16_t* core = decode_data.cpu;
 chip16_write_memory16(
@@ -313,14 +345,12 @@ chip16_write_memory16(
     chip16_get_pc(core));
 chip16_set_sp(core, chip16_get_sp(core) + 2);
 chip16_set_pc(core, (hh<<8)+ll);
-
-//TODO: remove pc increment
-
 endinstruction
 
 instruction: RET
 pattern: opcode == 0x15
 mnemonic: "ret"
+attributes: branch
 
 chip16_t* core = decode_data.cpu;
 chip16_set_sp(core, chip16_get_sp(core) - 2);
@@ -328,18 +358,70 @@ uint16 tmp = chip16_read_memory16(core,
         chip16_get_sp(core),
         chip16_get_sp(core));
 chip16_set_pc(core, tmp);
-
-//TODO: remove pc increment
-
 endinstruction
 
 instruction: JMP_X
 pattern: opcode == 0x16
 mnemonic: "jmp r%d", x
+attributes: branch
 
 chip16_set_pc(decode_data.cpu, decode_data.cpu->chip16_reg[x]);
+endinstruction
 
-//TODO: remove PC increment
+instruction: Cx_HHLL
+pattern: opcode == 0x17
+mnemonic: "C %d 0x%x", x, (hh<<8)+ll
+attributes: branch
+
+chip16_t* core = decode_data.cpu;
+
+// TODO: doesn't work because not according specification
+// check_conditional_code func not implemeted
+
+if (chip16_check_conditional_code(core, x)){
+    chip16_write_memory16(
+        core,
+        chip16_get_sp(core),
+        chip16_get_sp(core),
+        chip16_get_pc(core));
+    chip16_set_sp(core, chip16_get_sp(core) + 2);
+    chip16_set_pc(core, (hh<<8)+ll);
+}
+endinstruction
+
+instruction: CALL_X
+pattern: opcode == 0x18
+mnemonic: "call r%d", x
+attributes: branch
+
+chip16_t* core = decode_data.cpu;
+chip16_write_memory16(
+    core,
+    chip16_get_sp(core),
+    chip16_get_sp(core),
+    chip16_get_pc(core));
+chip16_set_sp(core, chip16_get_sp(core) + 2);
+chip16_set_pc(core, core->chip16_reg[x]);
+endinstruction
+
+instruction: LDI_X
+pattern: opcode == 0x20
+mnemonic: "ldi r%d, 0x%x", x, (hh<<8)+ll
+
+decode_data.cpu->chip16_reg[x] = (hh<<8)+ll;
+
+endinstruction 
+
+instruction: STM_X
+pattern: opcode == 0x30
+mnemonic: "stm r%d, 0x%x", x, (hh<<8)+ll
+
+chip16_t* core = decode_data.cpu;
+chip16_write_memory16(
+    core,
+    (hh<<8)+ll,
+    (hh<<8)+ll,
+    core->chip16_reg[x]);
 
 endinstruction
 
@@ -349,6 +431,39 @@ mnemonic: "pop r%d", x
 
 chip16_t* core = decode_data.cpu;
 chip16_set_sp(core, chip16_get_sp(core) - 2);
-chip16_read_memory(core, chip16_get_sp(core), 2, (uint8*)(&(core->chip16_reg[x])), 1);
+chip16_read_memory(
+    core,
+    chip16_get_sp(core), 2,
+    (uint8*)(&(core->chip16_reg[x])), 1);
+
+endinstruction
+
+instruction: CMPI_X
+pattern: opcode == 0x53
+mnemonic: "cmpi r%d, 0x%x%x", x, hh, ll
+
+chip16_t* core = decode_data.cpu;
+uint16 X = core->chip16_reg[x];
+uint16 Y = (hh<<8) | ll;
+uint32 Z = X - Y;
+
+if (BIT_16(Z) == 1)
+    SET_CARRY(core->flags);
+else
+    CLR_CARRY(core->flags);
+
+if (BIT_15(Z) == 1)
+    SET_NEG(core->flags);
+else
+    CLR_NEG(core->flags);
+
+if (X == Y) SET_ZERO(core->flags);
+else        CLR_ZERO(core->flags);
+
+if (((BIT_15(X) == 1) && (BIT_15(Y) == 0) && (BIT_15(Z) == 0)) ||
+    ((BIT_15(X) == 0) && (BIT_15(Y) == 1) && (BIT_15(Z) == 1)))
+    SET_OVRFLW(core->flags);
+else
+    CLR_OVRFLW(core->flags);
 
 endinstruction

@@ -16,11 +16,13 @@
 # |              g1           |       g2       |
 # ----------------------------------------------
 #
-# An instruction is defined by specifying of three things:
+# An instruction is defined by specifying of four things:
 # 1. Constraints for one or more of fields' values. Unconstrained fields are
 # acting as variables - the instruction operands.
 # 2. Mnemonics - how the instruction should be represented in disassembly.
-# 3. Semantics - what should be executed in order for an instruction to be
+# 3. Attributes - list of additional instruction parameters. 
+# (e.g. 'branch' - states whether PC should be incremented (false) or not (true)) 
+# 4. Semantics - what should be executed in order for an instruction to be
 # correctly interpreted.
 #
 # The problem is to be able to tell one instruction from another in an efficient
@@ -370,12 +372,13 @@ class FieldGroup:
 
 class Pattern:
     '''A pattern for an instruction'''
-    def __init__(self, name, constraints, mnemonic = "", semantics = "", operands=None):
+    def __init__(self, name, constraints, mnemonic = "", semantics = "", operands = None, attributes = None):
         self.name = name
         self.constraints = constraints
         self.mnemonic = mnemonic
         self.semantics = semantics
         self.operands = operands
+        self.attributes = attributes
 
     def get_fields(self):
         return self.constraints.get_fields()
@@ -500,7 +503,12 @@ class ParseTree:
         result += padding + "if (%s) {\n" % self.constraint.to_code()
         if self.instr is not None:
             if not disassembly:
+                result += padding + 'prologue(decode_data.cpu);\n'
                 result += self.produce_semantics(self.instr, shift + 4)
+                result += padding
+                if self.instr.attributes['branch']:
+                    result += 'branch_'
+                result += 'epilogue(decode_data.cpu);\n'
             else:
                 result += self.produce_mnemonic(self.instr, shift + 4)
         if len(self.nodes) != 0:
@@ -689,12 +697,30 @@ def parse_field_string(s, machine, name = "Unnamed"):
     result.validate()
     return result
 
+def make_default_attributes():
+    return {'branch': False}
+
+def parse_attributes_string(s):
+    '''Takes a string of attributes
+        and build an attribute dictionary in form
+        {attribute_name: value}
+    '''
+    result = make_default_attributes()
+    lines = s.split(",")
+    for l in lines:
+        if l.strip() in result:
+            result[l.strip()] = True
+        else:
+            raise Exception("unknown attribute")
+    return result
+
 def parse_instruction(s, machine, fieldset):
     '''Take a set of strings in form:
     instruction: ADD_R_M
     operands: g1, s2
     pattern: f1 > 3 && f2 < 4 && f2 == 4
     mnemonic: "add %s, %s", f1, s2
+    attributes: branch
     <arbitrary text for semantics>
     endinstruction
     - and build a Pattern
@@ -706,6 +732,7 @@ def parse_instruction(s, machine, fieldset):
     operands = None
     constraints = None #ComplexConstraint()
     mnemonic = None
+    attributes = None
     semantics = ""
 
     for l in lines:
@@ -720,7 +747,7 @@ def parse_instruction(s, machine, fieldset):
         m = re.search(r'^operands:\s*(.+)', l)
         if m:
             if operands is not None:
-                raise Exception("operands are alreasdy defined")
+                raise Exception("operands are already defined")
             operands = m.group(1)
             # TODO split them into tokens
             continue
@@ -732,11 +759,19 @@ def parse_instruction(s, machine, fieldset):
         if m:
             mnemonic = m.group(1)
             continue
+        m = re.search(r'^attributes:\s*(.+)', l)
+        if m:
+            if attributes is not None:
+                raise Exception("attributes are already defined")
+            attributes = parse_attributes_string(m.group(1))
+            continue
         m = re.search(r'^endinstruction', l)
         if m: break
         # Not matched - must be semantics line
         semantics += l + '\n'
 
+    if attributes is None:
+        attributes = make_default_attributes()
     if name is None:
         raise Exception("The instruction definition does not specify name")
     if constraints is None:
@@ -746,7 +781,7 @@ def parse_instruction(s, machine, fieldset):
     if len(semantics) == 0:
         raise Exception("The instruction definition does not specify semantics")
     #print ">>> parse_instruction: ", (name, operands, constraints, mnemonic, semantics)
-    return Pattern(name, constraints, mnemonic, semantics, operands)
+    return Pattern(name, constraints, mnemonic, semantics, operands, attributes)
 
 def parse_specification(text):
     '''Return a tuple (machine, fields, instructions_text)
