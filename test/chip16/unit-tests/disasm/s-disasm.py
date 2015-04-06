@@ -245,7 +245,7 @@ def test_disasm(cpu):
         paddr += 4
         cpu.pc = paddr
         chip16_write_phys_memory_BE(cpu, paddr, 0xE3000000, 4)
-        stest.expect_equal('p:0x0004  negi r0, 0x0', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        stest.expect_equal('p:0x0004  negi r0, 0x00', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
         print "'negi r0, 0x0' is OK."
         print " "
         print " "
