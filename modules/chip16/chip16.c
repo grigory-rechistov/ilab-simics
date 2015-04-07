@@ -11,6 +11,7 @@
 
 #include "chip16.h"
 #include <simics/processor-api.h>
+#include <simics/simulator-api.h>
 #include <simics/util/strbuf.h>
 #include <simics/util/swabber.h>
 
@@ -38,10 +39,10 @@
 #include "chip16-step.h"
 #include "chip16-frequency.h"
 
+#include "prefix.pre"
+
 /* fixed size instructions of 4 bytes */
 #define INSTR_SIZE 4
-
-#define MAX_REG 0xffff
 
 #define INCREMENT_PC(core) chip16_set_pc(core, chip16_get_pc(core) + INSTR_SIZE)
 
@@ -61,41 +62,6 @@
 #define INSTR_HH(i)       ( (i)        & 0xff)
 
 #define INSTR_HHLL(i)     ((((INSTR_HH(i)) << 8) & 0xff00) | ((INSTR_LL(i))))
-
-/*
- * Flags mapping:
- *
- *           7 6 5 4 3 2 1 0
- *          |-------|-------|
- *          |N|O|-|-|-|Z|C|-|
- *           | |       | |
- * Where:    N - negative|
- *             |       | |
- *             O - overflow
- *                     | |
- *                     Z - zero
- *                       |
- *                       C - carry
- *
- */
-
-#define CLR_CARRY(f)    ((f).map.C = 0)
-#define CLR_ZERO(f)     ((f).map.Z = 0)
-#define CLR_OVRFLW(f)   ((f).map.O = 0)
-#define CLR_NEG(f)      ((f).map.N = 0)
-
-#define SET_CARRY(f)    ((f).map.C = 1)
-#define SET_ZERO(f)     ((f).map.Z = 1)
-#define SET_OVRFLW(f)   ((f).map.O = 1)
-#define SET_NEG(f)      ((f).map.N = 1)
-
-#define BIT_15(n)      (((n) >> 15) & 0x1)
-#define BIT_16(n)      (((n) >> 16) & 0x1)
-
-
-// devices memory mapping:
-#define SND_MEM_ADDR    0xFFF4
-
 
 // TODO: Expand me
 typedef enum {
@@ -335,519 +301,16 @@ chip16_write_memory16(chip16_t *core, logical_address_t la,
                 chip16_release_and_share(core, pa);
 }
 
-char *
-chip16_string_decode(chip16_t *core, uint32 instr)
-{
-        uint16 opcode = INSTR_OP(instr);
-
-        uint8 X = INSTR_DST_REG(instr);
-        uint8 Y = INSTR_SRC_REG(instr);
-        uint8 Z = INSTR_Z_REG(instr);
-
-        // uint8 LL = INSTR_LL(instr);
-        // uint8 HH = INSTR_HH(instr);
-        uint16 HHLL = INSTR_HHLL(instr);
-
-        // 64 is a magic number, cause I do not know the maximum of symbols
-        // we need to print the longest disassembled instruction
-        size_t numb_of_char = 64;
-        char disasm_str[numb_of_char + 1];      // '+ 1' is for trailing \0
-
-        switch (opcode) {
-
-        case Instr_Op_Nop:
-                snprintf (disasm_str, numb_of_char, "nop");
-                break;
-
-        case Instr_Op_Snd0:
-                snprintf (disasm_str, numb_of_char, "snd0");
-                break;
-
-        case Instr_Op_Snd1_HHLL:
-                snprintf (disasm_str, numb_of_char, "snd1 0x%x", HHLL);
-                break;
-
-        case Instr_Op_Snd2_HHLL:
-                snprintf (disasm_str, numb_of_char, "snd2 0x%x", HHLL);
-                break;
-
-        case Instr_Op_Snd3_HHLL:
-                snprintf (disasm_str, numb_of_char, "snd3 0x%x", HHLL);
-                break;
-
-        case Instr_Op_Ldi_Sp:
-                snprintf (disasm_str, numb_of_char, "ldi sp, 0x%x", HHLL);
-                break;
-
-        case Instr_Op_Mov:
-                snprintf (disasm_str, numb_of_char, "mov r%d, r%d", X, Y);
-                break;
-
-        case Instr_Op_Stm_XY:
-                snprintf (disasm_str, numb_of_char, "stm r%d, r%d", X, Y);
-                break;
-
-        case Instr_Op_Addi:
-                snprintf (disasm_str, numb_of_char, "addi r%d, 0x%x", X, HHLL);
-                break;
-
-        case Instr_Op_Muli:
-                snprintf (disasm_str, numb_of_char, "muli r%d, 0x%x", X, HHLL);
-                break;
-
-        case Instr_Op_Popall:
-                snprintf (disasm_str, numb_of_char, "popall");
-                break;
-
-        case Instr_Op_Div:
-                snprintf (disasm_str, numb_of_char, "div r%d, r%d", X, Y);
-                break;
-
-        case Instr_Op_Div_XYZ:
-                snprintf (disasm_str, numb_of_char, "div r%d, r%d, r%d", X, Y, Z);
-                break;
-
-        case Instr_Op_Xor:
-                snprintf (disasm_str, numb_of_char, "xor r%d, r%d", X, Y);
-                break;
-
-        case Instr_Op_Remi:
-                snprintf (disasm_str, numb_of_char, "remi r%d, 0x%x", X, HHLL);
-                break;
-
-        case Instr_Op_Noti:
-                snprintf (disasm_str, numb_of_char, "noti r%d, 0x%x", X, HHLL);
-                break;
-
-        case Instr_Op_Pop:
-                snprintf (disasm_str, numb_of_char, "pop r%d", X);
-                break;
-
-        case Instr_Op_Negi:
-                snprintf (disasm_str, numb_of_char, "negi r%d, 0x%x", X, HHLL);
-                break;
-
-        case Instr_Op_Neg_XY:
-                snprintf (disasm_str, numb_of_char, "neg r%d, r%d", X, Y);
-                break;
-
-        case Instr_Op_And:
-                snprintf (disasm_str, numb_of_char, "and r%d, r%d, r%d", X, Y, Z);
-                break;
-
-        case Instr_Op_Ret:
-                snprintf (disasm_str, numb_of_char, "ret");
-                break;
-
-        case Instr_Op_Call_HHLL:
-                snprintf (disasm_str, numb_of_char, "call 0x%x", HHLL);
-                break;
-
-        case Instr_Op_Jmp_X:
-                snprintf (disasm_str, numb_of_char, "jmp r%d", X);
-                break;
-
-        default:
-                snprintf (disasm_str, numb_of_char, "unknown: 0x%x", instr);
-                SIM_LOG_INFO(1, core->obj, 0, "unknown instruction");
-                break;
-        }
-
-        return MM_STRDUP(disasm_str);
-}
-
 void
 chip16_execute(chip16_t *core, uint32 instr)
 {
-        uint16 opcode = INSTR_OP(instr);
-
-        uint8 X = INSTR_DST_REG(instr);
-        uint8 Y = INSTR_SRC_REG(instr);
-        uint8 Z = INSTR_Z_REG(instr);
-
-        // uint8 LL = INSTR_LL(instr);
-        // uint8 HH = INSTR_HH(instr);
-        uint16 HHLL = INSTR_HHLL(instr);
-
-        uint16 tmp = 0;
-        uint32 res = 0;
-
-        switch (opcode) {
-        case Instr_Op_Nop:
-
-                chip16_increment_cycles(core, 1);
-                chip16_increment_steps(core, 1);
-                INCREMENT_PC(core);
-                break;
-
-        case Instr_Op_Snd0:
-
-                if (HHLL != 0)
-                        {
-                        SIM_LOG_SPEC_VIOLATION (1, core->obj, 0,
-                                                "snd0 mustn't have args");
-                        break;
-                        }
-
-                // snd0 (command word: 0, 2) - stop playing sounds (freq = 0).
-                chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR, 0x0002);
-                chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR,      0);
-                chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR,      0);
-
-                chip16_increment_cycles (core, 1);
-                chip16_increment_steps  (core, 1);
-                INCREMENT_PC(core);
-
-                break;
-
-       case Instr_Op_Snd1_HHLL:
-
-                // chip16_write_memory16 (chip16_t *core, logical_address_t la,
-                //                           physical_address_t pa, uint16_t value)
-
-                // snd1 (command word: 0, 2) - play 500Hz tone for HHLL ms.
-                chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR, 0x0002);
-                chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR,    500);
-                chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR,   HHLL);
-
-                chip16_increment_cycles (core, 1);
-                chip16_increment_steps  (core, 1);
-                INCREMENT_PC(core);
-
-                break;
-
-        case Instr_Op_Snd2_HHLL:
-
-                // snd2 (command word: 0, 2) - play 1000Hz tone for HHLL ms.
-                chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR, 0x0002);
-                chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR,   1000);
-                chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR,   HHLL);
-
-                chip16_increment_cycles (core, 1);
-                chip16_increment_steps  (core, 1);
-                INCREMENT_PC(core);
-
-                break;
-
-        case Instr_Op_Snd3_HHLL:
-
-                // snd3 (command word: 0, 2) - play 1500Hz tone for HHLL ms.
-                chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR, 0x0002);
-                chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR,   1500);
-                chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR,   HHLL);
-
-                chip16_increment_cycles (core, 1);
-                chip16_increment_steps  (core, 1);
-                INCREMENT_PC(core);
-
-                break;
-
-        case Instr_Op_Ldi_Sp:
-
-                chip16_set_sp (core, HHLL);
-
-                chip16_increment_cycles (core, 1);
-                chip16_increment_steps  (core, 1);
-                INCREMENT_PC(core);
-
-                break;
-
-        case Instr_Op_Mov:
-
-                core->chip16_reg[X] = core->chip16_reg[Y];
-
-                chip16_increment_cycles (core, 1);
-                chip16_increment_steps  (core, 1);
-                INCREMENT_PC(core);
-
-                break;
-
-        case Instr_Op_Stm_XY:
-
-                chip16_write_memory (core, core->chip16_reg[Y], 2, (uint8*)&core->chip16_reg[X], true);
-
-                chip16_increment_cycles (core, 1);
-                chip16_increment_steps  (core, 1);
-                INCREMENT_PC(core);
-
-                break;
-
-        case Instr_Op_Addi:
-
-                tmp = core->chip16_reg[X];
-                res = core->chip16_reg[X] + HHLL;
-
-                core->chip16_reg[X] += HHLL;
-
-                if (BIT_16(res) == 1)
-                        SET_CARRY(core->flags);
-                else
-                        CLR_CARRY(core->flags);
-
-                if (core->chip16_reg[X] == 0)
-                        SET_ZERO(core->flags);
-                else
-                        CLR_ZERO(core->flags);
-
-                if (((BIT_15(tmp) == 0) && (BIT_15(HHLL) == 0) && (BIT_15(res) == 1)) ||
-                    ((BIT_15(tmp) == 1) && (BIT_15(HHLL) == 1) && (BIT_15(res) == 0)))
-
-                        SET_OVRFLW(core->flags);
-                else
-                        CLR_OVRFLW(core->flags);
-
-                if (BIT_15(res) == 1)
-                        SET_NEG(core->flags);
-                else
-                        CLR_NEG(core->flags);
-
-                chip16_increment_cycles (core, 1);
-                chip16_increment_steps  (core, 1);
-                INCREMENT_PC(core);
-
-                break;
-
-        case Instr_Op_Muli:
-
-                tmp = core->chip16_reg[X];       // only for OVRFLW flag
-                res = core->chip16_reg[X] * HHLL;
-
-                core->chip16_reg[X] *= HHLL;
-
-                if (res > MAX_REG)
-                        SET_CARRY(core->flags);
-                else
-                        CLR_CARRY(core->flags);
-
-                if (core->chip16_reg[X] == 0)
-                        SET_ZERO(core->flags);
-                else
-                        CLR_ZERO(core->flags);
-
-                if (BIT_15(res) == 1)
-                        SET_NEG(core->flags);
-                else
-                        CLR_NEG(core->flags);
-
-                chip16_increment_cycles (core, 1);
-                chip16_increment_steps  (core, 1);
-                INCREMENT_PC(core);
-
-                break;
-
-        case Instr_Op_Popall:
-
-                for (int i = 0; i < NUMB_OF_REGS; i++)
-                        {
-                        chip16_set_sp (core, chip16_get_sp (core) - 2);
-                        chip16_read_memory (core, chip16_get_sp (core), 2, (uint8*)(&(core->chip16_reg[i])), 1);
-                        }
-
-                chip16_increment_cycles (core, 1);
-                chip16_increment_steps  (core, 1);
-                INCREMENT_PC(core);
-
-                break;
-
-        case Instr_Op_Div:
-
-                if (core->chip16_reg[Y] != 0) {
-                        if (core->chip16_reg[X] % core->chip16_reg[Y] != 0) SET_CARRY(core->flags);
-                        else                                                CLR_CARRY(core->flags);
-                        res = core->chip16_reg[X] / core->chip16_reg[Y];
-                        core->chip16_reg[X] = res;
-
-                        if (res == 0) SET_ZERO(core->flags);
-                        else          CLR_ZERO(core->flags);
-
-                        if ((res & (1 << 15)) != 0) SET_NEG(core->flags);
-                        else                        CLR_NEG(core->flags);
-                }
-
-                else SIM_LOG_INFO(1, core->obj, 0, "Dividing by zero!\n");
-
-                chip16_increment_cycles(core, 1);
-                chip16_increment_steps(core, 1);
-                INCREMENT_PC(core);
-                break;
-
-        case Instr_Op_And:
-
-                res = (core->chip16_reg[X]) & (core->chip16_reg[Y]);
-                core->chip16_reg[Z] = res;
-                if (res == 0) {
-                    SET_ZERO(core->flags);
-                }
-                else {
-                    CLR_ZERO(core->flags);
-                    if (BIT_15(res) != 0) SET_NEG(core->flags);
-                    else                  CLR_NEG(core->flags);
-                }
-
-                chip16_increment_cycles(core, 1);
-                chip16_increment_steps(core, 1);
-                INCREMENT_PC(core);
-                break;
-
-        case Instr_Op_Negi:
-
-                if (HHLL == 0) {
-                    SET_ZERO(core->flags);
-                    core->chip16_reg[X] = HHLL;
-                    CLR_NEG(core->flags);
-                }
-                else {
-                    HHLL = ~HHLL + 1;
-                    core->chip16_reg[X] = HHLL;
-                    if (BIT_15(HHLL) != 0) {
-                        SET_NEG(core->flags);
-                    }
-                    else CLR_NEG(core->flags);
-                    CLR_ZERO(core->flags);
-                }
-
-                chip16_increment_cycles(core, 1);
-                chip16_increment_steps(core, 1);
-                INCREMENT_PC(core);
-                break;
-
-        case Instr_Op_Neg_XY:
-
-                core->chip16_reg[X] = ~(core->chip16_reg[Y]) + 1;
-                if (core->chip16_reg[X] != 0) {
-                    if (BIT_15(core->chip16_reg[X]) != 0) {
-                        SET_NEG(core->flags);
-                    }
-                    else {
-                        CLR_NEG(core->flags);
-                    }
-                    CLR_ZERO(core->flags);
-                }
-                else {
-                    SET_ZERO(core->flags);
-                    CLR_NEG(core->flags);
-                }
-
-                chip16_increment_cycles(core, 1);
-                chip16_increment_steps(core, 1);
-                INCREMENT_PC(core);
-                break;
-
-        case Instr_Op_Div_XYZ:
-
-                if(core->chip16_reg[Y] != 0) {
-                        if (core->chip16_reg[X] % core->chip16_reg[Y] != 0) SET_CARRY(core->flags);
-                        else                                                CLR_CARRY(core->flags);
-                        res = core->chip16_reg[X] / core->chip16_reg[Y];
-                        core->chip16_reg[Z] = res;
-
-                        if (res == 0) SET_ZERO(core->flags);
-                        else          CLR_ZERO(core->flags);
-
-                        if ((res & (1 << 15)) != 0) SET_NEG(core->flags);
-                        else                        CLR_NEG(core->flags);
-                }
-                else SIM_LOG_INFO(1, core->obj, 0, "Dividing by zero!\n");
-
-                chip16_increment_cycles(core, 1);
-                chip16_increment_steps(core, 1);
-                INCREMENT_PC(core);
-                break;
-
-        case Instr_Op_Xor:
-
-                core->chip16_reg[X] = res = core->chip16_reg[X] ^ core->chip16_reg[Y];
-
-                if (res == 0) SET_ZERO(core->flags);
-                else          CLR_ZERO(core->flags);
-
-                if ((res & (1 << 15)) != 0) SET_NEG(core->flags);
-                else                        CLR_NEG(core->flags);
-
-                chip16_increment_cycles(core, 1);
-                chip16_increment_steps(core, 1);
-                INCREMENT_PC(core);
-                break;
-
-        case Instr_Op_Remi:
-
-                core->chip16_reg[X] = res = core->chip16_reg[X] % HHLL;
-
-                if (res == 0) SET_ZERO(core->flags);
-                else          CLR_ZERO(core->flags);
-
-                if ((res & (1 << 15)) != 0) SET_NEG(core->flags);
-                else                        CLR_NEG(core->flags);
-
-                chip16_increment_cycles(core, 1);
-                chip16_increment_steps(core, 1);
-                INCREMENT_PC(core);
-                break;
-
-        case Instr_Op_Noti:
-
-                core->chip16_reg[X] = res = ~HHLL & 0xFFFF;
-
-                if (res == 0) SET_ZERO(core->flags);
-                else          CLR_ZERO(core->flags);
-
-                if ((res & (1 << 15)) != 0) SET_NEG(core->flags);
-                else                        CLR_NEG(core->flags);
-
-                chip16_increment_cycles(core, 1);
-                chip16_increment_steps(core, 1);
-                INCREMENT_PC(core);
-                break;
-
-        case Instr_Op_Call_HHLL:
-
-                chip16_write_memory16(
-                        core,
-                        chip16_get_sp(core),
-                        chip16_get_sp(core),
-                        chip16_get_pc(core));
-                chip16_set_sp(core, chip16_get_sp(core) + 2);
-                chip16_set_pc(core, HHLL);
-
-                chip16_increment_cycles(core, 1);
-                chip16_increment_steps(core, 1);
-                break;
-
-        case Instr_Op_Ret:
-
-                chip16_set_sp(core, chip16_get_sp(core) - 2);
-                tmp = chip16_read_memory16(core,
-                        chip16_get_sp(core),
-                        chip16_get_sp(core));
-                chip16_set_pc(core, tmp);
-
-                chip16_increment_cycles(core, 1);
-                chip16_increment_steps(core, 1);
-                break;
-
-        case Instr_Op_Jmp_X:
-
-                chip16_set_pc(core, core->chip16_reg[X]);
-
-                chip16_increment_cycles(core, 1);
-                chip16_increment_steps(core, 1);
-                break;
-
-        case Instr_Op_Pop:
-
-                chip16_set_sp(core, chip16_get_sp(core) - 2);
-                chip16_read_memory(core, chip16_get_sp(core), 2, (uint8*)(&(core->chip16_reg[X])), 1);
-
-                chip16_increment_cycles(core, 1);
-                chip16_increment_steps(core, 1);
-                INCREMENT_PC(core);
-                break;
-
-        default:
-                SIM_LOG_ERROR(core->obj, 0,
-                                "unknown instruction");
-                break;
-        }
+    chip16_decode_data_t dd = {core->chip16_pc, core};
+    int res = chip16_decode(instr, dd);
+    if (!res) {
+        SIM_break_simulation("Unknown instruction");
+    }
+    chip16_increment_cycles(core, 1);
+    chip16_increment_steps(core, 1);
 }
 
 void
@@ -864,7 +327,11 @@ chip16_fetch_and_execute_instruction(chip16_t *core)
                                               (uint8 *)(&instr), true);
                 chip16_check_virtual_breakpoints(
                         core, Sim_Access_Execute, pc, 4, (uint8 *)(&instr));
-                instr = UNALIGNED_LOAD_LE32(&instr);
+
+                /* big-endianness is used because instructions in binary files
+                * are written in big-endian, while data is in little-endian, 
+                * which is according to specification */
+                instr = UNALIGNED_LOAD_BE32(&instr);
                 if (chip16_state(core) != State_Stopped) {
                         /* breakpoint triggered - execute instruction */
                         chip16_execute(core, instr);
@@ -994,8 +461,9 @@ chip16_disassemble(conf_object_t *obj, generic_address_t address,
                 return (tuple_int_string_t){-4, NULL};
         }
 
-        uint32 instr = UNALIGNED_LOAD_LE32(SIM_attr_data(instruction_data));
-        return (tuple_int_string_t){4, chip16_string_decode(core, instr)};
+        uint32 instr = UNALIGNED_LOAD_BE32(SIM_attr_data(instruction_data));
+        chip16_decode_data_t dd = {address, core};
+        return (tuple_int_string_t){4, chip16_disasm(instr, dd)};
 }
 
 static void
@@ -1559,4 +1027,29 @@ init_local(void)
 
         cr_register_attributes(sr_class);
         cr_register_interfaces(sr_class);
+}
+
+bool
+chip16_check_conditional_code(chip16_t *cpu, uint8 x)
+{
+    // TODO: implement me
+    return false;
+}
+
+void
+prologue(chip16_t *cpu)
+{
+        // do nothing
+}
+
+void
+epilogue(chip16_t *cpu)
+{
+        INCREMENT_PC(cpu);
+}
+
+void
+branch_epilogue(chip16_t *cpu)
+{
+        // do nothing
 }

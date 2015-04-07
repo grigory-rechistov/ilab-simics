@@ -2,7 +2,7 @@
 
 import stest
 
-cli.run_command("run-python-file %s/targets/chip16/machine.py" % conf.sim.workspace)
+cli.run_command("run-python-file %s/test/chip16-setup.py" % conf.sim.workspace)
 
 def test_one_availability(cpu):
 
@@ -13,7 +13,7 @@ def test_one_availability(cpu):
         cpu.gprs[3] = 0xbad
 
         # AND RX,RY,RZ
-        simics.SIM_write_phys_memory(cpu, paddr, 0x62210300, 4)
+        chip16_write_phys_memory_BE(cpu, paddr, 0x62210300, 4)
         SIM_continue(1)
 
         stest.expect_equal(cpu.pc, paddr + 4)
@@ -26,7 +26,7 @@ def test_one_availability(cpu):
         cpu.gprs[5] = 0x1001
         cpu.gprs[6] = 0xbad
 
-        simics.SIM_write_phys_memory(cpu, cpu.pc, 0x62540600, 4)
+        chip16_write_phys_memory_BE(cpu, cpu.pc, 0x62540600, 4)
         SIM_continue(1)
         stest.expect_equal(cpu.flags, 0b00000100)
         print "AND: (ZERO) success"
@@ -35,7 +35,7 @@ def test_one_availability(cpu):
         cpu.gprs[8] = ~0x123;
         cpu.gprs[9] = 0xbad;
 
-        simics.SIM_write_phys_memory(cpu, cpu.pc, 0x62870900, 4)
+        chip16_write_phys_memory_BE(cpu, cpu.pc, 0x62870900, 4)
         SIM_continue(1)
         stest.expect_equal(cpu.gprs[9], cpu.gprs[8] & cpu.gprs[7])
         stest.expect_equal(cpu.flags, 0b10000000)

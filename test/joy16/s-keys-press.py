@@ -3,7 +3,7 @@
 import stest
 import dev_util
 
-cli.run_command("run-python-file %s/targets/chip16/machine.py" % conf.sim.workspace)
+cli.run_command("run-python-file %s/test/chip16-setup.py" % conf.sim.workspace)
 
 cpu = conf.chip0
 joy = conf.joy0

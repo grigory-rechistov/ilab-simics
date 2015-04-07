@@ -23,9 +23,6 @@
 #include <simics/model-iface/breakpoints.h>
 #include <simics/model-iface/memory-page.h>
 #include "event-queue.h"
-#include "chip16-exec.h"
-
-
 #include "event-queue-types.h"
 #include "chip16-exec.h"
 
@@ -41,8 +38,14 @@ typedef void (*reg_set_function_ptr)(chip16_t *core, int n, uint64 value);
 /* get the current program counter for the core */
 logical_address_t chip16_get_pc(chip16_t *core);
 
+/* get the current stack poinet for the core */
+logical_address_t chip16_get_sp(chip16_t *core);
+
 /* set the current program counter for the core */
 void chip16_set_pc(chip16_t *core, logical_address_t value);
+
+/* set the current stack pointer for the core */
+void chip16_set_sp(chip16_t *core, logical_address_t sp);
 
 /* convert a logical address to physical address */
 int chip16_logical_to_physical(chip16_t *core,
@@ -201,5 +204,11 @@ conf_to_chip16(conf_object_t *obj)
 
 void chip16_cycle_event_posted(chip16_t *sr);
 void chip16_step_event_posted(chip16_t *sr);
+
+bool chip16_check_conditional_code(chip16_t *cpu, uint8 x);
+
+void prologue(chip16_t *cpu);
+void epilogue(chip16_t *cpu);
+void branch_epilogue(chip16_t *cpu);
 
 #endif /* CHIP16 */

@@ -42,6 +42,13 @@ bool chip16_fetch_instruction(chip16_t *core,
                               uint8 *data,
                               bool check_bp);
 
+void chip16_write_memory16(chip16_t *core, logical_address_t la,
+                           physical_address_t pa, uint16_t value);
+
+uint16_t
+chip16_read_memory16(chip16_t *core, logical_address_t la,
+                          physical_address_t pa);
+
 void chip16_release_and_share(chip16_t *core, physical_address_t phys_address);
 
 mem_page_t *get_page(chip16_t *sr, conf_object_t *phys_mem_obj,

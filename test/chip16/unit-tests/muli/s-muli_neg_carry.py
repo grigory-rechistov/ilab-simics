@@ -2,7 +2,7 @@
 
 import stest
 
-cli.run_command("run-python-file %s/targets/chip16/machine.py" % conf.sim.workspace)
+cli.run_command("run-python-file %s/test/chip16-setup.py" % conf.sim.workspace)
 
 def test_muli_availability(cpu):
         paddr = 0
@@ -14,7 +14,7 @@ def test_muli_availability(cpu):
         res &= 0xffff
 
         # MULI
-        simics.SIM_write_phys_memory(cpu, paddr, 0x9007ffff, 4)
+        chip16_write_phys_memory_BE(cpu, paddr, 0x9007ffff, 4)
         SIM_continue(1)
 
         # check regs

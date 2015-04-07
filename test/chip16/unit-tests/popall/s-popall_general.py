@@ -2,7 +2,7 @@
 
 import stest
 
-cli.run_command("run-python-file %s/targets/chip16/machine.py" % conf.sim.workspace)
+cli.run_command("run-python-file %s/test/chip16-setup.py" % conf.sim.workspace)
 
 def test_popall_availability(cpu):
         paddr = 0
@@ -14,12 +14,12 @@ def test_popall_availability(cpu):
         cpu.sp = 0xfdf0 + 30
 
         for x in range(0, 16):
-                simics.SIM_write_phys_memory(cpu, cpu.sp - (2 * x), x + 10, 2)
+                SIM_write_phys_memory(cpu, cpu.sp - (2 * x), x + 10, 2)
 
         cpu.sp = 0xfdf0 + 32
 
         # POPALL
-        simics.SIM_write_phys_memory(cpu, paddr, 0xc3000000, 4)
+        chip16_write_phys_memory_BE(cpu, paddr, 0xc3000000, 4)
         SIM_continue(1)
 
         # check regs

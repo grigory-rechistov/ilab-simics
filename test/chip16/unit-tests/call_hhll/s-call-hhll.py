@@ -2,7 +2,7 @@
 
 import stest
 
-cli.run_command("run-python-file %s/targets/chip16/machine.py" % conf.sim.workspace)
+cli.run_command("run-python-file %s/test/chip16-setup.py" % conf.sim.workspace)
 
 def test_one_availability(cpu):
 
@@ -12,7 +12,7 @@ def test_one_availability(cpu):
         HHLL = 0xff00
 
         # CALL HHLL
-        simics.SIM_write_phys_memory(cpu, paddr, 0x140000ff, 4)
+        chip16_write_phys_memory_BE(cpu, paddr, 0x140000ff, 4)
         SIM_continue(1)
 
         stest.expect_equal(cpu.sp, 0xfdf4 + 2)

@@ -2,7 +2,7 @@
 
 import stest
 
-cli.run_command("run-python-file %s/targets/chip16/machine.py" % conf.sim.workspace)
+cli.run_command("run-python-file %s/test/chip16-setup.py" % conf.sim.workspace)
 
 def test_addi_availability(cpu):
         paddr = 0
@@ -18,7 +18,7 @@ def test_addi_availability(cpu):
         res &= 0xffff
 
         # ADDI
-        simics.SIM_write_phys_memory(cpu, paddr, 0x40070080, 4)
+        chip16_write_phys_memory_BE(cpu, paddr, 0x40070080, 4)
         SIM_continue(1)
 
         # check regs
@@ -48,7 +48,7 @@ def test_addi_availability(cpu):
         res &= 0xffff
 
         # ADDI
-        simics.SIM_write_phys_memory(cpu, paddr, 0x40080040, 4)
+        chip16_write_phys_memory_BE(cpu, paddr, 0x40080040, 4)
         SIM_continue(1)
 
         # check regs
