@@ -164,10 +164,10 @@ def test_disasm(cpu):
         paddr = 0
         cpu.pc = paddr
 
-        print "writing 'addi r5, 0xded'..."
+        print "writing 'addi r5, 0x0ded'..."
         chip16_write_phys_memory_BE(cpu, paddr, 0x4005ed0d, 4)
-        stest.expect_equal('p:0x0000  addi r5, 0xded', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
-        print "'addi r5, 0xded' is OK."
+        stest.expect_equal('p:0x0000  addi r5, 0x0ded', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'addi r5, 0x0ded' is OK."
 
         print "writing 'addi r7, 0xfeed'..."
         paddr += 4
@@ -193,12 +193,12 @@ def test_disasm(cpu):
         stest.expect_equal('p:0x0000  muli r5, 0xfeed', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
         print "'muli r5, 0xfeed' is OK."
 
-        print "writing 'muli r7, 0xded'..."
+        print "writing 'muli r7, 0x0ded'..."
         paddr += 4
         cpu.pc = paddr
         chip16_write_phys_memory_BE(cpu, paddr, 0x9007ed0d, 4)
-        stest.expect_equal('p:0x0004  muli r7, 0xded', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
-        print "'muli r7, 0xded' is OK."
+        stest.expect_equal('p:0x0004  muli r7, 0x0ded', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'muli r7, 0x0ded' is OK."
         print "}"
         print " "
 #------------------------------------------------------------------------------#
@@ -245,7 +245,7 @@ def test_disasm(cpu):
         paddr += 4
         cpu.pc = paddr
         chip16_write_phys_memory_BE(cpu, paddr, 0xE3000000, 4)
-        stest.expect_equal('p:0x0004  negi r0, 0x00', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        stest.expect_equal('p:0x0004  negi r0, 0x0000', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
         print "'negi r0, 0x0' is OK."
         print " "
         print " "
@@ -406,10 +406,10 @@ def test_disasm(cpu):
         paddr = 0
         cpu.pc = paddr
 
-        print "writing 'remi r1, 0xded'..."
+        print "writing 'remi r1, 0x0ded'..."
         chip16_write_phys_memory_BE(cpu, paddr, 0xA601ed0d, 4)
-        stest.expect_equal('p:0x0000  remi r1, 0xded', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
-        print "'remi r1, 0xded' is OK."
+        stest.expect_equal('p:0x0000  remi r1, 0x0ded', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'remi r1, 0x0ded' is OK."
         print "}"
         print " "
 #------------------------------------------------------------------------------#
@@ -423,10 +423,10 @@ def test_disasm(cpu):
         paddr = 0
         cpu.pc = paddr
 
-        print "writing 'noti r1, 0xded'..."
+        print "writing 'noti r1, 0x0ded'..."
         chip16_write_phys_memory_BE(cpu, paddr, 0xE001ed0d, 4)
-        stest.expect_equal('p:0x0000  noti r1, 0xded', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
-        print "'noti r1, 0xded' is OK."
+        stest.expect_equal('p:0x0000  noti r1, 0x0ded', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'noti r1, 0x0ded' is OK."
         print "}"
         print " "
 #------------------------------------------------------------------------------#
@@ -636,6 +636,70 @@ def test_disasm(cpu):
         chip16_write_phys_memory_BE(cpu, paddr, 0x3001eeee, 4)
         stest.expect_equal('p:0x0000  stm r1, 0xeeee', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
         print "'stm r1, 0xeeee' is OK."
+        print "}"
+        print " "
+#------------------------------------------------------------------------------#
+
+#------------------------------------------------------------------------------#
+        print "JMP_HHLL_disasm_unit-test:"
+#------------------------------------------------------------------------------#
+        print " "
+
+        paddr = 0
+        cpu.pc = paddr
+
+        print "writing 'jmp 0xf000'..."
+        chip16_write_phys_memory_BE(cpu, paddr, 0x100000f0, 4)
+        stest.expect_equal('p:0x0000  jmp 0xf000', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'jmp 0xf000' is OK."
+        print "}"
+        print " "
+#------------------------------------------------------------------------------#
+
+#------------------------------------------------------------------------------#
+        print "JMC_HHLL_disasm_unit-test:"
+#------------------------------------------------------------------------------#
+        print " "
+
+        paddr = 0
+        cpu.pc = paddr
+
+        print "writing 'jmc 0xf000'..."
+        chip16_write_phys_memory_BE(cpu, paddr, 0x110000f0, 4)
+        stest.expect_equal('p:0x0000  jmc 0xf000', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'jmc 0xf000' is OK."
+        print "}"
+        print " "
+#------------------------------------------------------------------------------#
+
+#------------------------------------------------------------------------------#
+        print "Jx_HHLL_disasm_unit-test:"
+#------------------------------------------------------------------------------#
+        print " "
+
+        paddr = 0
+        cpu.pc = paddr
+
+        print "writing 'jx 0x3, 0xf000'..."
+        chip16_write_phys_memory_BE(cpu, paddr, 0x120300f0, 4)
+        stest.expect_equal('p:0x0000  jx 0x3, 0xf000', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'jx 0x3, 0xf000' is OK."
+        print "}"
+        print " "
+#------------------------------------------------------------------------------#
+
+#------------------------------------------------------------------------------#
+        print "JME_XY_HHLL_disasm_unit-test:"
+#------------------------------------------------------------------------------#
+        print " "
+
+        paddr = 0
+        cpu.pc = paddr
+
+        print "writing 'jme r1, r2, 0xf000'..."
+        chip16_write_phys_memory_BE(cpu, paddr, 0x132100f0, 4)
+        stest.expect_equal('p:0x0000  jme r1, r2, 0xf000', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'jme r1, r2, 0xf000' is OK."
         print "}"
         print " "
 #------------------------------------------------------------------------------#

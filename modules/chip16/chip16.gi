@@ -31,7 +31,7 @@ endinstruction
 
 instruction: SND1
 pattern: opcode == 0x0a && x == 0 && y == 0
-mnemonic: "snd1 0x%x", ((hh << 8) + ll)
+mnemonic: "snd1 0x%.2x%.2x", hh, ll
 // snd1 (command word: 0, 2) - play 500Hz tone for HHLL ms.
 chip16_t *core = decode_data.cpu;
 chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR, 0x0002);
@@ -41,7 +41,7 @@ endinstruction
 
 instruction: SND2
 pattern: opcode == 0x0b && x == 0 && y == 0
-mnemonic: "snd2 0x%x%x", hh, ll
+mnemonic: "snd2 0x%.2x%.2x", hh, ll
 // snd2 (command word: 0, 2) - play 1000Hz tone for HHLL ms.
 chip16_t *core = decode_data.cpu;
 chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR, 0x0002);
@@ -51,7 +51,7 @@ endinstruction
 
 instruction: SND3
 pattern: opcode == 0x0c && x == 0 && y == 0
-mnemonic: "snd3 0x%x%x", hh, ll
+mnemonic: "snd3 0x%.2x%.2x", hh, ll
 // snd3 (command word: 0, 2) - play 1500Hz tone for HHLL ms.
 chip16_t *core = decode_data.cpu;
 chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR, 0x0002);
@@ -61,7 +61,7 @@ endinstruction
 
 instruction: ADDI
 pattern: opcode == 0x40 && y == 0
-mnemonic: "addi r%d, 0x%x%x", x, hh, ll
+mnemonic: "addi r%d, 0x%.2x%.2x", x, hh, ll
 uint16 tmp = decode_data.cpu->chip16_reg[x];
 uint32 res = decode_data.cpu->chip16_reg[x] + (hh << 8) + ll;
 decode_data.cpu->chip16_reg[x] += ((hh << 8) + ll);
@@ -116,7 +116,7 @@ endinstruction
 
 instruction: LDI_SP
 pattern: opcode == 0x21 && x == 0 && y == 0
-mnemonic: "ldi sp, 0x%x%x", hh, ll
+mnemonic: "ldi sp, 0x%.2x%.2x", hh, ll
 chip16_set_sp(decode_data.cpu, (uint64_t) ((hh << 8) + ll));
 endinstruction
 
@@ -129,7 +129,7 @@ endinstruction
 
 instruction: MULI_X
 pattern: opcode == 0x90 && y == 0
-mnemonic: "muli r%d, 0x%x%x", x, hh, ll
+mnemonic: "muli r%d, 0x%.2x%.2x", x, hh, ll
 chip16_t* core = decode_data.cpu;
 uint32 res = core->chip16_reg[x] * ((hh<<8)+ll);
 core->chip16_reg[x] *= ((hh<<8)+ll);
@@ -198,7 +198,7 @@ endinstruction
 
 instruction: NEGI
 pattern: opcode == 0xe3 && y == 0
-mnemonic: "negi r%d, 0x%x%x", x, hh, ll
+mnemonic: "negi r%d, 0x%.2x%.2x", x, hh, ll
 chip16_t* core = decode_data.cpu;
 uint16 HHLL = (hh<<8)+ll;
 if (HHLL == 0) {
@@ -257,7 +257,7 @@ if(core->chip16_reg[y] != 0) {
 else SIM_LOG_INFO(1, core->obj, 0, "Dividing by zero!\n");
 endinstruction
 
-instruction: XOR
+instruction: XOR_XY
 pattern: opcode == 0x81 && hh == 0 && ll == 0
 mnemonic: "xor r%d, r%d", x, y
 uint16 res;
@@ -271,7 +271,7 @@ endinstruction
 
 instruction: REMI
 pattern: opcode == 0xa6 && y == 0
-mnemonic: "remi r%d, 0x%x%x", x, hh, ll
+mnemonic: "remi r%d, 0x%.2x%.2x", x, hh, ll
 chip16_t* core = decode_data.cpu;
 uint16 res;
 core->chip16_reg[x] = res = core->chip16_reg[x] % ((hh<<8)+ll);
@@ -283,7 +283,7 @@ endinstruction
 
 instruction: NOTI
 pattern: opcode == 0xe0 && y == 0
-mnemonic: "noti r%d, 0x%x%x", x, hh, ll
+mnemonic: "noti r%d, 0x%.2x%.2x", x, hh, ll
 uint16 res;
 chip16_t* core = decode_data.cpu;
 core->chip16_reg[x] = res = ~((hh<<8)+ll) & 0xFFFF;
@@ -293,9 +293,40 @@ if ((res & (1 << 15)) != 0) SET_NEG(core->flags);
 else                        CLR_NEG(core->flags);
 endinstruction
 
+instruction: JMP_HHLL
+pattern: opcode == 0x10 && x == 0 && y == 0
+mnemonic: "jmp 0x%.2x%.2x", hh, ll
+attributes: branch
+chip16_set_pc(decode_data.cpu, (hh<<8)+ll);
+endinstruction
+
+instruction: JMC_HHLL
+pattern: opcode == 0x11 && x == 0 && y == 0
+mnemonic: "jmc 0x%.2x%.2x", hh, ll
+attributes: branch
+if (decode_data.cpu->flags.map.C)
+    chip16_set_pc(decode_data.cpu, (hh<<8)+ll);
+endinstruction
+
+instruction: Jx_HHLL
+pattern: opcode == 0x12 && y == 0
+mnemonic: "jx 0x%x, 0x%.2x%.2x", x, hh, ll
+attributes: branch
+if (chip16_check_conditional_code(decode_data.cpu, x))
+    chip16_set_pc(decode_data.cpu, (hh<<8)+ll);
+endinstruction
+
+instruction: JME_XY_HHLL
+pattern: opcode == 0x13
+mnemonic: "jme r%d, r%d, 0x%.2x%.2x", x, y, hh, ll
+attributes: branch
+if (decode_data.cpu->chip16_reg[x] == decode_data.cpu->chip16_reg[y])
+    chip16_set_pc(decode_data.cpu, (hh<<8)+ll);
+endinstruction
+
 instruction: CALL_HHLL
 pattern: opcode == 0x14 && x == 0 && y == 0
-mnemonic: "call 0x%x%x", hh, ll
+mnemonic: "call 0x%.2x%.2x", hh, ll
 attributes: branch
 chip16_t* core = decode_data.cpu;
 chip16_write_memory16(
@@ -328,13 +359,9 @@ endinstruction
 
 instruction: Cx_HHLL
 pattern: opcode == 0x17 && y == 0
-mnemonic: "Cx 0x%x, 0x%x%x", x, hh, ll
+mnemonic: "Cx 0x%x, 0x%.2x%.2x", x, hh, ll
 attributes: branch
 chip16_t* core = decode_data.cpu;
-
-// TODO: doesn't work because not according specification
-// check_conditional_code func not implemeted
-
 if (chip16_check_conditional_code(core, x)){
     chip16_write_memory16(
         core,
@@ -362,7 +389,7 @@ endinstruction
 
 instruction: LDI_X
 pattern: opcode == 0x20 && y == 0
-mnemonic: "ldi r%d, 0x%x%x", x, hh, ll
+mnemonic: "ldi r%d, 0x%.2x%.2x", x, hh, ll
 decode_data.cpu->chip16_reg[x] = (hh<<8)+ll;
 endinstruction 
 
@@ -390,7 +417,7 @@ endinstruction
 
 instruction: CMPI_X
 pattern: opcode == 0x53 && y == 0
-mnemonic: "cmpi r%d, 0x%x%x", x, hh, ll
+mnemonic: "cmpi r%d, 0x%.2x%.2x", x, hh, ll
 chip16_t* core = decode_data.cpu;
 uint16 X = core->chip16_reg[x];
 uint16 Y = (hh<<8) | ll;
@@ -469,7 +496,7 @@ endinstruction
 
 instruction: TSTI
 pattern: opcode == 0x63 && y == 0
-mnemonic: "tsti r%d, 0x%x%x", x, hh, ll
+mnemonic: "tsti r%d, 0x%.2x%.2x", x, hh, ll
 chip16_t* core = decode_data.cpu;
 core->chip16_reg[x] = core->chip16_reg[x] & ((hh<<8) | ll);
 if (core->chip16_reg[x] == 0)

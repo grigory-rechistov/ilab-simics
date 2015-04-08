@@ -205,10 +205,11 @@ conf_to_chip16(conf_object_t *obj)
 void chip16_cycle_event_posted(chip16_t *sr);
 void chip16_step_event_posted(chip16_t *sr);
 
-bool chip16_check_conditional_code(chip16_t *cpu, uint8 x);
+bool chip16_check_conditional_code(chip16_t *core, uint8 x);
 
-void prologue(chip16_t *cpu);
-void epilogue(chip16_t *cpu);
-void branch_epilogue(chip16_t *cpu);
+/* Functions called before or after an execution of an instruction */
+void prologue(chip16_t *core); // default
+void epilogue(chip16_t *core); // default
+void branch_epilogue(chip16_t *core); // after calls and jumps
 
 #endif /* CHIP16 */

@@ -87,7 +87,7 @@ typedef enum {
         Instr_Op_And            = 0x62,
         Instr_Op_Tsti_X         = 0x63,
         Instr_Op_Tst_XY         = 0x64,
-        Instr_Op_Or_XY          = 0x71
+        Instr_Op_Or_XY          = 0x71,
         Instr_Op_Xor            = 0x81,
         Instr_Op_Muli           = 0x90,
         Instr_Op_Div            = 0xA1,
@@ -1042,26 +1042,75 @@ init_local(void)
 }
 
 bool
-chip16_check_conditional_code(chip16_t *cpu, uint8 x)
+chip16_check_conditional_code(chip16_t *core, uint8 x)
 {
-    // TODO: implement me
-    return false;
+        switch (x){
+        case 0x0: // Equal
+                if (core->flags.map.Z) return true;
+                break;
+        case 0x1: // Not Equal
+                if (!core->flags.map.Z) return true;
+                break;
+        case 0x2: // Negative
+                if (core->flags.map.N) return true;
+                break;
+        case 0x3: // Not-Negative
+                if (!core->flags.map.N) return true;
+                break;
+        case 0x4: // Positive
+                if (!core->flags.map.N && !core->flags.map.Z) return true;
+                break;
+        case 0x5: // Overflow
+                if (core->flags.map.O) return true;
+                break;
+        case 0x6: // No Overflow
+                if (!core->flags.map.O) return true;
+                break;
+        case 0x7: // Unsigned Greater Than (Above)
+                if (!core->flags.map.C && !core->flags.map.Z) return true;
+                break;
+        case 0x8: // Unsigned Greater Than or Equal (Above Equal)
+                if (!core->flags.map.C) return true;
+                break;
+        case 0x9: // Unsigned Less Than (Below)
+                if (core->flags.map.C) return true;
+                break;
+        case 0xa: // Unsigned Less Than or Equal (Below Equal)
+                if (core->flags.map.C || core->flags.map.Z) return true;
+                break;
+        case 0xb: // Signed Greater Than
+                if ((core->flags.map.O == core->flags.map.N) && !core->flags.map.Z) return true;
+                break;
+        case 0xc: // Signed Greater Than or Equal
+                if (core->flags.map.O == core->flags.map.N) return true;
+                break;
+        case 0xd: // Signed Less Than
+                if (core->flags.map.O != core->flags.map.N) return true;
+                break;
+        case 0xe: // Signed Less Than or Equal
+                if ((core->flags.map.O != core->flags.map.N) || core->flags.map.Z) return true;
+                break;
+        default: // 0xf is reserved
+                SIM_LOG_INFO(3, core->obj, 0, "Unknown conditional code");
+                break;
+        }
+        return false;
 }
 
 void
-prologue(chip16_t *cpu)
+prologue(chip16_t *core)
 {
         // do nothing
 }
 
 void
-epilogue(chip16_t *cpu)
+epilogue(chip16_t *core)
 {
-        INCREMENT_PC(cpu);
+        INCREMENT_PC(core);
 }
 
 void
-branch_epilogue(chip16_t *cpu)
+branch_epilogue(chip16_t *core)
 {
         // do nothing
 }
