@@ -498,7 +498,7 @@ class ParseTree:
         # visible in current context
         padding = " " * shift
         if not disassembly: fail_string = "return 0"
-        else:               fail_string = 'snprintf(res, 128, "[illegal instruction] opcode = 0x%x", opcode)'
+        else:               fail_string = 'snprintf(res, 128, "[illegal instruction] instr = 0x%x", instr)'
         result = ""
         result += padding + "if (%s) {\n" % self.constraint.to_code()
         if self.instr is not None:

@@ -5,8 +5,7 @@ cli.run_command("run-python-file %s/test/chip16-setup.py" % conf.sim.workspace)
 def test_cmpi(cpu) :
     cpu.flags = 0
     cpu.gprs[6] = 0xa
-
-    # CMPI R6, 0xffff
+    # CMPI R6, 0xd
     chip16_write_phys_memory_BE(cpu, 0, 0x53060d00, 4)
     SIM_continue(1);
     stest.expect_equal(cpu.pc, 4)
@@ -16,7 +15,6 @@ def test_cmpi(cpu) :
     cpu.flags = 0
     cpu.gprs[6] = 0xd
     cpu.pc = 0
-
     # CMPI R6, 0xd
     chip16_write_phys_memory_BE(cpu, 0, 0x53060d00, 4)
     SIM_continue(1);
@@ -26,7 +24,6 @@ def test_cmpi(cpu) :
     cpu.flags = 0
     cpu.gprs[6] = 0x8001
     cpu.pc = 0
-
     # CMPI R6, 0x2
     chip16_write_phys_memory_BE(cpu, 0, 0x53060200, 4)
     SIM_continue(1);

@@ -328,7 +328,7 @@ endinstruction
 
 instruction: Cx_HHLL
 pattern: opcode == 0x17 && y == 0
-mnemonic: "C %d 0x%x%x", x, hh, ll
+mnemonic: "Cx 0x%x, 0x%x%x", x, hh, ll
 attributes: branch
 chip16_t* core = decode_data.cpu;
 
@@ -410,4 +410,104 @@ if (((BIT_15(X) == 1) && (BIT_15(Y) == 0) && (BIT_15(Z) == 0)) ||
     SET_OVRFLW(core->flags);
 else
     CLR_OVRFLW(core->flags);
+endinstruction
+
+instruction: NOT_X
+pattern: opcode == 0xe1 && y == 0 && hh == 0 && ll == 0
+mnemonic: "not r%d", x
+chip16_t* core = decode_data.cpu;
+core->chip16_reg[x] = ~core->chip16_reg[x];
+if (BIT_15(core->chip16_reg[x]) == 1)
+    SET_NEG(core->flags);
+else
+    CLR_NEG(core->flags);
+if (!core->chip16_reg[x])
+    SET_ZERO(core->flags);
+else
+    CLR_ZERO(core->flags);
+endinstruction
+
+instruction: NEG_X
+pattern: opcode == 0xe4 && y == 0 && hh == 0 && ll == 0
+mnemonic: "neg r%d", x
+chip16_t* core = decode_data.cpu;
+core->chip16_reg[x] = ~core->chip16_reg[x] + 1;
+if (BIT_15(core->chip16_reg[x]) == 1)
+    SET_NEG(core->flags);
+else
+    CLR_NEG(core->flags);
+if (!core->chip16_reg[x])
+    SET_ZERO(core->flags);
+else
+    CLR_ZERO(core->flags);
+endinstruction
+
+instruction: SUB_XY
+pattern: opcode == 0x51 && hh == 0 && ll == 0
+mnemonic: "sub r%d, r%d", x, y
+chip16_t* core = decode_data.cpu;
+uint16 X = core->chip16_reg[x];
+uint16 Y = core->chip16_reg[y];
+core->chip16_reg[x] = X - Y;
+uint32 Z = X - Y;
+if (BIT_16(Z) == 1)
+    SET_CARRY(core->flags);
+else
+    CLR_CARRY(core->flags);
+if (BIT_15(Z) == 1)
+    SET_NEG(core->flags);
+else
+    CLR_NEG(core->flags);
+if (X == Y) SET_ZERO(core->flags);
+else        CLR_ZERO(core->flags);
+if (((BIT_15(X) == 1) && (BIT_15(Y) == 0) && (BIT_15(Z) == 0)) ||
+    ((BIT_15(X) == 0) && (BIT_15(Y) == 1) && (BIT_15(Z) == 1)))
+    SET_OVRFLW(core->flags);
+else
+    CLR_OVRFLW(core->flags);
+endinstruction
+
+instruction: TSTI
+pattern: opcode == 0x63 && y == 0
+mnemonic: "tsti r%d, 0x%x%x", x, hh, ll
+chip16_t* core = decode_data.cpu;
+core->chip16_reg[x] = core->chip16_reg[x] & ((hh<<8) | ll);
+if (core->chip16_reg[x] == 0)
+    SET_ZERO(core->flags);
+else
+    CLR_ZERO(core->flags);
+if (BIT_15(core->chip16_reg[x]) == 1) 
+    SET_NEG(core->flags);
+else
+    CLR_NEG(core->flags);
+endinstruction
+
+instruction: TST_XY
+pattern: opcode == 0x64 && hh == 0 && ll == 0
+mnemonic: "tst r%d, r%d", x, y
+chip16_t* core = decode_data.cpu;
+core->chip16_reg[x] = core->chip16_reg[x] & core->chip16_reg[y];
+if (core->chip16_reg[x] == 0)
+    SET_ZERO(core->flags);
+else
+    CLR_ZERO(core->flags);
+if (BIT_15(core->chip16_reg[x]) == 1) 
+    SET_NEG(core->flags);
+else
+    CLR_NEG(core->flags);
+endinstruction
+
+instruction: OR_XY
+pattern: opcode == 0x71 && hh == 0 && ll == 0
+mnemonic: "or r%d, r%d", x, y
+chip16_t* core = decode_data.cpu;
+core->chip16_reg[x] = core->chip16_reg[x] | core->chip16_reg[y];
+if (BIT_15(core->chip16_reg[x]) == 1)
+    SET_NEG(core->flags);
+else
+    CLR_NEG(core->flags);
+if (!core->chip16_reg[x])
+    SET_ZERO(core->flags);
+else
+    CLR_ZERO(core->flags);
 endinstruction
