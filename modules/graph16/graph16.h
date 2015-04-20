@@ -110,15 +110,8 @@ static inline conf_object_t * graph16_to_conf(graph16_t *sr)
         return &sr->obj;
 }
 
-static generic_transaction_t create_generic_transaction (conf_object_t *initiator, mem_op_type_t type,
-                           physical_address_t phys_address,
-                           physical_address_t len, uint8 *data,
-                           endianness_t endian);
-
 bool graph16_write_memory (graph16_t *core, int mem_switch, physical_address_t phys_address,
                     physical_address_t len, uint8 *data);
 
 bool graph16_read_memory (graph16_t *core, int mem_switch, physical_address_t phys_address,
                    physical_address_t len, uint8 *data);
-
-static int graph16_refresh_screen(void *arg);

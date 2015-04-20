@@ -19,6 +19,13 @@ const graph16_pal_item default_palette[PAL_SIZE] = {{0x00, 0x00, 0x00}, {0x00, 0
                                                     {0xEA, 0xD9, 0x79}, {0x53, 0x7A, 0x3B}, {0xAB, 0xD5, 0x4A}, {0x25, 0x2E, 0x38},
                                                     {0x00, 0x46, 0x7F}, {0x68, 0xAB, 0xCC}, {0xBC, 0xDE, 0xE4}, {0xFF, 0xFF, 0xFF}};
 
+static generic_transaction_t create_generic_transaction (conf_object_t *initiator, mem_op_type_t type,
+                           physical_address_t phys_address,
+                           physical_address_t len, uint8 *data,
+                           endianness_t endian);
+
+static int graph16_refresh_screen(void *arg);
+
 /* Allocate memory for the object. */
 static conf_object_t *
 alloc_object(void *data)
