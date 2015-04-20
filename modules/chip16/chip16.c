@@ -9,7 +9,6 @@
 
 */
 
-#include "chip16.h"
 #include <simics/processor-api.h>
 #include <simics/simulator-api.h>
 #include <simics/util/strbuf.h>
@@ -21,6 +20,8 @@
 
 // TODO: should probably move to Processor API
 #include <simics/simulator-iface/context-tracker.h>
+// TODO: should not be needed, violates the Processor API
+#include <simics/simulator/hap-consumer.h>
 
 #include <simics/devs/signal.h>
 
@@ -28,67 +29,13 @@
 #include "chip16.h"
 #include "chip16-memory.h"
 #include "chip16-queue.h"
-
-// TODO: should not be needed, violates the Processor API
-#include <simics/simulator/hap-consumer.h>
-
-#include "event-queue.h"
-#include "chip16-memory.h"
 #include "chip16-exec.h"
 #include "chip16-cycle.h"
 #include "chip16-step.h"
 #include "chip16-frequency.h"
-
 #include "prefix.pre"
 
-/* fixed size instructions of 4 bytes */
-#define INSTR_SIZE 4
-
 #define INCREMENT_PC(core) chip16_set_pc(core, chip16_get_pc(core) + INSTR_SIZE)
-
-/*
- * TODO: Expand me
- *
- *           31   28 27   24 23   20 19   16 15   12 11    8 7     4 3     0
- *          |-------|-------|-------|-------|-------|-------|-------|-------|
- *          |    opcode     |   Y   |   X   |      LL       |      HH       |
- */
-
-#define INSTR_OP(i)       (((i) >> 24) & 0xff)
-#define INSTR_SRC_REG(i)  (((i) >> 20) & 0x0f)
-#define INSTR_DST_REG(i)  (((i) >> 16) & 0x0f)
-#define INSTR_Z_REG(i)    (((i) >>  8) & 0x0f)
-#define INSTR_LL(i)       (((i) >>  8) & 0xff)
-#define INSTR_HH(i)       ( (i)        & 0xff)
-
-#define INSTR_HHLL(i)     ((((INSTR_HH(i)) << 8) & 0xff00) | ((INSTR_LL(i))))
-
-// TODO: Expand me
-typedef enum {
-        Instr_Op_Nop            = 0x00,
-        Instr_Op_Snd0           = 0x09,
-        Instr_Op_Snd1_HHLL      = 0x0A,
-        Instr_Op_Snd2_HHLL      = 0x0B,
-        Instr_Op_Snd3_HHLL      = 0x0C,
-        Instr_Op_Call_HHLL      = 0x14,
-        Instr_Op_Ret            = 0x15,
-        Instr_Op_Jmp_X          = 0x16,
-        Instr_Op_Ldi_Sp         = 0x21,
-        Instr_Op_Mov            = 0x24,
-        Instr_Op_Stm_XY         = 0x31,
-        Instr_Op_Addi           = 0x40,
-        Instr_Op_Muli           = 0x90,
-        Instr_Op_Popall         = 0xC3,
-        Instr_Op_And            = 0x62,
-        Instr_Op_Div            = 0xA1,
-        Instr_Op_Div_XYZ        = 0xA2,
-        Instr_Op_Xor            = 0x81,
-        Instr_Op_Remi           = 0xA6,
-        Instr_Op_Noti           = 0xE0,
-        Instr_Op_Pop            = 0xC1,
-        Instr_Op_Negi           = 0xE3,
-        Instr_Op_Neg_XY         = 0xE5,
-} instr_op_t;
 
 /* THREAD_SAFE_GLOBAL: hap_Control_Register_Read init */
 hap_type_t hap_Control_Register_Read;
@@ -96,6 +43,24 @@ hap_type_t hap_Control_Register_Read;
 hap_type_t hap_Control_Register_Write;
 /* THREAD_SAFE_GLOBAL: hap_Magic_Instruction init */
 hap_type_t hap_Magic_Instruction;
+
+typedef enum {
+        Cond_Eq             = 0x0,
+        Cond_NotEq          = 0x1,
+        Cond_Neg            = 0x2,
+        Cond_NotNeg         = 0x3,
+        Cond_Pos            = 0x4,
+        Cond_Ovf            = 0x5,
+        Cond_NoOvf          = 0x6,
+        Cond_Above          = 0x7, // Unsigned Greater
+        Cond_AboveEq        = 0x8, // Unsigned Greater or Equal
+        Cond_Below          = 0x9, // Unsigned Less
+        Cond_BelowEq        = 0xa, // Unsigned Less or Equal
+        Cond_Greater        = 0xb,
+        Cond_GreaterOrEq    = 0xc,
+        Cond_Less           = 0xd,
+        Cond_LessOrEq       = 0xe
+} chip16_cond_code_t;
 
 /*
  * registers
@@ -304,13 +269,13 @@ chip16_write_memory16(chip16_t *core, logical_address_t la,
 void
 chip16_execute(chip16_t *core, uint32 instr)
 {
-    chip16_decode_data_t dd = {core->chip16_pc, core};
-    int res = chip16_decode(instr, dd);
-    if (!res) {
-        SIM_break_simulation("Unknown instruction");
-    }
-    chip16_increment_cycles(core, 1);
-    chip16_increment_steps(core, 1);
+        chip16_decode_data_t dd = {core->chip16_pc, core};
+        int res = chip16_decode(instr, dd);
+        if (!res) {
+                SIM_break_simulation("Unknown instruction");
+        }
+        chip16_increment_cycles(core, 1);
+        chip16_increment_steps(core, 1);
 }
 
 void
@@ -1030,26 +995,61 @@ init_local(void)
 }
 
 bool
-chip16_check_conditional_code(chip16_t *cpu, uint8 x)
+chip16_check_conditional_code(chip16_t *core, uint8 x)
 {
-    // TODO: implement me
-    return false;
+        switch (x){
+        case Cond_Eq:
+                return core->flags.map.Z;
+        case Cond_NotEq:
+                return !core->flags.map.Z;
+        case Cond_Neg:
+                return core->flags.map.N;
+        case Cond_NotNeg:
+                return !core->flags.map.N;
+        case Cond_Pos:
+                return !core->flags.map.N && !core->flags.map.Z;
+        case Cond_Ovf:
+                return core->flags.map.O;
+        case Cond_NoOvf:
+                return !core->flags.map.O;
+        case Cond_Above:
+                return !core->flags.map.C && !core->flags.map.Z;
+        case Cond_AboveEq:
+                return !core->flags.map.C;
+        case Cond_Below:
+                return core->flags.map.C;
+        case Cond_BelowEq:
+                return core->flags.map.C || core->flags.map.Z;
+        case Cond_Greater:
+                return (core->flags.map.O == core->flags.map.N) && !core->flags.map.Z;
+        case Cond_GreaterOrEq:
+                return core->flags.map.O == core->flags.map.N;
+        case Cond_Less:
+                return core->flags.map.O != core->flags.map.N;
+        case Cond_LessOrEq:
+                return (core->flags.map.O != core->flags.map.N) || core->flags.map.Z;
+        default:
+                ASSERT("Unknown conditional code");
+                break;
+        }
+        ASSERT("Illegal behavior check_condition func");
+        return false;
 }
 
 void
-prologue(chip16_t *cpu)
+prologue(chip16_t *core)
 {
         // do nothing
 }
 
 void
-epilogue(chip16_t *cpu)
+epilogue(chip16_t *core)
 {
-        INCREMENT_PC(cpu);
+        INCREMENT_PC(core);
 }
 
 void
-branch_epilogue(chip16_t *cpu)
+branch_epilogue(chip16_t *core)
 {
         // do nothing
 }

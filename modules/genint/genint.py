@@ -79,12 +79,14 @@ class Machine:
 
 class PhysicalField:
     ''' An actual field of an encoding of bit range [start, end] '''
-    def __init__(self, machine, name, start, end, signed = False):
+    def __init__(self, machine, name, start, end, seq_num, signed = False):
         self.machine    = machine
         self.name       = name
         self.start      = start
         self.end        = end
         self.signed     = signed
+        self.seq_num    = seq_num
+
         check_token_as_name(name)
         if self.end >= machine.width:
             raise Exception("Bitfield end is past instruction width")
@@ -138,9 +140,9 @@ class PhysicalField:
 
 class LogicalField(PhysicalField):
     '''A value that is calculated from other fields as a function'''
-    def __init__(self, machine, name, width, fn, fieldlist, signed = False):
+    def __init__(self, machine, name, width, fn, fieldlist, seq_num, signed = False):
         if width <=0: raise Exception("Bad width: %d" % width)
-        PhysicalField.__init__(self, machine, name, 0, width-1, signed)
+        PhysicalField.__init__(self, machine, name, 0, width-1, seq_num, signed)
         self.fn = fn
         self.fieldlist = fieldlist
         if len(self.fieldlist) == 0:
@@ -169,7 +171,7 @@ class LogicalField(PhysicalField):
         # - operands should be enough
         # Pass all fields to the function
         fldpattern = r"%s, " * len(self.fieldlist)
-        pattern = r"%s("  + fldpattern + "decode_data)"
+        pattern = r"%s("  + fldpattern + "decode_data.cpu)"
         namelist = [self.fn]
         for f in self.fieldlist: namelist.append(f) # .to_code()
         return  pattern % tuple(namelist)
@@ -368,7 +370,9 @@ class FieldGroup:
             self.fields[fld.name] = fld
 
     def get_fields(self):
-        return self.fields.values()
+        unsorted_list = self.fields.values()
+        sorted_list = sorted(unsorted_list, cmp = lambda x, y: cmp(y.seq_num, x.seq_num)) # sorting in reverse order
+        return sorted_list
 
 class Pattern:
     '''A pattern for an instruction'''
@@ -498,7 +502,7 @@ class ParseTree:
         # visible in current context
         padding = " " * shift
         if not disassembly: fail_string = "return 0"
-        else:               fail_string = 'snprintf(res, 128, "[illegal instruction] opcode = 0x%x", opcode)'
+        else:               fail_string = 'snprintf(res, 128, "[illegal instruction] instr = %#010x", instr)'
         result = ""
         result += padding + "if (%s) {\n" % self.constraint.to_code()
         if self.instr is not None:
@@ -573,7 +577,8 @@ class InstructionSet:
         machine_word_field = PhysicalField(machine,
                                            machine.__repr__(),
                                            0,
-                                           machine.width - 1)
+                                           machine.width - 1,
+                                           seq_num = -1)
         globconstr = \
             SimpleConstraint(machine_word_field, "<=", (1 << machine.width) -1)
         self.root.find_node([globconstr]) # Create a common root; yes, this is crap.
@@ -623,7 +628,7 @@ class InstructionSet:
                      "UNUSED " + \
                      casttype + " " + \
                      fld.name + " = " + \
-                     fld.to_extractor("instr") + ";\n"
+                     fld.to_extractor("instr") + "; //seq_num = " + str(fld.seq_num) + '\n'
         return result
 
 def parse_constraint_string(s, fs):
@@ -651,7 +656,7 @@ def parse_constraint_string(s, fs):
             raise Exception("Failed to parse chunk '%s'" % chunk)
     return result
 
-def parse_field_string(s, machine, name = "Unnamed"):
+def parse_field_string(s, machine, seq_num, name = "Unnamed"):
     '''Take a string of a form
     f1<0:3>, -f2<4:3>, f3 <3>, g1<30>(give_g1:f1)
     and build a FieldGroup.
@@ -688,10 +693,11 @@ def parse_field_string(s, machine, name = "Unnamed"):
 
             fld = None
             if len(func) != 0: # there is a function specification - it's a logical field
-                fld = LogicalField (machine, name, start, func, deplist, signed)
+                fld = LogicalField (machine, name, start, func, deplist, seq_num, signed)
             else: # it's a physical field
-                fld = PhysicalField(machine, name, start, end, signed)
+                fld = PhysicalField(machine, name, start, end, seq_num, signed)
             result.add_field(fld)
+            seq_num += 1
         else:
             raise Exception("Failed to parse chunk '%s'" % chunk)
     result.validate()
@@ -792,6 +798,7 @@ def parse_specification(text):
     curdef = ""
     machine = None
     fg = FieldGroup()
+    seq_num = 0
 
     for l in lines:
         l = l.strip(" ")
@@ -818,7 +825,7 @@ def parse_specification(text):
             #print ">>> field group: name='%s', defn='%s'" % (name, defn)
             if machine is None:
                 raise Exception("Machine is not defined, cannot parse groups")
-            nfg = parse_field_string(defn, machine, name)
+            nfg = parse_field_string(defn, machine, seq_num, name)
             fg.merge(nfg)
             continue
         m = re.search(r'^instruction:\s*([^\s]+)', l)
