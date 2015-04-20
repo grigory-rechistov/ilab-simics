@@ -12,12 +12,12 @@
 #include <simics/devs/io-memory.h>
 
 #include "include/SDL2/SDL.h"
+#include <string.h>
 
 const graph16_pal_item default_palette[PAL_SIZE] = {{0x00, 0x00, 0x00}, {0x00, 0x00, 0x00}, {0x88, 0x88, 0x88}, {0xBF, 0x39, 0x32},
                                                     {0xDE, 0x7A, 0xAE}, {0x4C, 0x3D, 0x21}, {0x90, 0x5F, 0x25}, {0xE4, 0x94, 0x52},
                                                     {0xEA, 0xD9, 0x79}, {0x53, 0x7A, 0x3B}, {0xAB, 0xD5, 0x4A}, {0x25, 0x2E, 0x38},
                                                     {0x00, 0x46, 0x7F}, {0x68, 0xAB, 0xCC}, {0xBC, 0xDE, 0xE4}, {0xFF, 0xFF, 0xFF}};
-
 
 /* Allocate memory for the object. */
 static conf_object_t *
@@ -41,7 +41,7 @@ lang_void *init_object(conf_object_t *obj, lang_void *data)
 
 
         // Initializing palette with default colours
-        memcpy (sample->palette, default_palette, sizeof (default_palette));
+        memcpy (sample->palette, default_palette, sizeof(default_palette));
 
         sample->instruction.opcode = 0;
         sample->instruction.length = 0;
@@ -60,7 +60,8 @@ lang_void *init_object(conf_object_t *obj, lang_void *data)
                 SDL_WINDOW_SHOWN                   // flags
         );
         if (sample->window == NULL) {
-                SIM_LOG_INFO(1, obj, 0, "Failed to create SDL window");
+                SIM_LOG_INFO(1, obj, 0, "Failed to create SDL window: %s", SDL_GetError());
+                goto end;
         }
 
         sample->renderer = SDL_CreateRenderer (sample->window, 0, SDL_RENDERER_ACCELERATED);
@@ -90,14 +91,17 @@ lang_void *init_object(conf_object_t *obj, lang_void *data)
                                                0
         );
         if (sample->screen == NULL) {
-                SIM_LOG_ERROR(obj, 0, "Failed to create SDL surface (screen)");
+                SIM_LOG_ERROR(obj, 0, "Failed to create SDL surface (screen): %s", SDL_GetError());
                 goto end;
         }
 
         /* Create a separate thread to refresh SDL GUI window */
         sample->refresh_active = true;
         sample->refresh_thread = SDL_CreateThread(graph16_refresh_screen, "graph16 refresh screen thread", (void *)sample);
-        ASSERT(sample->refresh_thread);
+        if (sample->refresh_thread == NULL) {
+                SIM_LOG_ERROR(obj, 0, "Failed to create SDL thread: %s", SDL_GetError());
+                goto end;
+        }
 
         end:
 
@@ -730,7 +734,7 @@ graph16_read_memory (graph16_t *core, int mem_switch, physical_address_t phys_ad
         return true;
 }
 
-int
+bool
 graph16_draw_sprite (graph16_t *core, graph16_sprite_t *sprite)
 {
         int ret = 0;
@@ -790,7 +794,7 @@ graph16_draw_sprite (graph16_t *core, graph16_sprite_t *sprite)
         return true;
 }
 
-int
+bool
 graph16_update_screen (graph16_t *core)
 {
         int ret = 0;
@@ -803,6 +807,10 @@ graph16_update_screen (graph16_t *core)
                 SIM_LOG_ERROR(graph16_to_conf(core), 0,
                              "failed to read from video memory");
                 return false;
+        }
+
+        if (core->screen == NULL) {
+                return true;            // There is no screen
         }
 
         uint32 *pixels = core->screen->pixels;
@@ -870,7 +878,8 @@ graph16_refresh_screen(void *arg)
         ASSERT(core);
 
         /* TODO proper locking of core should be implemented */
-        if (!core->renderer) return 0;
+        if (!core->renderer)
+                return 0;
         while (core->refresh_active) {
                 while (SDL_PollEvent(&event));
                 SDL_Delay(1000);
