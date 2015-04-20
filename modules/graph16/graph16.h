@@ -6,8 +6,15 @@
 #include <simics/model-iface/memory-page.h>
 
 #include "include/SDL2/SDL.h"
+#include "include/SDL2/SDL_thread.h"
+
+#define SCREEN_W 320
+#define SCREEN_H 240
 
 #define PAL_SIZE 16
+
+#define PHYS_MEM  0
+#define VIDEO_MEM 1
 
 typedef struct {
         uint8 opcode;
@@ -16,11 +23,18 @@ typedef struct {
 } graph16_instr_t;
 
 typedef struct {
-        uint8 x;
-        uint8 y;
+        uint16 x;
+        uint16 y;
         uint16 addr;
 
 } graph16_sprite_t;
+
+typedef struct {
+        uint8 R;
+        uint8 G;
+        uint8 B;
+
+} graph16_pal_item;
 
 typedef enum {
         DRW_op  = 0,
@@ -59,25 +73,45 @@ typedef struct {
         bool    hflip;          // (Boolean) Flip sprite(s) to draw, horizontally
         bool    vflip;          // (Boolean) Flip sprite(s) to draw, vertically
 
-        uint32 palette[PAL_SIZE];    // 1 colour in palette is coded like [00RRGGBB]
+        graph16_pal_item palette[PAL_SIZE];
 
-        graph16_sprite_t sprite;
 
         graph16_instr_t instruction;
 
         uint32 temp[24];
 
+        // SDL objects
         SDL_Window *window;
+
+        SDL_Surface  *screen;
+        SDL_Texture  *texture;
+        SDL_Renderer *renderer;
+
+        SDL_Thread *refresh_thread;
+        bool refresh_active;
 
 } graph16_t;
 
 int delete_instance(conf_object_t *obj);
 
-static void
-simple_method(conf_object_t *obj, int arg);
+static void simple_method(conf_object_t *obj, int arg);
 
-static inline graph16_t *
-conf_to_graph16(conf_object_t *obj)
+bool graph16_draw_sprite (graph16_t *core, graph16_sprite_t *sprite);
+
+bool graph16_update_screen (graph16_t *core);
+
+static inline graph16_t * conf_to_graph16(conf_object_t *obj)
 {
         return SIM_object_data(obj);
 }
+
+static inline conf_object_t * graph16_to_conf(graph16_t *sr)
+{
+        return &sr->obj;
+}
+
+bool graph16_write_memory (graph16_t *core, int mem_switch, physical_address_t phys_address,
+                    physical_address_t len, uint8 *data);
+
+bool graph16_read_memory (graph16_t *core, int mem_switch, physical_address_t phys_address,
+                   physical_address_t len, uint8 *data);

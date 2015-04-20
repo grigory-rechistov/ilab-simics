@@ -16,7 +16,7 @@ ram_image0.size = 0x10000
 
 video_image = pre_conf_object(name_prefix + "video_image", "image")
 video_image.queue = chip0
-video_image.size = 0x10000
+video_image.size = (320 / 2) *240
 
 ram0 = pre_conf_object(name_prefix + "ram0", "ram")
 ram0.image = ram_image0
@@ -54,7 +54,7 @@ phys_mem0.map = [[0x0,    ram0,     0, 0, 0xfff0],
 
 video_mem = pre_conf_object(name_prefix + "video_mem", "memory-space")
 video_mem.queue = chip0
-video_mem.map = [[0x0,  video_ram, 0, 0, 0x10000]]
+video_mem.map = [[0x0,  video_ram, 0, 0, video_image.size]]
 
 ctx0 = pre_conf_object(name_prefix + "ctx0", "context")
 ctx0.queue = chip0
