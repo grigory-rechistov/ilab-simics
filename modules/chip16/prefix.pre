@@ -8,6 +8,13 @@
 #include "chip16.h"
 #include "chip16-memory.h"
 
+/* Istruction fields:
+ *
+ *           31   28 27   24 23   20 19   16 15   12 11    8 7     4 3     0
+ *          |-------|-------|-------|-------|-------|-------|-------|-------|
+ *          |    opcode     |   Y   |   X   |      LL       |      HH       |
+ */
+
 /*
  * Flags mapping:
  *
@@ -51,3 +58,8 @@ typedef struct {
 
 int chip16_decode(int32_t instr, chip16_decode_data_t decode_data);
 char* chip16_disasm(int32_t instr, chip16_decode_data_t decode_data);
+
+static inline uint16_t
+calc_uimm(uint16 hh, uint16 ll, chip16_t *core) {
+        return (uint16_t) (hh<<8) | ll;
+}

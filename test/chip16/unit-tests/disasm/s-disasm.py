@@ -48,10 +48,10 @@ def test_disasm(cpu):
         paddr = 0
         cpu.pc = paddr
 
-        print "writing 'snd1 0x1234'..."
-        chip16_write_phys_memory_BE(cpu, paddr, 0x0A003412, 4)
-        stest.expect_equal('p:0x0000  snd1 0x1234', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
-        print "'snd1 0x1234' is OK."
+        print "writing 'snd1 16'..."
+        chip16_write_phys_memory_BE(cpu, paddr, 0x0A001000, 4)
+        stest.expect_equal('p:0x0000  snd1 16', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'snd1 16' is OK."
         print "}"
         print " "
 #------------------------------------------------------------------------------#
@@ -65,10 +65,10 @@ def test_disasm(cpu):
         paddr = 0
         cpu.pc = paddr
 
-        print "writing 'snd2 0x1234'..."
-        chip16_write_phys_memory_BE(cpu, paddr, 0x0B003412, 4)
-        stest.expect_equal('p:0x0000  snd2 0x1234', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
-        print "'snd2 0x1234' is OK."
+        print "writing 'snd2 16'..."
+        chip16_write_phys_memory_BE(cpu, paddr, 0x0B001000, 4)
+        stest.expect_equal('p:0x0000  snd2 16', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'snd2 16' is OK."
         print "}"
         print " "
 #------------------------------------------------------------------------------#
@@ -82,10 +82,10 @@ def test_disasm(cpu):
         paddr = 0
         cpu.pc = paddr
 
-        print "writing 'snd3 0x1234'..."
-        chip16_write_phys_memory_BE(cpu, paddr, 0x0C003412, 4)
-        stest.expect_equal('p:0x0000  snd3 0x1234', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
-        print "'snd3 0x1234' is OK."
+        print "writing 'snd3 16'..."
+        chip16_write_phys_memory_BE(cpu, paddr, 0x0C001000, 4)
+        stest.expect_equal('p:0x0000  snd3 16', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'snd3 16' is OK."
         print "}"
         print " "
 #------------------------------------------------------------------------------#
@@ -241,11 +241,14 @@ def test_disasm(cpu):
         print "'negi r10, 0xdead' is OK."
         print " "
 
+        # from http://www.cplusplus.com/reference/cstdio/printf/
+        # "#" Used with o, x or X specifiers the value is preceeded with
+        #  0, 0x or 0X respectively for values ---> different than zero <---
         print "writing 'negi r0, 0x0'..."
         paddr += 4
         cpu.pc = paddr
         chip16_write_phys_memory_BE(cpu, paddr, 0xE3000000, 4)
-        stest.expect_equal('p:0x0004  negi r0, 0x0000', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        stest.expect_equal('p:0x0004  negi r0, 000000', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
         print "'negi r0, 0x0' is OK."
         print " "
         print " "

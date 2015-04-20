@@ -26,6 +26,9 @@
 #include "event-queue-types.h"
 #include "chip16-exec.h"
 
+/* fixed size instructions of 4 bytes */
+#define INSTR_SIZE 4
+
 #define NUMB_OF_REGS 16
 
 struct chip16;
