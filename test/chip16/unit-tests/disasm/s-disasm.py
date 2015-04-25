@@ -587,10 +587,14 @@ def test_disasm(cpu):
         paddr = 0
         cpu.pc = paddr
 
-        print "writing 'Cx 0x3, 0xdead'..."
-        chip16_write_phys_memory_BE(cpu, paddr, 0x1703adde, 4)
-        stest.expect_equal('p:0x0000  Cx 0x3, 0xdead', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
-        print "'Cx 0x3, 0xdead' is OK."
+        print "writing 'cn 0xdead'..."
+        chip16_write_phys_memory_BE(cpu, paddr, 0x1702adde, 4)
+        stest.expect_equal('p:0x0000  cn 0xdead', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'cn 0xdead' is OK."
+        print "writing 'cle 0xdead'..."
+        chip16_write_phys_memory_BE(cpu, paddr, 0x170eadde, 4)
+        stest.expect_equal('p:0x0000  cle 0xdead', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'cle 0xdead' is OK."
         print "}"
         print " "
 #------------------------------------------------------------------------------#
@@ -683,10 +687,14 @@ def test_disasm(cpu):
         paddr = 0
         cpu.pc = paddr
 
-        print "writing 'jx 0x3, 0xf000'..."
-        chip16_write_phys_memory_BE(cpu, paddr, 0x120300f0, 4)
-        stest.expect_equal('p:0x0000  jx 0x3, 0xf000', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
-        print "'jx 0x3, 0xf000' is OK."
+        print "writing 'jz 0xf000'..."
+        chip16_write_phys_memory_BE(cpu, paddr, 0x120000f0, 4)
+        stest.expect_equal('p:0x0000  jz 0xf000', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'jz 0xf000' is OK."
+        print "writing 'jge 0xf000'..."
+        chip16_write_phys_memory_BE(cpu, paddr, 0x120c00f0, 4)
+        stest.expect_equal('p:0x0000  jge 0xf000', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'jge 0xf000' is OK."
         print "}"
         print " "
 #------------------------------------------------------------------------------#

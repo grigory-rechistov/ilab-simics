@@ -296,7 +296,7 @@ endinstruction
 
 instruction: Jx_HHLL
 pattern: opcode == 0x12 && x != 0xf && y == 0
-mnemonic: "jx 0x%x, %#06x", x, uimm
+mnemonic: "j%s %#06x", conditional_types[x], uimm
 attributes: branch
 if (chip16_check_conditional_code(decode_data.cpu, x))
     chip16_set_pc(decode_data.cpu, uimm);
@@ -343,7 +343,7 @@ endinstruction
 
 instruction: Cx_HHLL
 pattern: opcode == 0x17 && x != 0xf && y == 0
-mnemonic: "Cx 0x%x, %#06x", x, uimm
+mnemonic: "c%s %#06x", conditional_types[x], uimm
 attributes: branch
 if (chip16_check_conditional_code(core, x)){
     chip16_write_memory16(

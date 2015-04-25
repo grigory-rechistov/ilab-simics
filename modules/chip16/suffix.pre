@@ -1,1 +1,20 @@
 // suffix part
+
+/* THREAD_SAFE_GLOBAL: conditional_types init */
+const char *conditional_types[15] = {
+    "z",
+    "nz",
+    "n",
+    "nn",
+    "p",
+    "o",
+    "no",
+    "a",
+    "ae",
+    "b",
+    "be",
+    "g",
+    "ge",
+    "l",
+    "le"
+};

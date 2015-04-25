@@ -394,9 +394,7 @@ class Pattern:
         return "/* instruction %s */\n%s;" % (self.name, self.semantics)
 
     def to_mnemonic(self):
-        # TODO implement me
         return 'snprintf(res, 128, %s);' % self.mnemonic
-        pass
 
 class ParseTree:
     ''' A tree node to represent search sequence'''

@@ -208,6 +208,24 @@ conf_to_chip16(conf_object_t *obj)
 void chip16_cycle_event_posted(chip16_t *sr);
 void chip16_step_event_posted(chip16_t *sr);
 
+typedef enum {
+        Cond_Eq             = 0x0,
+        Cond_NotEq          = 0x1,
+        Cond_Neg            = 0x2,
+        Cond_NotNeg         = 0x3,
+        Cond_Pos            = 0x4,
+        Cond_Ovf            = 0x5,
+        Cond_NoOvf          = 0x6,
+        Cond_Above          = 0x7, // Unsigned Greater
+        Cond_AboveEq        = 0x8, // Unsigned Greater or Equal
+        Cond_Below          = 0x9, // Unsigned Less
+        Cond_BelowEq        = 0xa, // Unsigned Less or Equal
+        Cond_Greater        = 0xb,
+        Cond_GreaterOrEq    = 0xc,
+        Cond_Less           = 0xd,
+        Cond_LessOrEq       = 0xe
+} chip16_cond_code_t;
+
 bool chip16_check_conditional_code(chip16_t *core, uint8 x);
 
 /* Functions called before or after an execution of an instruction */
