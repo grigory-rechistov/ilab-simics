@@ -507,9 +507,9 @@ class ParseTree:
         result += padding + "if (%s) {\n" % self.constraint.to_code()
         if self.instr is not None:
             if not disassembly:
-                result += padding + 'prologue(decode_data.cpu);\n'
+                result += " " * (shift + 4) + 'prologue(decode_data);\n'
                 result += self.produce_semantics(self.instr, shift + 4)
-                result += padding
+                result += " " * (shift + 4)
                 if self.instr.attributes['branch']:
                     result += 'branch_'
                 result += 'epilogue(decode_data.cpu);\n'

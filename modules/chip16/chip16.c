@@ -1037,12 +1037,6 @@ chip16_check_conditional_code(chip16_t *core, uint8 x)
 }
 
 void
-prologue(chip16_t *core)
-{
-        // do nothing
-}
-
-void
 epilogue(chip16_t *core)
 {
         INCREMENT_PC(core);

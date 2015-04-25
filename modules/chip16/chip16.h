@@ -211,8 +211,9 @@ void chip16_step_event_posted(chip16_t *sr);
 bool chip16_check_conditional_code(chip16_t *core, uint8 x);
 
 /* Functions called before or after an execution of an instruction */
-void prologue(chip16_t *core); // default
 void epilogue(chip16_t *core); // default
 void branch_epilogue(chip16_t *core); // after calls and jumps
+#define prologue(decode_data) \
+    UNUSED chip16_t *core = decode_data.cpu
 
 #endif /* CHIP16 */
