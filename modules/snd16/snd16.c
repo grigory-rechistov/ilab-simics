@@ -104,11 +104,20 @@ operation (conf_object_t *obj, generic_transaction_t *mop, map_info_t info)
                 case State_waiting_new_op:
                         if (snd->mop_var == SND)
                                 {
-                                if (SND_WAVE_TYPE == Audio_Meandre)
-                                        {
+                                switch (SND_WAVE_TYPE)
+                                {
+                                case Audio_Meandre:
                                         snd->audio_params.wave_type = Audio_Meandre;
                                         snd->audio_params.sign      = 1;
-                                        }
+                                        break;
+
+                                case Audio_Noise:
+                                        snd->audio_params.wave_type = Audio_Noise;
+                                        break;
+
+                                default:
+                                        ASSERT(!"wrong debug define wave_type");
+                                }
 
                                 snd->audio_params.sdl_vol   = SDL_VOL;
                                 snd->audio_params.phase     = 0;
