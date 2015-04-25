@@ -92,6 +92,23 @@ def test_disasm(cpu):
 
 
 #------------------------------------------------------------------------------#
+        print "SNP_[RX]_HHLL_disasm_unit-test:"
+#------------------------------------------------------------------------------#
+        print "{"
+
+        paddr = 0
+        cpu.pc = paddr
+
+        print "writing 'snp [r1], 7500'..."
+        chip16_write_phys_memory_BE(cpu, paddr, 0x0D014C1D, 4)
+        stest.expect_equal('p:0x0000  snp [r1], 7500', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'snp [r1], 7500' is OK."
+        print "}"
+        print " "
+#------------------------------------------------------------------------------#
+
+
+#------------------------------------------------------------------------------#
         print "LDI_SP_disasm_unit-test:"
 #------------------------------------------------------------------------------#
         print "{"

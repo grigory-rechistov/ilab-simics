@@ -7,7 +7,7 @@ typedef enum snd16_states
         {
         State_waiting_new_op = 0,
 
-        State_waiting_op_after_snd,   // and snp too
+        State_waiting_op_after_snd,   // TODO: actually snp connected with sng_advt
         State_after_freq,
 
         State_waiting_op_after_sng,

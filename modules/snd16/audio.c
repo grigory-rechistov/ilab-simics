@@ -12,6 +12,8 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <limits.h>
+#include <simics/util/help-macros.h>
 
 #include "include/SDL2/SDL.h"
 #include "audio.h"
@@ -39,7 +41,7 @@ static void silence (void* userdata, uint8_t* stream, int len_raw, bool advance_
         };
 */
 
-// Fill stream with meandre (rectangular waveform)
+// fill stream with meandre (rectangular waveform)
 // IN:  userdata        - converted to audio_params, current phase and parameters
 // IN:  len_raw         - length in bytes, NOT samples!
 // OUT: userdata        - phase and waveform-specfic state updated
@@ -85,6 +87,32 @@ static void meandre (void* userdata, uint8_t* stream, int len_raw)
         ap->phase += silent_samples;
         // save flag for the next invocation
         ap->sign = sign;
+        }
+
+// fill stream with noise
+static void noise (void* userdata, uint8_t* stream, int len_raw)
+        {
+        int len = len_raw / 2; /* 16 bit */
+
+        assert (userdata);
+        audio_params_t *ap = (audio_params_t*)userdata;
+
+        // assert (ap->limit > ap->phase);
+        int16_t* buf = (int16_t*)stream;
+        // int newlen = ap->limit - ap->phase;
+
+        int silent_samples = 0;
+
+        // checking for future integers overflow
+        CASSERT_STMT (RAND_MAX <= (LONG_MAX / 2));
+        for (int i = 0; i < len; i++)
+                {
+                buf[i] = (int16_t)((long)ap->sdl_vol * (2 * rand() - RAND_MAX) / RAND_MAX);
+                ap->phase++;
+                }
+
+        // account for samples spent for silence
+        ap->phase += silent_samples;
         }
 
 
@@ -138,6 +166,11 @@ void waveform_callback(void* userdata, uint8_t* stream, int len_raw)
                         case Audio_Meandre:
                                 meandre (userdata, stream, len_raw);
                                 break;
+
+                        case Audio_Noise:
+                                noise (userdata, stream, len_raw);
+                                break;
+
                         default:
                                 assert (0 && "unimplemented waveform");
                         }

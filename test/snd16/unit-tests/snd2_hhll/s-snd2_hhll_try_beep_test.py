@@ -4,6 +4,7 @@ import stest
 import time
 
 cli.run_command("run-python-file %s/test/chip16-setup.py" % conf.sim.workspace)
+cli.run_command("enable-real-time-mode")
 
 def test_snd1_hhll_availability(cpu):
         paddr = 0
@@ -13,6 +14,10 @@ def test_snd1_hhll_availability(cpu):
         # play 1000Hz tone for 0x0064 ms
         chip16_write_phys_memory_BE(cpu, paddr, 0x0B006400, 4)
         SIM_continue(1)
+        cpu.core_enabled = False
+        SIM_run_command("continue-seconds 0.1")
+        cpu.core_enabled = True
+
 
         #check cpu things
         print "SND2_HHLL_test-1: checking cpu.pc..."
