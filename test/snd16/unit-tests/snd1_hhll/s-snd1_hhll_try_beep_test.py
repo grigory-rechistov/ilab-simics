@@ -3,15 +3,20 @@
 import stest
 
 cli.run_command("run-python-file %s/test/chip16-setup.py" % conf.sim.workspace)
+cli.run_command("enable-real-time-mode")
 
 def test_snd1_hhll_availability(cpu):
         paddr = 0
         cpu.pc = paddr;
 
         # SND1_HHLL
-        # play 500Hz tone for 0x1234 ms
-        chip16_write_phys_memory_BE(cpu, paddr, 0x0A003412, 4)
+        # play 500Hz tone for 0x64=100 ms
+        chip16_write_phys_memory_BE(cpu, paddr, 0x0A006400, 4)
         SIM_continue(1)
+        cpu.core_enabled = False
+        SIM_run_command("continue-seconds 0.1")
+        cpu.core_enabled = True
+
 
         #check cpu things
         print "SND1_HHLL_test-1: checking cpu.pc..."
@@ -26,7 +31,7 @@ def test_snd1_hhll_availability(cpu):
         print ""
 
         print "SND1_HHLL_test-1: checking time limit..."
-        stest.expect_equal(conf.snd0.limit, 0x1234)
+        stest.expect_equal(conf.snd0.limit, 0x64)
         print "SND1_HHLL_test-1: time limit is OK."
         print ""
 
