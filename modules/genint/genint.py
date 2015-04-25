@@ -394,9 +394,7 @@ class Pattern:
         return "/* instruction %s */\n%s;" % (self.name, self.semantics)
 
     def to_mnemonic(self):
-        # TODO implement me
         return 'snprintf(res, 128, %s);' % self.mnemonic
-        pass
 
 class ParseTree:
     ''' A tree node to represent search sequence'''
@@ -507,9 +505,9 @@ class ParseTree:
         result += padding + "if (%s) {\n" % self.constraint.to_code()
         if self.instr is not None:
             if not disassembly:
-                result += padding + 'prologue(decode_data.cpu);\n'
+                result += " " * (shift + 4) + 'prologue(decode_data);\n'
                 result += self.produce_semantics(self.instr, shift + 4)
-                result += padding
+                result += " " * (shift + 4)
                 if self.instr.attributes['branch']:
                     result += 'branch_'
                 result += 'epilogue(decode_data.cpu);\n'

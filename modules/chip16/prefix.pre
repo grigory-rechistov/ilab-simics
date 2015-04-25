@@ -50,6 +50,7 @@
 // devices memory mapping:
 #define SND_MEM_ADDR    0xFFF4
 
+extern const char *conditional_types[15];
 
 typedef struct {
     logical_address_t pc; /* Address of instruction being processed */
