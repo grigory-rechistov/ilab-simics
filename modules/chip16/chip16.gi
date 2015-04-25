@@ -56,6 +56,16 @@ chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR,   1500);
 chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR,   uimm);
 endinstruction
 
+instruction: SNP
+pattern: opcode == 0x0d && y == 0
+mnemonic: "snp [r%d], %d", x, uimm
+// snp (command word: 0, 2) - play tone from [RX] for HHLL ms.
+chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR, 0x0002);
+uint16_t freq = chip16_read_memory16 (core, core->chip16_reg[x], core->chip16_reg[x]);
+chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR, freq);
+chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR, uimm);
+endinstruction
+
 instruction: ADDI
 pattern: opcode == 0x40 && y == 0
 mnemonic: "addi r%d, %#06x", x, uimm
