@@ -89,6 +89,32 @@ else
     CLR_NEG(core->flags);
 endinstruction
 
+instruction: ADD_XY
+pattern: opcode == 0x41 && uimm == 0
+mnemonic: "add r%d, r%d", x, y
+uint32 X = core->chip16_reg[x];
+uint32 Y = core->chip16_reg[y];
+uint32 res = X + Y;
+core->chip16_reg[x] = res;
+if (BIT_16(res) == 1)
+    SET_CARRY(core->flags);
+else
+    CLR_CARRY(core->flags);
+if (BIT_15(core->chip16_reg[x]) == 1)
+    SET_NEG(core->flags);
+else
+    CLR_NEG(core->flags);
+if (core->chip16_reg[x] == 0)
+    SET_ZERO(core->flags);
+else
+    CLR_ZERO(core->flags);
+if (((BIT_15(X) == 0) && (BIT_15(Y) == 0) && (BIT_15(core->chip16_reg[x]) == 1)) ||
+    ((BIT_15(X) == 1) && (BIT_15(Y) == 1) && (BIT_15(core->chip16_reg[x]) == 0)))
+    SET_OVRFLW(core->flags);
+else
+    CLR_OVRFLW(core->flags);
+endinstruction
+
 instruction: ADD_XYZ
 pattern: opcode == 0x42 && clr1 == 0 && clr2 == 0
 mnemonic: "add r%d, r%d, r%d", x, y, z
