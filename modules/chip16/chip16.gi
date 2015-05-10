@@ -147,7 +147,7 @@ core->chip16_reg[x] = core->chip16_reg[y];
 endinstruction
 
 instruction: STM_XY
-pattern: opcode == 0x31 && hh == 0 && ll == 0
+pattern: opcode == 0x31 && uimm == 0
 mnemonic: "stm r%d, r%d", x, y
 chip16_write_memory16(core, core->chip16_reg[y], 
         core->chip16_reg[y], core->chip16_reg[x]);
@@ -185,7 +185,7 @@ for (int i = 0; i < NUMB_OF_REGS; i++) {
 endinstruction
 
 instruction: DIV
-pattern: opcode == 0xa1 && hh == 0 && ll == 0
+pattern: opcode == 0xa1 && uimm == 0
 mnemonic: "div r%d, r%d", x, y
 uint16 res;
 if (core->chip16_reg[y] != 0) {
@@ -239,7 +239,7 @@ else {
 endinstruction
 
 instruction: NEG_XY
-pattern: opcode == 0xe5 && hh == 0 && ll == 0
+pattern: opcode == 0xe5 && uimm == 0
 mnemonic: "neg r%d, r%d", x, y
 core->chip16_reg[x] = ~(core->chip16_reg[y]) + 1;
 if (core->chip16_reg[x] != 0) {
@@ -277,7 +277,7 @@ else SIM_LOG_INFO(1, core->obj, 0, "Dividing by zero!\n");
 endinstruction
 
 instruction: XOR_XY
-pattern: opcode == 0x81 && hh == 0 && ll == 0
+pattern: opcode == 0x81 && uimm == 0
 mnemonic: "xor r%d, r%d", x, y
 uint16 res;
 core->chip16_reg[x] = res = core->chip16_reg[x] ^ core->chip16_reg[y];
@@ -365,7 +365,7 @@ chip16_set_pc(core, tmp);
 endinstruction
 
 instruction: JMP_X
-pattern: opcode == 0x16 && y == 0 && hh == 0 && ll == 0
+pattern: opcode == 0x16 && y == 0 && uimm == 0
 mnemonic: "jmp r%d", x
 attributes: branch
 chip16_set_pc(core, core->chip16_reg[x]);
@@ -387,7 +387,7 @@ if (chip16_check_conditional_code(core, x)){
 endinstruction
 
 instruction: CALL_X
-pattern: opcode == 0x18 && y == 0 && hh == 0 && ll == 0
+pattern: opcode == 0x18 && y == 0 && uimm == 0
 mnemonic: "call r%d", x
 attributes: branch
 chip16_write_memory16(
@@ -410,7 +410,7 @@ chip16_write_memory16(
 endinstruction
 
 instruction: POP
-pattern: opcode == 0xc1 && y == 0 && hh == 0 && ll == 0
+pattern: opcode == 0xc1 && y == 0 && uimm == 0
 mnemonic: "pop r%d", x
 chip16_set_sp(core, chip16_get_sp(core) - 2);
 chip16_read_memory(
@@ -443,7 +443,7 @@ else
 endinstruction
 
 instruction: NOT_X
-pattern: opcode == 0xe1 && y == 0 && hh == 0 && ll == 0
+pattern: opcode == 0xe1 && y == 0 && uimm == 0
 mnemonic: "not r%d", x
 core->chip16_reg[x] = ~core->chip16_reg[x];
 if (BIT_15(core->chip16_reg[x]) == 1)
@@ -457,7 +457,7 @@ else
 endinstruction
 
 instruction: NEG_X
-pattern: opcode == 0xe4 && y == 0 && hh == 0 && ll == 0
+pattern: opcode == 0xe4 && y == 0 && uimm == 0
 mnemonic: "neg r%d", x
 core->chip16_reg[x] = ~core->chip16_reg[x] + 1;
 if (BIT_15(core->chip16_reg[x]) == 1)
@@ -471,7 +471,7 @@ else
 endinstruction
 
 instruction: SUB_XY
-pattern: opcode == 0x51 && hh == 0 && ll == 0
+pattern: opcode == 0x51 && uimm == 0
 mnemonic: "sub r%d, r%d", x, y
 uint16 X = core->chip16_reg[x];
 uint16 Y = core->chip16_reg[y];
@@ -509,7 +509,7 @@ else
 endinstruction
 
 instruction: TST_XY
-pattern: opcode == 0x64 && hh == 0 && ll == 0
+pattern: opcode == 0x64 && uimm == 0
 mnemonic: "tst r%d, r%d", x, y
 core->chip16_reg[x] = core->chip16_reg[x] & core->chip16_reg[y];
 if (core->chip16_reg[x] == 0)
@@ -523,7 +523,7 @@ else
 endinstruction
 
 instruction: OR_XY
-pattern: opcode == 0x71 && hh == 0 && ll == 0
+pattern: opcode == 0x71 && uimm == 0
 mnemonic: "or r%d, r%d", x, y
 core->chip16_reg[x] = core->chip16_reg[x] | core->chip16_reg[y];
 if (BIT_15(core->chip16_reg[x]) == 1)
