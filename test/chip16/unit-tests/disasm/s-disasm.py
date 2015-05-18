@@ -124,6 +124,25 @@ def test_disasm(cpu):
         print " "
 #------------------------------------------------------------------------------#
 
+#------------------------------------------------------------------------------#
+        print "LDM_disasm_unit-test:"
+#------------------------------------------------------------------------------#
+        print "{"
+
+        paddr = 0
+        cpu.pc = paddr
+
+        print "writing 'ldm r1, 0x1234'..."
+        chip16_write_phys_memory_BE(cpu, paddr, 0x22013412, 4)
+        stest.expect_equal('p:0x0000  ldm r1, 0x1234', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'ldm r1, 0x1234' is OK."
+        print "writing 'ldm r1, r5'..."
+        chip16_write_phys_memory_BE(cpu, paddr, 0x23510000, 4)
+        stest.expect_equal('p:0x0000  ldm r1, r5', conf.chip0.iface.processor_cli.get_disassembly("p", conf.chip0.pc, False, None)[1])
+        print "'ldm r1, r5' is OK."
+        print "}"
+        print " "
+#------------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------#
         print "MOV_disasm_unit-test:"

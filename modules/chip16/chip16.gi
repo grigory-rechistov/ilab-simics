@@ -14,12 +14,6 @@ mnemonic: "nop"
 /*Nop do nothing*/
 endinstruction
 
-instruction: MOV
-pattern: opcode == 0x24 && hh == 0 && ll == 0 
-mnemonic: "mov r%d, r%d", x, y
-decode_data.cpu->chip16_reg[x] = decode_data.cpu->chip16_reg[y];
-endinstruction
-
 instruction: SND0
 pattern: op32 == 0x09000000
 mnemonic: "snd0"
@@ -69,30 +63,56 @@ endinstruction
 instruction: ADDI
 pattern: opcode == 0x40 && y == 0
 mnemonic: "addi r%d, %#06x", x, uimm
-uint16 tmp = decode_data.cpu->chip16_reg[x];
-uint32 res = decode_data.cpu->chip16_reg[x] + uimm;
-decode_data.cpu->chip16_reg[x] += uimm;
+uint16 tmp = core->chip16_reg[x];
+uint32 res = core->chip16_reg[x] + uimm;
+core->chip16_reg[x] += uimm;
 if (BIT_16(res) == 1)
-    SET_CARRY(decode_data.cpu->flags);
+    SET_CARRY(core->flags);
 else
-    CLR_CARRY(decode_data.cpu->flags);
+    CLR_CARRY(core->flags);
 
-if (decode_data.cpu->chip16_reg[x] == 0)
-    SET_ZERO(decode_data.cpu->flags);
+if (core->chip16_reg[x] == 0)
+    SET_ZERO(core->flags);
 else
-    CLR_ZERO(decode_data.cpu->flags);
+    CLR_ZERO(core->flags);
 
 if (((BIT_15(tmp) == 0) && (BIT_15(uimm) == 0) && (BIT_15(res) == 1)) ||
     ((BIT_15(tmp) == 1) && (BIT_15(uimm) == 1) && (BIT_15(res) == 0)))
 
-    SET_OVRFLW(decode_data.cpu->flags);
+    SET_OVRFLW(core->flags);
 else
-    CLR_OVRFLW(decode_data.cpu->flags);
+    CLR_OVRFLW(core->flags);
 
 if (BIT_15(res) == 1)
-    SET_NEG(decode_data.cpu->flags);
+    SET_NEG(core->flags);
 else
-    CLR_NEG(decode_data.cpu->flags);
+    CLR_NEG(core->flags);
+endinstruction
+
+instruction: ADD_XY
+pattern: opcode == 0x41 && uimm == 0
+mnemonic: "add r%d, r%d", x, y
+uint32 X = core->chip16_reg[x];
+uint32 Y = core->chip16_reg[y];
+uint32 res = X + Y;
+core->chip16_reg[x] = res;
+if (BIT_16(res) == 1)
+    SET_CARRY(core->flags);
+else
+    CLR_CARRY(core->flags);
+if (BIT_15(core->chip16_reg[x]) == 1)
+    SET_NEG(core->flags);
+else
+    CLR_NEG(core->flags);
+if (core->chip16_reg[x] == 0)
+    SET_ZERO(core->flags);
+else
+    CLR_ZERO(core->flags);
+if (((BIT_15(X) == 0) && (BIT_15(Y) == 0) && (BIT_15(core->chip16_reg[x]) == 1)) ||
+    ((BIT_15(X) == 1) && (BIT_15(Y) == 1) && (BIT_15(core->chip16_reg[x]) == 0)))
+    SET_OVRFLW(core->flags);
+else
+    CLR_OVRFLW(core->flags);
 endinstruction
 
 instruction: ADD_XYZ
@@ -120,17 +140,43 @@ else
     CLR_OVRFLW(core->flags);
 endinstruction
 
+instruction: LDI_X
+pattern: opcode == 0x20 && y == 0
+mnemonic: "ldi r%d, %#06x", x, uimm
+core->chip16_reg[x] = uimm;
+endinstruction 
+
 instruction: LDI_SP
 pattern: opcode == 0x21 && x == 0 && y == 0
 mnemonic: "ldi sp, %#06x", uimm
-chip16_set_sp(decode_data.cpu, (uint64_t) uimm);
+chip16_set_sp(core, (uint64_t) uimm);
+endinstruction
+
+instruction: LDM_X
+pattern: opcode == 0x22 && y == 0
+mnemonic: "ldm r%d, %#06x", x, uimm
+core->chip16_reg[x] = chip16_read_memory16(core, uimm, uimm);
+endinstruction
+
+instruction: LDM_XY
+pattern: opcode == 0x23 && uimm == 0
+mnemonic: "ldm r%d, r%d", x, y
+core->chip16_reg[x] = chip16_read_memory16(core, 
+        core->chip16_reg[y], 
+        core->chip16_reg[y]);
+endinstruction
+
+instruction: MOV
+pattern: opcode == 0x24 && uimm == 0
+mnemonic: "mov r%d, r%d", x, y
+core->chip16_reg[x] = core->chip16_reg[y];
 endinstruction
 
 instruction: STM_XY
-pattern: opcode == 0x31 && hh == 0 && ll == 0
+pattern: opcode == 0x31 && uimm == 0
 mnemonic: "stm r%d, r%d", x, y
-chip16_write_memory16(decode_data.cpu, decode_data.cpu->chip16_reg[y], 
-        decode_data.cpu->chip16_reg[y], decode_data.cpu->chip16_reg[x]);
+chip16_write_memory16(core, core->chip16_reg[y], 
+        core->chip16_reg[y], core->chip16_reg[x]);
 endinstruction
 
 instruction: MULI_X
@@ -165,7 +211,7 @@ for (int i = 0; i < NUMB_OF_REGS; i++) {
 endinstruction
 
 instruction: DIV
-pattern: opcode == 0xa1 && hh == 0 && ll == 0
+pattern: opcode == 0xa1 && uimm == 0
 mnemonic: "div r%d, r%d", x, y
 uint16 res;
 if (core->chip16_reg[y] != 0) {
@@ -219,7 +265,7 @@ else {
 endinstruction
 
 instruction: NEG_XY
-pattern: opcode == 0xe5 && hh == 0 && ll == 0
+pattern: opcode == 0xe5 && uimm == 0
 mnemonic: "neg r%d, r%d", x, y
 core->chip16_reg[x] = ~(core->chip16_reg[y]) + 1;
 if (core->chip16_reg[x] != 0) {
@@ -257,7 +303,7 @@ else SIM_LOG_INFO(1, core->obj, 0, "Dividing by zero!\n");
 endinstruction
 
 instruction: XOR_XY
-pattern: opcode == 0x81 && hh == 0 && ll == 0
+pattern: opcode == 0x81 && uimm == 0
 mnemonic: "xor r%d, r%d", x, y
 uint16 res;
 core->chip16_reg[x] = res = core->chip16_reg[x] ^ core->chip16_reg[y];
@@ -293,31 +339,31 @@ instruction: JMP_HHLL
 pattern: opcode == 0x10 && x == 0 && y == 0
 mnemonic: "jmp %#06x", uimm
 attributes: branch
-chip16_set_pc(decode_data.cpu, uimm);
+chip16_set_pc(core, uimm);
 endinstruction
 
 instruction: JMC_HHLL
 pattern: opcode == 0x11 && x == 0 && y == 0
 mnemonic: "jmc %#06x", uimm
 attributes: branch
-if (decode_data.cpu->flags.map.C)
-    chip16_set_pc(decode_data.cpu, uimm);
+if (core->flags.map.C)
+    chip16_set_pc(core, uimm);
 endinstruction
 
 instruction: Jx_HHLL
 pattern: opcode == 0x12 && x != 0xf && y == 0
 mnemonic: "j%s %#06x", conditional_types[x], uimm
 attributes: branch
-if (chip16_check_conditional_code(decode_data.cpu, x))
-    chip16_set_pc(decode_data.cpu, uimm);
+if (chip16_check_conditional_code(core, x))
+    chip16_set_pc(core, uimm);
 endinstruction
 
 instruction: JME_XY_HHLL
 pattern: opcode == 0x13
 mnemonic: "jme r%d, r%d, %#06x", x, y, uimm
 attributes: branch
-if (decode_data.cpu->chip16_reg[x] == decode_data.cpu->chip16_reg[y])
-    chip16_set_pc(decode_data.cpu, uimm);
+if (core->chip16_reg[x] == core->chip16_reg[y])
+    chip16_set_pc(core, uimm);
 endinstruction
 
 instruction: CALL_HHLL
@@ -345,10 +391,10 @@ chip16_set_pc(core, tmp);
 endinstruction
 
 instruction: JMP_X
-pattern: opcode == 0x16 && y == 0 && hh == 0 && ll == 0
+pattern: opcode == 0x16 && y == 0 && uimm == 0
 mnemonic: "jmp r%d", x
 attributes: branch
-chip16_set_pc(decode_data.cpu, decode_data.cpu->chip16_reg[x]);
+chip16_set_pc(core, core->chip16_reg[x]);
 endinstruction
 
 instruction: Cx_HHLL
@@ -367,7 +413,7 @@ if (chip16_check_conditional_code(core, x)){
 endinstruction
 
 instruction: CALL_X
-pattern: opcode == 0x18 && y == 0 && hh == 0 && ll == 0
+pattern: opcode == 0x18 && y == 0 && uimm == 0
 mnemonic: "call r%d", x
 attributes: branch
 chip16_write_memory16(
@@ -378,12 +424,6 @@ chip16_write_memory16(
 chip16_set_sp(core, chip16_get_sp(core) + 2);
 chip16_set_pc(core, core->chip16_reg[x]);
 endinstruction
-
-instruction: LDI_X
-pattern: opcode == 0x20 && y == 0
-mnemonic: "ldi r%d, %#06x", x, uimm
-decode_data.cpu->chip16_reg[x] = uimm;
-endinstruction 
 
 instruction: STM_X
 pattern: opcode == 0x30 && y == 0
@@ -396,7 +436,7 @@ chip16_write_memory16(
 endinstruction
 
 instruction: POP
-pattern: opcode == 0xc1 && y == 0 && hh == 0 && ll == 0
+pattern: opcode == 0xc1 && y == 0 && uimm == 0
 mnemonic: "pop r%d", x
 chip16_set_sp(core, chip16_get_sp(core) - 2);
 chip16_read_memory(
@@ -429,7 +469,7 @@ else
 endinstruction
 
 instruction: NOT_X
-pattern: opcode == 0xe1 && y == 0 && hh == 0 && ll == 0
+pattern: opcode == 0xe1 && y == 0 && uimm == 0
 mnemonic: "not r%d", x
 core->chip16_reg[x] = ~core->chip16_reg[x];
 if (BIT_15(core->chip16_reg[x]) == 1)
@@ -443,7 +483,7 @@ else
 endinstruction
 
 instruction: NEG_X
-pattern: opcode == 0xe4 && y == 0 && hh == 0 && ll == 0
+pattern: opcode == 0xe4 && y == 0 && uimm == 0
 mnemonic: "neg r%d", x
 core->chip16_reg[x] = ~core->chip16_reg[x] + 1;
 if (BIT_15(core->chip16_reg[x]) == 1)
@@ -457,7 +497,7 @@ else
 endinstruction
 
 instruction: SUB_XY
-pattern: opcode == 0x51 && hh == 0 && ll == 0
+pattern: opcode == 0x51 && uimm == 0
 mnemonic: "sub r%d, r%d", x, y
 uint16 X = core->chip16_reg[x];
 uint16 Y = core->chip16_reg[y];
@@ -495,7 +535,7 @@ else
 endinstruction
 
 instruction: TST_XY
-pattern: opcode == 0x64 && hh == 0 && ll == 0
+pattern: opcode == 0x64 && uimm == 0
 mnemonic: "tst r%d, r%d", x, y
 core->chip16_reg[x] = core->chip16_reg[x] & core->chip16_reg[y];
 if (core->chip16_reg[x] == 0)
@@ -509,7 +549,7 @@ else
 endinstruction
 
 instruction: OR_XY
-pattern: opcode == 0x71 && hh == 0 && ll == 0
+pattern: opcode == 0x71 && uimm == 0
 mnemonic: "or r%d, r%d", x, y
 core->chip16_reg[x] = core->chip16_reg[x] | core->chip16_reg[y];
 if (BIT_15(core->chip16_reg[x]) == 1)
