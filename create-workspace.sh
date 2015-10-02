@@ -4,7 +4,7 @@
 # default local installation path
 if [ -z $SIMICSPATH ]
 then
-    SIMICSPATH=/opt/simics/simics-4.6/simics-4.6.100
+    SIMICSPATH=/opt/simics/simics-4.6/simics-4.6.123
 fi
 
 WRKSPCSTP=$SIMICSPATH/bin/workspace-setup
