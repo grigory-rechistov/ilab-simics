@@ -247,7 +247,7 @@ endinstruction
 instruction: XORI
 pattern: opcode == 0x80 && y == 0
 mnemonic: "xori r%d, %#06x", x, uimm
-uint32 res = core->chip16_reg[x] ^ (uimm);
+uint16 res = core->chip16_reg[x] ^ uimm;
 core->chip16_reg[x] = res;
 if (res == 0) {
     SET_ZERO(core->flags);
