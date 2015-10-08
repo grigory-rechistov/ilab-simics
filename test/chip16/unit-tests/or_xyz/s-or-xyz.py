@@ -15,7 +15,7 @@ def test_or_availability(cpu):
         chip16_write_phys_memory_BE(cpu, 0, 0x72210A00, 4)
         SIM_continue(1)
         stest.expect_equal(cpu.pc, 4)
-        stest.expect_equal(cpu.gprs[A], res)
+        stest.expect_equal(cpu.gprs[0xA], res)
         print "OR_XYZ: success"
 
         cpu.pc = 0
@@ -37,8 +37,8 @@ def test_or_availability(cpu):
         # OR R1, R2, R3
         chip16_write_phys_memory_BE(cpu, 0, 0x72210A00, 4)
         SIM_continue(1)
-        stest.expect_equal(cpu.pc, 4)
-        stest.expect_equal(cpu.gprs[A], res)
+	stest.expect_equal(cpu.pc, 4)
+        stest.expect_equal(cpu.gprs[0xA], res)
         stest.expect_equal(cpu.flags, 0b10000000)
         print "OR_XYZ: neg success"
 
