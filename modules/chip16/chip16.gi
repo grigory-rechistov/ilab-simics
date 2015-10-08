@@ -313,6 +313,20 @@ if ((res & (1 << 15)) != 0) SET_NEG(core->flags);
 else                        CLR_NEG(core->flags);
 endinstruction
 
+instruction: OR_XYZ
+pattern: opcode == 0x72 && uimm == 0
+mnemonic: "or r%d, r%d, r%d", x, y, z
+core->chip16_reg[z] = core->chip16_reg[x] | core->chip16_reg[y];
+if (BIT_15(core->chip16_reg[z]) == 1)
+    SET_NEG(core->flags);
+else
+    CLR_NEG(core->flags);
+if (!core->chip16_reg[z])
+    SET_ZERO(core->flags);
+else
+    CLR_ZERO(core->flags);
+endinstruction
+
 instruction: REMI
 pattern: opcode == 0xa6 && y == 0
 mnemonic: "remi r%d, %#06x", x, uimm
