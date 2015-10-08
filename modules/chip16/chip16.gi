@@ -314,7 +314,7 @@ else                        CLR_NEG(core->flags);
 endinstruction
 
 instruction: OR_XYZ
-pattern: opcode == 0x72 && uimm == 0
+pattern: opcode == 0x72 && clr1 == 0 && clr2 == 0
 mnemonic: "or r%d, r%d, r%d", x, y, z
 core->chip16_reg[z] = core->chip16_reg[x] | core->chip16_reg[y];
 if (BIT_15(core->chip16_reg[z]) == 1)
