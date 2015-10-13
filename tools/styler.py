@@ -97,6 +97,7 @@ def main():
         gitdiff = subprocess.Popen(["git", "diff",
                                "--name-status",
                                "origin/master",
+                               "--",
                                rootDir],
                                stderr=subprocess.PIPE,
                                stdout=subprocess.PIPE)
