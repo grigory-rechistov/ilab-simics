@@ -405,5 +405,5 @@ init_local (void)
 
         // FIXME we also need to call a cleanup, maybe something like this?
         // But see this: https://developer.palm.com/distribution/viewtopic.php?f=82&t=6643
-        atexit(SDL_Quit);
+        //atexit(SDL_Quit);
         }
