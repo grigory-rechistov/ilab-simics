@@ -302,15 +302,52 @@ if(core->chip16_reg[y] != 0) {
 else SIM_LOG_INFO(1, core->obj, 0, "Dividing by zero!\n");
 endinstruction
 
+instruction: XORI
+pattern: opcode == 0x80 && y == 0
+mnemonic: "xori r%d, %#06x", x, uimm
+uint32 res = core->chip16_reg[x] ^ (uimm);
+core->chip16_reg[x] = res;
+if (res == 0) {
+    SET_ZERO(core->flags);
+    CLR_NEG(core->flags);
+}
+else {
+    CLR_ZERO(core->flags);
+    if (BIT_15(res) != 0) SET_NEG(core->flags);
+    else                  CLR_NEG(core->flags);
+}
+endinstruction
+
 instruction: XOR_XY
-pattern: opcode == 0x81 && uimm == 0
+pattern: opcode == 0x81 && z == 0 && clr1 == 0 && clr2 == 0
 mnemonic: "xor r%d, r%d", x, y
-uint16 res;
-core->chip16_reg[x] = res = core->chip16_reg[x] ^ core->chip16_reg[y];
-if (res == 0) SET_ZERO(core->flags);
-else          CLR_ZERO(core->flags);
-if ((res & (1 << 15)) != 0) SET_NEG(core->flags);
-else                        CLR_NEG(core->flags);
+uint16 res = core->chip16_reg[x] ^ core->chip16_reg[y];
+core->chip16_reg[x] = res;
+if (res == 0) {
+    SET_ZERO(core->flags);
+    CLR_NEG(core->flags);
+}
+else {
+    CLR_ZERO(core->flags);
+    if (BIT_15(res) != 0) SET_NEG(core->flags);
+    else                  CLR_NEG(core->flags);
+}
+endinstruction
+
+instruction: XOR_XYZ
+pattern: opcode == 0x82 && clr1 == 0 && clr2 == 0
+mnemonic: "xor r%d, r%d, r%d", x, y, z
+uint16 res = core->chip16_reg[x] ^ core->chip16_reg[y];
+core->chip16_reg[z] = res;
+if (res == 0) {
+    SET_ZERO(core->flags);
+    CLR_NEG(core->flags);
+}
+else {
+    CLR_ZERO(core->flags);
+    if (BIT_15(res) != 0) SET_NEG(core->flags);
+    else                  CLR_NEG(core->flags);
+}
 endinstruction
 
 instruction: REMI
