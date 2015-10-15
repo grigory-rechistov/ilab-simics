@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 #
 # styler.py - check or fix code style in files recursively
-# Usage: styler.py --fix|--check directory
+# Usage: styler.py [--fix] [--all] [--verbose] [--noerror] directory
 #
 # Dependencies:
 #  - astyle http://astyle.sourceforge.net/ version 2 or later
@@ -49,8 +49,20 @@ def operate_on_file(fname, do_fix = False):
     if exitcode == 1:
         if do_fix:
             print "Reformatting %s" % fname
-            print "FIXME: reformatting is not implemented"
-            return 0
+            # Keep formatting parameters aligned with check_c_style.sh
+            # options
+            astyle = subprocess.Popen(["astyle",
+                               "-n", # Do not store a copy
+                               "--mode=c",
+                               "--style=java",
+                               "-s8",
+                               fname],
+                               stderr=subprocess.PIPE,
+                               stdout=subprocess.PIPE)
+            (out, errout) = astyle.communicate()
+            exitcode = astyle.wait()
+            if (exitcode != 0):
+                print "Modification failed: %s" % errout
         else:
             print "Style problems in %s" % fname
         return 1
@@ -118,12 +130,13 @@ def main():
 
     if bad_style > 0:
         print
-        print "Style problems with %d files" % bad_style
-        if args.noerror: return 0
-        return 1
+        if do_fix:
+            print "Changed %d file(s), please review them" % bad_style
+        else:
+            print "Style problems with %d file(s)" % bad_style
     else:
         if verbose: print "No style problems"
-        return 0
+    return 0 if (bad_style == 0 or args.noerror) else 1
 
 if __name__ == "__main__":
     exit(main())
