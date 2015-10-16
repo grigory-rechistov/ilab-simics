@@ -394,10 +394,6 @@ init_local(void)
         SIM_add_directory(HOST_LIB_DIR, false);
         joy16_bmp_path = SIM_lookup_file(BMP_NAME); /* NOTE: returned memory won't be freed anywhere */
         SIM_clear_exception(); /* Sometimes this BMP may not be found */
-
-        // FIXME we also need to call a cleanup, maybe something like this?
-        // But see this: https://developer.palm.com/distribution/viewtopic.php?f=82&t=6643
-        atexit(SDL_Quit);
 }
 
 #undef XMACRO_STR
