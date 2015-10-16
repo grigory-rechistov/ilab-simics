@@ -23,3 +23,7 @@ targets/x86-x58-ich10/
 targets/cosim/
 targets/mpc8641-simple/
 targets/sample/
+
+# editors
+*.swp
+*~

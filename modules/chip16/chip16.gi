@@ -533,6 +533,55 @@ else
     CLR_ZERO(core->flags);
 endinstruction
 
+instruction: SUBI
+pattern: opcode == 0x50 && y == 0
+mnemonic: "subi r%d, %#06x", x, uimm
+uint16 X = core->chip16_reg[x];
+uint32 res = X - uimm;
+core->chip16_reg[x] = (uint16)res;      
+if (((BIT_15(X) == 1) && (BIT_15(uimm) == 0) && (BIT_15(res) == 0)))
+{
+    CLR_ZERO(core->flags);
+    CLR_CARRY(core->flags);
+    CLR_NEG(core->flags);
+    SET_OVRFLW(core->flags);
+}
+else if (((BIT_15(X) == 0) && (BIT_15(uimm) == 1) && (BIT_15(res) == 1)))
+{
+    CLR_ZERO(core->flags);
+    SET_CARRY(core->flags);
+    SET_NEG(core->flags);
+    SET_OVRFLW(core->flags);
+}
+else
+{
+    CLR_OVRFLW(core->flags);
+    if (X == uimm)
+    {
+        SET_ZERO(core->flags);
+        CLR_CARRY(core->flags);
+        CLR_NEG(core->flags);
+    }
+    else
+    {
+        CLR_ZERO(core->flags);
+        if (BIT_16(res) == 1)
+        {
+            SET_CARRY(core->flags);
+            SET_NEG(core->flags);
+        }
+        else
+        {
+            CLR_CARRY(core->flags);
+            if (BIT_15(res) == 1)
+                SET_NEG(core->flags);
+            else
+                CLR_NEG(core->flags);
+        }
+    }
+}
+endinstruction
+
 instruction: SUB_XY
 pattern: opcode == 0x51 && uimm == 0
 mnemonic: "sub r%d, r%d", x, y
