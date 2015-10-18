@@ -236,6 +236,7 @@ uint16 res = (core->chip16_reg[x]) & (core->chip16_reg[y]);
 core->chip16_reg[z] = res;
 if (res == 0) {
     SET_ZERO(core->flags);
+    CLR_NEG(core->flags);
 }
 else {
     CLR_ZERO(core->flags);
