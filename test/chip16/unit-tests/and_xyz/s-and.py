@@ -41,4 +41,15 @@ def test_one_availability(cpu):
         stest.expect_equal(cpu.flags, 0b10000000)
         print "AND: (NEG) success"
 
+        cpu.gprs[7] = 0x0;
+        cpu.gprs[8] = 0x0;
+        cpu.gprs[9] = 0x0;
+
+        chip16_write_phys_memory_BE(cpu, cpu.pc, 0x62870900, 4)
+        SIM_continue(1)
+        stest.expect_equal(cpu.gprs[9], cpu.gprs[8] & cpu.gprs[7])
+        stest.expect_equal(cpu.flags, 0b00000100)
+        print "AND: (NEG) with zero success"
+
+
 test_one_availability(conf.chip0)
