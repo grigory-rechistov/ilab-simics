@@ -247,9 +247,10 @@ endinstruction
 instruction: AND_XY
 pattern: opcode == 0x61 && uimm == 0
 mnemonic: "and r%d, r%d", x, y
-core->chip16_reg[x] = (core->chip16_reg[x]) & (core->chip16_reg[y]);
+core->chip16_reg[x] = core->chip16_reg[x] & core->chip16_reg[y];
 if (core->chip16_reg[x] == 0) {
     SET_ZERO(core->flags);
+    CLR_NEG(core->flags);
 }
 else {
     CLR_ZERO(core->flags);
