@@ -224,7 +224,7 @@ else
 endinstruction
 
 instruction: MUL_XYZ
-pattern: opcode == 0x92 && ll != 0 && hh == 0
+pattern: opcode == 0x92 && clr1 == 0 && clr2 == 0
 mnemonic: "muli r%d, r%d, r%d", x, y,z
 uint32 res = core->chip16_reg[x] * core->chip16_reg[y];
 core->chip16_reg[z] = res;
