@@ -201,6 +201,50 @@ else
     CLR_NEG(core->flags);
 endinstruction
 
+instruction: MUL_XY
+pattern: opcode == 0x91 && ll == 0 && hh == 0
+mnemonic: "muli r%d, r%d", x, y
+uint32 res = core->chip16_reg[x] * core->chip16_reg[y];
+core->chip16_reg[x] = res;
+
+if (res > MAX_REG)
+    SET_CARRY(core->flags);
+else
+    CLR_CARRY(core->flags);
+
+if (core->chip16_reg[x] == 0)
+    SET_ZERO(core->flags);
+else
+    CLR_ZERO(core->flags);
+
+if (BIT_15(res) == 1)
+    SET_NEG(core->flags);
+else
+    CLR_NEG(core->flags);
+endinstruction
+
+instruction: MUL_XYZ
+pattern: opcode == 0x92 && ll != 0 && hh == 0
+mnemonic: "muli r%d, r%d, r%d", x, y,z
+uint32 res = core->chip16_reg[x] * core->chip16_reg[y];
+core->chip16_reg[z] = res;
+
+if (res > MAX_REG)
+    SET_CARRY(core->flags);
+else
+    CLR_CARRY(core->flags);
+
+if (core->chip16_reg[z] == 0)
+    SET_ZERO(core->flags);
+else
+    CLR_ZERO(core->flags);
+
+if (BIT_15(res) == 1)
+    SET_NEG(core->flags);
+else
+    CLR_NEG(core->flags);
+endinstruction
+
 instruction: POPALL
 pattern: op32 == 0xc3000000
 mnemonic: "popall"
