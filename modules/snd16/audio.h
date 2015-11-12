@@ -22,8 +22,8 @@ typedef enum
 typedef struct audio_params
         {
         // host sound card parameters
-        int    freq;                // sampling frequency, Hz
-        double sample;              // length of sample in seconds, == 1.0d / freq
+        int    sample_freq;                // sampling frequency, Hz
+        double sample_len;              // length of sample in seconds, == 1.0d / freq
 
         // common waveform parameters
         wave_type_t wave_type;      // see above
