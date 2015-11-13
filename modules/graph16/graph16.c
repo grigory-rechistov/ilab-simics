@@ -896,6 +896,8 @@ graph16_refresh_screen(void *arg)
         while (core->refresh_active) {
                 while (SDL_PollEvent(&event));
                 SDL_Delay(1000);
+                SDL_RenderPresent(core->renderer);
+                SDL_Delay(100);
         }
 
         SIM_log_info (4, graph16_to_conf(core), 0, "Screen refreshing thread: shutting down...\n");
