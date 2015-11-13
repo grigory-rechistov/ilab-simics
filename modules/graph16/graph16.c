@@ -57,15 +57,25 @@ lang_void *init_object(conf_object_t *obj, lang_void *data)
                 sample->temp[i] = 0;
         }
 
+        const char *windowNameBegin = "CHIP16 monitor on \"";
+        const char *simName = SIM_object_name(obj);
+
+        char *windowName = MM_ZALLOC(2 + strlen(windowNameBegin) + strlen(simName), char);
+        strcpy(windowName, windowNameBegin);
+        strcat(windowName, simName);
+        strcat(windowName, "\"");
 
         sample->window = SDL_CreateWindow (
-                SIM_object_name(obj),                  // window title, TODO include SIM_object_name output
+                windowName,
                 SDL_WINDOWPOS_UNDEFINED,           // initial x position
                 SDL_WINDOWPOS_UNDEFINED,           // initial y position
                 SCREEN_W,                          // width, in pixels
                 SCREEN_H,                          // height, in pixels
                 SDL_WINDOW_SHOWN                   // flags
         );
+
+        free(windowName);
+
         if (sample->window == NULL) {
                 SIM_LOG_INFO(1, obj, 0, "Failed to create SDL window: %s", SDL_GetError());
                 goto end;
