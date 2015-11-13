@@ -59,7 +59,7 @@ lang_void *init_object(conf_object_t *obj, lang_void *data)
 
 
         sample->window = SDL_CreateWindow (
-                "CHIP16 monitor",                  // window title, TODO include SIM_object_name output
+                SIM_object_name(obj),                  // window title, TODO include SIM_object_name output
                 SDL_WINDOWPOS_UNDEFINED,           // initial x position
                 SDL_WINDOWPOS_UNDEFINED,           // initial y position
                 SCREEN_W,                          // width, in pixels
