@@ -16,7 +16,7 @@
 #include "snd16.h"
 
 #define SDL_VOL       16000
-#define SND_WAVE_TYPE Audio_Triangle
+#define SND_WAVE_TYPE Audio_Sawtooth
 #define SND_DEGUG
 
 #define SND 0x0002

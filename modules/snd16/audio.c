@@ -102,19 +102,30 @@ static void sawtooth (void* userdata, uint8_t* stream, int len_raw) {
 
         assert (userdata);
         audio_params_t* ap = (audio_params_t*)userdata;
-
         int16_t* buf = (int16_t*)stream;
-        int64_t saw_phase = (int64_t)ap->phase;
-        uint32_t slope = ap->sdl_vol * 2 * ap->signal_freq; //slope of the sawtooth k = 2A/T;
+        
+        uint32_t slope = (uint32_t) (ap->sdl_vol * 2 * ap->signal_freq);    //slope of the sawtooth k = 2A/T;
+        double delta = slope * ap->sample_len; 
+
+        double samples_per_period = (double)(ap->period / ap->sample_len);  //double number of samples in one period
+        double init_phase = ap->phase;                                      //phase we need to calculate cur_vol
+        init_phase -= (unsigned)(init_phase / samples_per_period) * samples_per_period;
+        
+        double cur_vol = ap->sample_len * init_phase * slope - ap->sdl_vol;
+   
+        
 
         for (int i = 0; i < len; i++) {
-                buf[i] = (int16_t)(slope * ap->sample_len * saw_phase - ap->sdl_vol);
-
-                if ( (int64_t)(slope * ap->sample_len * (saw_phase + 1) - ap->sdl_vol) > (int64_t)ap->sdl_vol )
-                        saw_phase = 0 - 1;  //because phase should be 0, and next step is phase++
-                saw_phase++;
+                buf[i] = (int16_t)cur_vol;
+                cur_vol += delta;
+                
+                if ( (uint64_t)(ap->sample_len * (ap->phase+1)* ap->signal_freq ) !=
+                     (uint64_t)(ap->sample_len *  ap->phase   * ap->signal_freq ))
+                          cur_vol -= 2 * ap->sdl_vol;
+                          
+                ap->phase++;
         }
-        ap->phase = (uint64_t)saw_phase; //save phase for the next invocation
+                     
 }
 
 static void triangle (void* userdata, uint8_t* stream, int len_raw) {
