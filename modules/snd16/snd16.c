@@ -16,8 +16,8 @@
 #include "snd16.h"
 
 #define SDL_VOL       16000
-#define SND_WAVE_TYPE Audio_Sawtooth
-#define SND_DEGUG
+#define SND_WAVE_TYPE Audio_Meandre
+//#define SND_DEGUG
 
 #define SND 0x0002
 #define SNG 0x0102
@@ -53,22 +53,22 @@ lang_void *init_object(conf_object_t *obj, lang_void *data) {
         snd16_t *snd = (snd16_t*)obj;
         SDL_AudioSpec want;
         SDL_zero(want);
-        
+
         want.freq = 44100;
         want.format = AUDIO_S16;
         want.channels = 1; /* mono sound */
         want.samples = 4096;
         want.callback = waveform_callback;
         want.userdata = (void*)&snd->audio_params;
-        
+
         snd->audio_params.sample_freq = want.freq;
         snd->audio_params.sample_len = 1.0d / want.freq;
         snd->audiodev = SDL_OpenAudioDevice(NULL, 0, &want, NULL, 0);
         if (snd->audiodev == 0)
                 SIM_LOG_INFO(1, obj, 0, "Failed to open audio device: %s", SDL_GetError());
- #ifdef SND_DEGUG
+#ifdef SND_DEGUG
         remove("logs/dump.txt");
- #endif
+#endif
         //SIM_LOG_INFO(1, obj, 0, "Audio device is %s", SDL_GetAudioDeviceName(0, 0)); // incorrect, don't know if possible at all // GGG
         return obj;
 }
@@ -85,7 +85,7 @@ operation (conf_object_t *obj, generic_transaction_t *mop, map_info_t info) {
         snd16_t *snd = (snd16_t *)obj;
         conf_object_t* queue_obj = SIM_attr_object (SIM_get_attribute(&snd->obj, "queue"));
         ASSERT (queue_obj != NULL);
-        
+
         unsigned offset = (SIM_get_mem_op_physical_address(mop) + info.start - info.base);
         if (SIM_mem_op_is_write (mop)) {
                 if (offset != 0) {
@@ -96,7 +96,7 @@ operation (conf_object_t *obj, generic_transaction_t *mop, map_info_t info) {
                 attr_value_t mop_var_attr = SIM_make_attr_uint64(0);
                 double mop_var_double = (double) snd->mop_var;
                 set_error_t ret_val = 0;
-                
+
                 switch (snd->current_state) {
                 case State_waiting_new_op:
                         if (snd->mop_var == SND) {
@@ -125,7 +125,7 @@ operation (conf_object_t *obj, generic_transaction_t *mop, map_info_t info) {
                         }
                         SIM_LOG_ERROR(&snd->obj, 0, "snd0: unknown instruction");
                         return Sim_PE_IO_Error;
-                
+
                 case State_waiting_op_after_snd:
                         mop_var_attr = SIM_make_attr_uint64(snd->mop_var);
                         ret_val = set_signal_freq (NULL, &snd->obj, &mop_var_attr, NULL);
@@ -139,7 +139,7 @@ operation (conf_object_t *obj, generic_transaction_t *mop, map_info_t info) {
                         }
                         SIM_LOG_ERROR(&snd->obj, 0, "snd0: smth wrong with State_waiting_op_after_snd");
                         return Sim_PE_IO_Error;
-                
+
                 case State_after_freq:
                         mop_var_attr = SIM_make_attr_uint64(snd->mop_var);
                         ret_val = set_waveform_limit (NULL, &snd->obj, &mop_var_attr, NULL);
@@ -207,26 +207,26 @@ set_value_attribute (void *arg, conf_object_t *obj,
                 {
                 SDL_PauseAudioDevice(snd->audiodev, 0);
                 */
-                /*
-                SDL_PauseAudioDevice(snd->audiodev, 1);
-                // prepare meandre parameters
-                snd->audio_params.wave_type = Audio_Meandre;
-                snd->audio_params.sdl_vol = 16000;
-                snd->audio_params.signal_freq = 440;
-                snd->audio_params.period = 1.0d / snd->audio_params.signal_freq;
-                snd->audio_params.phase = 0;
-                snd->audio_params.limit = 7000;
-                snd->audio_params.sign = 1;
+/*
+SDL_PauseAudioDevice(snd->audiodev, 1);
+// prepare meandre parameters
+snd->audio_params.wave_type = Audio_Meandre;
+snd->audio_params.sdl_vol = 16000;
+snd->audio_params.signal_freq = 440;
+snd->audio_params.period = 1.0d / snd->audio_params.signal_freq;
+snd->audio_params.phase = 0;
+snd->audio_params.limit = 7000;
+snd->audio_params.sign = 1;
 
-                SDL_PauseAudioDevice(snd->audiodev, 0);
-                SDL_Delay(500);
-                SDL_PauseAudioDevice(snd->audiodev, 1);
-                */
-                /*
-                }
+SDL_PauseAudioDevice(snd->audiodev, 0);
+SDL_Delay(500);
+SDL_PauseAudioDevice(snd->audiodev, 1);
+*/
+/*
+}
 
-        return Sim_Set_Ok;
-        }
+return Sim_Set_Ok;
+}
 */
 
 static attr_value_t
@@ -311,7 +311,7 @@ void init_local (void) {
                 .delete_instance = delete_instance,
                 .class_desc = "CHIP16 sound device",
                 .description =
-                        "Sound device for CHIP16 platform"
+                "Sound device for CHIP16 platform"
         };
         conf_class_t *class = SIM_register_class("snd16", &funcs);
 
@@ -363,8 +363,8 @@ void init_local (void) {
 
 
         pause_snd_event = SIM_register_event(
-                "Mute sound", class,
-                0 /*Sim_EC_Notsaved*/, snd_mute,
-                0, 0, 0, 0);
+                                  "Mute sound", class,
+                                  0 /*Sim_EC_Notsaved*/, snd_mute,
+                                  0, 0, 0, 0);
         ASSERT (pause_snd_event != NULL);
 }

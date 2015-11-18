@@ -19,7 +19,7 @@
 #include "include/SDL2/SDL.h"
 #include "audio.h"
 
-#define SND_DEBUG 1 // Dump waveform
+//#define SND_DEBUG 1 // Dump waveform
 
 // fill stream with meandre (rectangular waveform)
 // IN:  userdata        - converted to audio_params, current phase and parameters
@@ -34,7 +34,7 @@ static void meandre (void* userdata, uint8_t* stream, int len_raw) {
 
         //assert (ap->limit > ap->phase);
         int16_t* buf = (int16_t*)stream;
-        
+
         int16_t sign = (ap->sign != 0)? ap->sign: 1;
         assert (sign == 1 || sign == -1);
         for (int i = 0; i < len; i++) {
@@ -43,7 +43,7 @@ static void meandre (void* userdata, uint8_t* stream, int len_raw) {
                 // are across a  boundary of period.
                 // Detect boundary as a floor value of current time divied by period
                 if ( (uint64_t)(ap->sample_len * (ap->phase+1)* ap->signal_freq ) !=
-                     (uint64_t)(ap->sample_len *  ap->phase   * ap->signal_freq ))
+                                (uint64_t)(ap->sample_len *  ap->phase   * ap->signal_freq ))
                         sign *= -1;
                 ap->phase++;
         }
@@ -76,40 +76,40 @@ static void sawtooth (void* userdata, uint8_t* stream, int len_raw) {
         assert (userdata);
         audio_params_t* ap = (audio_params_t*)userdata;
         int16_t* buf = (int16_t*)stream;
-        
+
         uint32_t slope = (uint32_t) (ap->sdl_vol * 2 * ap->signal_freq);    //slope of the sawtooth k = 2A/T;
-        double delta = slope * ap->sample_len; 
+        double delta = slope * ap->sample_len;
 
         double samples_per_period = (double)(ap->period / ap->sample_len);  //double number of samples in one period
         double init_phase = ap->phase;                                      //phase we need to calculate cur_vol
         init_phase -= (unsigned)(init_phase / samples_per_period) * samples_per_period;
-        
+
         double cur_vol = ap->sample_len * init_phase * slope - ap->sdl_vol;
-   
-        
+
+
 
         for (int i = 0; i < len; i++) {
                 buf[i] = (int16_t)cur_vol;
                 cur_vol += delta;
-                
+
                 if ( (uint64_t)(ap->sample_len * (ap->phase+1)* ap->signal_freq ) !=
-                     (uint64_t)(ap->sample_len *  ap->phase   * ap->signal_freq ))
-                          cur_vol -= 2 * ap->sdl_vol;
-                          
+                                (uint64_t)(ap->sample_len *  ap->phase   * ap->signal_freq ))
+                        cur_vol -= 2 * ap->sdl_vol;
+
                 ap->phase++;
         }
-                     
+
 }
 
 static void triangle (void* userdata, uint8_t* stream, int len_raw) {
-        int len = len_raw / 2;  /*16 bit*/ 
+        int len = len_raw / 2;  /*16 bit*/
         assert (userdata);
         audio_params_t *ap = (audio_params_t*)userdata;
         //assert (ap->limit > ap->phase);
 
         int16_t * buf = (int16_t*)stream, \
-                sign = (ap->sign != 0)? ap->sign: 1, \
-                volume = ap->sdl_vol;
+                        sign = (ap->sign != 0)? ap->sign: 1, \
+                               volume = ap->sdl_vol;
         double samples_per_slope = ap->period / 2 / ap->sample_len;//samples per half of triangle
         double init_phase = ap->phase;
         init_phase -= (unsigned)(init_phase / samples_per_slope) * samples_per_slope;
@@ -136,11 +136,11 @@ static void triangle (void* userdata, uint8_t* stream, int len_raw) {
 // IN:  stream          - buffer to be dumped
 // IN:  len_raw         - length of buffer in ELEMENTS.
 // IN:  out             - file to dump in (needed to be initialized and closed outside)
-
+#ifdef SND_DEBUG
 static void
 dump_waveform(const audio_params_t * ap, const int16_t * stream, int len, FILE * out) {
         assert (ap);
-       
+
         uint64_t cur_sample = ap->phase - len;
         double dt = ap->sample_len;
 
@@ -152,7 +152,7 @@ starting from %16lu sample, time is %12g\n", ap->wave_type, cur_sample, dt * cur
                 cur_sample++;
         }
 }
-
+#endif
 // Callback used by SDL when it needs a new portion of waveform.
 // IN:  userdata        - converted to audio_params, current phase and signal parameters
 // IN:  len_raw         - length in bytes, NOT samples!
@@ -161,7 +161,7 @@ starting from %16lu sample, time is %12g\n", ap->wave_type, cur_sample, dt * cur
 void waveform_callback(void* userdata, uint8_t* stream, int len_raw) {
         assert (userdata);
         const audio_params_t *ap = (audio_params_t*)userdata;
-        
+
         switch (ap->wave_type) {
         case Audio_Meandre:
                 meandre (userdata, stream, len_raw);
@@ -181,7 +181,7 @@ void waveform_callback(void* userdata, uint8_t* stream, int len_raw) {
 #ifdef SND_DEBUG
         FILE * out;
         out = fopen("logs/dump.txt", "a");
-        
+
         dump_waveform ((audio_params_t *)userdata, (int16_t *)stream, len_raw / 2, out);
         fclose(out);
 #endif
