@@ -21,27 +21,6 @@
 
 #define SND_DEBUG 1 // Dump waveform
 
-// Fill stream with silence
-// IN:  userdata        - converted to audio_params, current phase and parameters
-// IN:  len_raw         - length in bytes, NOT samples!
-// IN:  advance_time    - whether to change phase or not
-// OUT: userdata        - phase and waveform-specfic state updated
-// OUT: stream          - samples for waveform
-/*
-static void silence (void* userdata, uint8_t* stream, int len_raw, bool advance_time)
-        {
-        int len = len_raw / 2; // 16 bit
-
-        // silence is just zeroes in all formats
-        assert (userdata);
-        audio_params_t *ap = (audio_params_t*)userdata;
-
-        memset (stream, 0, len_raw);
-        if (advance_time)
-                ap->phase += len;
-        };
-*/
-
 // fill stream with meandre (rectangular waveform)
 // IN:  userdata        - converted to audio_params, current phase and parameters
 // IN:  len_raw         - length in bytes, NOT samples!
@@ -55,8 +34,6 @@ static void meandre (void* userdata, uint8_t* stream, int len_raw) {
 
         //assert (ap->limit > ap->phase);
         int16_t* buf = (int16_t*)stream;
-      
-        //int silent_samples = 0;
         
         int16_t sign = (ap->sign != 0)? ap->sign: 1;
         assert (sign == 1 || sign == -1);
@@ -70,7 +47,6 @@ static void meandre (void* userdata, uint8_t* stream, int len_raw) {
                         sign *= -1;
                 ap->phase++;
         }
-        //ap->phase += silent_samples;      account for samples spent for silence
 
         // save flag for the next invocation
         ap->sign = sign;
@@ -85,7 +61,6 @@ static void noise (void* userdata, uint8_t* stream, int len_raw) {
 
         // assert (ap->limit > ap->phase);
         int16_t* buf = (int16_t*)stream;
-        //int silent_samples = 0;
 
         // checking for future integers overflow
         CASSERT_STMT (RAND_MAX <= (LONG_MAX / 2));
@@ -93,8 +68,6 @@ static void noise (void* userdata, uint8_t* stream, int len_raw) {
                 buf[i] = (int16_t)((long)ap->sdl_vol * (2 * rand() - RAND_MAX) / RAND_MAX);
                 ap->phase++;
         }
-
-        //ap->phase += silent_samples;        // account for samples spent for silence
 }
 
 static void sawtooth (void* userdata, uint8_t* stream, int len_raw) {
@@ -137,18 +110,16 @@ static void triangle (void* userdata, uint8_t* stream, int len_raw) {
         int16_t * buf = (int16_t*)stream, \
                 sign = (ap->sign != 0)? ap->sign: 1, \
                 volume = ap->sdl_vol;
-        double samples_per_slope = ap->period / 2 / ap->sample_len;
+        double samples_per_slope = ap->period / 2 / ap->sample_len;//samples per half of triangle
         double init_phase = ap->phase;
         init_phase -= (unsigned)(init_phase / samples_per_slope) * samples_per_slope;
-        uint32_t slope = (volume * 2.0) * (ap->signal_freq / 2);
+        uint32_t slope = (volume * 2.0) * (ap->signal_freq * 2); //slope of half of triangle
 
         double delta = slope * ap->sample_len;
         double cur_vol = sign * (ap->sample_len * init_phase * slope - volume);
-        //SIM_printf("===delta = %g\n\tslope = %d, cur_vol = %lf\n", delta, slope, cur_vol);
 
         for (int i = 0; i < len; i++) {
                 buf[i] = (int16_t)cur_vol;
-                //SIM_printf("===== %lf =====\n", cur_vol);
                 cur_vol += sign * delta;
                 if ((cur_vol >= volume) || (cur_vol <= - volume)) {
                         cur_vol = sign * 2 * volume - cur_vol;
