@@ -90,6 +90,7 @@ typedef struct {
         SDL_Thread *refresh_thread;
         bool refresh_active;
 
+        uint8 winscale;
 } graph16_t;
 
 int delete_instance(conf_object_t *obj);
