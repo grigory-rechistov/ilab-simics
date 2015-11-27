@@ -19,7 +19,6 @@
 #include "include/SDL2/SDL.h"
 #include "audio.h"
 
-//#define SND_DEBUG 1 // Dump waveform
 
 // fill stream with meandre (rectangular waveform)
 // IN:  userdata        - converted to audio_params, current phase and parameters
@@ -136,23 +135,20 @@ static void triangle (void* userdata, uint8_t* stream, int len_raw) {
 // IN:  stream          - buffer to be dumped
 // IN:  len_raw         - length of buffer in ELEMENTS.
 // IN:  out             - file to dump in (needed to be initialized and closed outside)
-#ifdef SND_DEBUG
 static void
-dump_waveform(const audio_params_t * ap, const int16_t * stream, int len, FILE * out) {
+dump_waveform(audio_params_t * ap, const int16_t * stream, int len) {
         assert (ap);
-
-        uint64_t cur_sample = ap->phase - len;
-        double dt = ap->sample_len;
-
-        SIM_printf ("# Dump for waveform with number %d\n\t\
-starting from %16lu sample, time is %12g\n", ap->wave_type, cur_sample, dt * cur_sample);
-        for (int i = 0; i < len; i++) {
-                // time (double) value (int16_t)
-                fprintf (out, "%8.8g %+6d\n", dt * cur_sample, stream[i]);
-                cur_sample++;
-        }
+        assert(ap->out_fd);
+        int n = 0;
+        lseek(ap->out_fd, 0, SEEK_END);
+        n = write(ap->out_fd, stream, sizeof(int16_t)*len);
+        if (n<=0)
+                SIM_printf ("# I write n bytes of samples %d\n", n);
+        ap->data_size += sizeof(int16_t)*len;
+        SIM_printf ("# Dump for waveform header.subchunk2Size=%u \n", ap->data_size);
+        
+     
 }
-#endif
 // Callback used by SDL when it needs a new portion of waveform.
 // IN:  userdata        - converted to audio_params, current phase and signal parameters
 // IN:  len_raw         - length in bytes, NOT samples!
@@ -178,12 +174,7 @@ void waveform_callback(void* userdata, uint8_t* stream, int len_raw) {
         default:
                 assert (0 && "unimplemented waveform");
         }
-#ifdef SND_DEBUG
-        FILE * out;
-        out = fopen("logs/dump.txt", "a");
-
-        dump_waveform ((audio_params_t *)userdata, (int16_t *)stream, len_raw / 2, out);
-        fclose(out);
-#endif
+        if (ap->wav_enable)
+                dump_waveform ((audio_params_t *)userdata, (int16_t *)stream, len_raw / 2);
 }
 
