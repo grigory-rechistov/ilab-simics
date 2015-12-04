@@ -38,12 +38,12 @@ static void meandre (void* userdata, uint8_t* stream, int len_raw) {
         int16_t sign = (ap->sign != 0)? ap->sign: 1;
         assert (sign == 1 || sign == -1);
         for (int i = 0; i < len; i++) {
-                buf[i] = sign * ap->sdl_vol;
+                buf[i] = sign * ap->signal_vol;
                 // Signal sign changes if time for this sample and next sample times
                 // are across a  boundary of period.
                 // Detect boundary as a floor value of current time divied by period
-                if ( (uint64_t)(ap->sample_len * (ap->phase+1)* ap->signal_freq ) !=
-                                (uint64_t)(ap->sample_len *  ap->phase   * ap->signal_freq ))
+                if ( (uint64_t)(ap->sample_len * (ap->phase+1)* ap->freq ) !=
+                     (uint64_t)(ap->sample_len *  ap->phase   * ap->freq ))
                         sign *= -1;
                 ap->phase++;
         }
@@ -65,7 +65,7 @@ static void noise (void* userdata, uint8_t* stream, int len_raw) {
         // checking for future integers overflow
         CASSERT_STMT (RAND_MAX <= (LONG_MAX / 2));
         for (int i = 0; i < len; i++) {
-                buf[i] = (int16_t)((long)ap->sdl_vol * (2 * rand() - RAND_MAX) / RAND_MAX);
+                buf[i] = (int16_t)((long)ap->signal_vol * (2 * rand() - RAND_MAX) / RAND_MAX);
                 ap->phase++;
         }
 }
@@ -77,24 +77,22 @@ static void sawtooth (void* userdata, uint8_t* stream, int len_raw) {
         audio_params_t* ap = (audio_params_t*)userdata;
         int16_t* buf = (int16_t*)stream;
 
-        uint32_t slope = (uint32_t) (ap->sdl_vol * 2 * ap->signal_freq);    //slope of the sawtooth k = 2A/T;
+        uint32_t slope = (uint32_t) (ap->signal_vol * 2 * ap->freq);    //slope of the sawtooth k = 2A/T;
         double delta = slope * ap->sample_len;
 
         double samples_per_period = (double)(ap->period / ap->sample_len);  //double number of samples in one period
         double init_phase = ap->phase;                                      //phase we need to calculate cur_vol
         init_phase -= (unsigned)(init_phase / samples_per_period) * samples_per_period;
 
-        double cur_vol = ap->sample_len * init_phase * slope - ap->sdl_vol;
-
-
+        double cur_vol = ap->sample_len * init_phase * slope - ap->signal_vol;
 
         for (int i = 0; i < len; i++) {
                 buf[i] = (int16_t)cur_vol;
                 cur_vol += delta;
 
-                if ( (uint64_t)(ap->sample_len * (ap->phase+1)* ap->signal_freq ) !=
-                                (uint64_t)(ap->sample_len *  ap->phase   * ap->signal_freq ))
-                        cur_vol -= 2 * ap->sdl_vol;
+                if ( (uint64_t)(ap->sample_len * (ap->phase+1)* ap->freq ) !=
+                     (uint64_t)(ap->sample_len *  ap->phase   * ap->freq ))
+                        cur_vol -= 2 * ap->signal_vol;
 
                 ap->phase++;
         }
@@ -107,13 +105,14 @@ static void triangle (void* userdata, uint8_t* stream, int len_raw) {
         audio_params_t *ap = (audio_params_t*)userdata;
         //assert (ap->limit > ap->phase);
 
-        int16_t * buf = (int16_t*)stream, \
-                        sign = (ap->sign != 0)? ap->sign: 1, \
-                               volume = ap->sdl_vol;
+        int16_t * buf = (int16_t*)stream;
+        int16
+                  sign = (ap->sign != 0)? ap->sign: 1,
+                  volume = ap->signal_vol;
         double samples_per_slope = ap->period / 2 / ap->sample_len;//samples per half of triangle
         double init_phase = ap->phase;
         init_phase -= (unsigned)(init_phase / samples_per_slope) * samples_per_slope;
-        uint32_t slope = (volume * 2.0) * (ap->signal_freq * 2); //slope of half of triangle
+        uint32_t slope = (volume * 2.0) * (ap->freq * 2); //slope of half of triangle
 
         double delta = slope * ap->sample_len;
         double cur_vol = sign * (ap->sample_len * init_phase * slope - volume);

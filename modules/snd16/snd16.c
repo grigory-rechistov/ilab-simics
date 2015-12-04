@@ -113,7 +113,7 @@ operation (conf_object_t *obj, generic_transaction_t *mop, map_info_t info) {
                                         ASSERT(!"wrong debug define wave_type");
                                 }
 
-                                snd->audio_params.sdl_vol   = SDL_VOL;
+                                snd->audio_params.signal_vol   = SDL_VOL;
                                 snd->audio_params.phase     = 0;
 
                                 snd->current_state = State_waiting_op_after_snd;
@@ -131,7 +131,7 @@ operation (conf_object_t *obj, generic_transaction_t *mop, map_info_t info) {
                         ret_val = set_signal_freq (NULL, &snd->obj, &mop_var_attr, NULL);
                         if (ret_val == Sim_Set_Ok) {
                                 if (snd->mop_var != 0)
-                                        snd->audio_params.period = 1.0d / snd->audio_params.signal_freq;
+                                        snd->audio_params.period = 1.0d / snd->audio_params.freq;
                                 else
                                         snd->audio_params.period = 0;
                                 snd->current_state = State_after_freq;
@@ -145,7 +145,7 @@ operation (conf_object_t *obj, generic_transaction_t *mop, map_info_t info) {
                         ret_val = set_waveform_limit (NULL, &snd->obj, &mop_var_attr, NULL);
                         if (ret_val == Sim_Set_Ok) {
                                 SIM_event_cancel_time(queue_obj, pause_snd_event, &snd->obj, NULL, NULL);
-                                if (snd->audio_params.signal_freq == 0)
+                                if (snd->audio_params.freq == 0)
                                         SDL_PauseAudioDevice(snd->audiodev, 1);
                                 else {
                                         // here should be launch of sound generating
@@ -211,9 +211,9 @@ set_value_attribute (void *arg, conf_object_t *obj,
 SDL_PauseAudioDevice(snd->audiodev, 1);
 // prepare meandre parameters
 snd->audio_params.wave_type = Audio_Meandre;
-snd->audio_params.sdl_vol = 16000;
-snd->audio_params.signal_freq = 440;
-snd->audio_params.period = 1.0d / snd->audio_params.signal_freq;
+snd->audio_params.signal_vol = 16000;
+snd->audio_params.freq = 440;
+snd->audio_params.period = 1.0d / snd->audio_params.freq;
 snd->audio_params.phase = 0;
 snd->audio_params.limit = 7000;
 snd->audio_params.sign = 1;
@@ -255,7 +255,7 @@ set_wave_type (void *arg, conf_object_t *obj,
 static attr_value_t
 get_signal_freq (void *arg, conf_object_t *obj, attr_value_t *idx) {
         snd16_t *snd = (snd16_t *)obj;
-        uint32_t tmp = snd->audio_params.signal_freq;
+        uint32_t tmp = snd->audio_params.freq;
         return SIM_make_attr_uint64(tmp);
 }
 
@@ -267,7 +267,7 @@ set_signal_freq (void *arg, conf_object_t *obj,
         set_error_t ret = Sim_Set_Ok;
 
         if ((0 <= new_signal_freq) && (new_signal_freq < UINT32_MAX))
-                snd->audio_params.signal_freq = new_signal_freq;
+                snd->audio_params.freq = new_signal_freq;
         else
                 ret = Sim_Set_Illegal_Value;
         return ret;

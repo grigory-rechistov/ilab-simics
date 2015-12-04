@@ -4,7 +4,9 @@ machine: chip16, 32, LE
 group: A1, opcode<24:31>, y<20:23>, x<16:19>, ll<8:15>, hh<0:7>
 group: A2, opcode<24:31>, y<20:23>, x<16:19>, clr1<12:15>, z<8:11>, clr2<0:7>
 group: A3, op32<0:31>
+group: A4, opcode<24:31>, a<20:23>, d<16:19>, v<12:15>, t<8:11>, s<4:7>, r<0:3>
 group: Immediates, uimm<16>(calc_uimm:hh:ll)
+ 
 
 # TODO fill me
 
@@ -28,7 +30,7 @@ pattern: opcode == 0x0a && x == 0 && y == 0
 mnemonic: "snd1 %d", uimm
 // snd1 (command word: 0, 2) - play 500Hz tone for HHLL ms.
 chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR, 0x0002);
-chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR, 500);
+chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR,    500);
 chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR, uimm);
 endinstruction
 
@@ -50,11 +52,26 @@ chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR,   1500);
 chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR,   uimm);
 endinstruction
 
+instruction: SNG
+pattern: opcode == 0x0e
+mnemonic: "sng %dms %dms, %d %s %dms %dms", ATTACK_TO_MS(a), DECAY_TO_MS(d), v, SNG_TYPE_TO_STR(t), s, RELEASE_TO_MS(r) 
+//mnemonic: "sng %#02x, %#04x", y * 256 + x, uimm
+//SNG AD VTSR = {0,0,  0,1,0,0 = triangle}
+//command word: (1, 2) - set sound parameters to sound card
+uint16 attack = ATTACK_TO_MS(a), sustain = s;
+uint8 decay = DECAY_TO_MS(d), release = RELEASE_TO_MS(r);
+uint8 volume = v, type = t;
+chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR, 0x0102);
+chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR, \
+                         (((((attack << 4) + decay) << 4) + volume) << 4) + type);
+chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR, ((sustain << 4) + release) << 8);
+endinstruction
+
 instruction: SNP
 pattern: opcode == 0x0d && y == 0
 mnemonic: "snp [r%d], %d", x, uimm
-// snp (command word: 0, 2) - play tone from [RX] for HHLL ms.
-chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR, 0x0002);
+// snp (command word: !a, 2) - play tone from [RX] for HHLL ms.
+chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR, 0x0a02);
 uint16_t freq = chip16_read_memory16 (core, core->chip16_reg[x], core->chip16_reg[x]);
 chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR, freq);
 chip16_write_memory16 (core, SND_MEM_ADDR, SND_MEM_ADDR, uimm);
