@@ -36,58 +36,57 @@ typedef struct audio_params {
 
         // waveform-specific parameters
         int sign; // for meandre
-        
+
         //dump to wav file parameters
         bool wav_enable;
         int out_fd;                 //file descriptor of output file
         uint32_t data_size;         //size of samples, that were played
-        
-        
+
+
 } audio_params_t;
 
-typedef struct wavheader
-{       
-    //const value "RIFF"
-    char chunkId[4];
+typedef struct wavheader {
+        //const value "RIFF"
+        char chunkId[4];
 
-    //chunkSize = 4 + (8 + subchunk1Size) + (8 + subchunk2Size)
-    uint32_t chunkSize;
+        //chunkSize = 4 + (8 + subchunk1Size) + (8 + subchunk2Size)
+        uint32_t chunkSize;
 
-    //const value "WAVE"
-    char format[4];
+        //const value "WAVE"
+        char format[4];
 
-    //const value "fmt "
-    char subchunk1Id[4];
-    
-    //This is the size of the rest of the Subchunk which follows this number
-    //const value 16
-    uint32_t subchunk1Size; 
+        //const value "fmt "
+        char subchunk1Id[4];
 
-    //const value 1
-    uint16_t audioFormat;
+        //This is the size of the rest of the Subchunk which follows this number
+        //const value 16
+        uint32_t subchunk1Size;
 
-    //Mono sound now
-    uint16_t numChannels;
+        //const value 1
+        uint16_t audioFormat;
 
-    //Sample frequency
-    uint32_t sampleRate;
+        //Mono sound now
+        uint16_t numChannels;
 
-    // sampleRate * numChannels * bitsPerSample/8
-    uint32_t byteRate;
+        //Sample frequency
+        uint32_t sampleRate;
 
-    // number of bytes for one sample including all channels
-    // numChannels * bitsPerSample/8
-    uint16_t blockAlign;
-    
-    uint16_t bitsPerSample;
+        // sampleRate * numChannels * bitsPerSample/8
+        uint32_t byteRate;
 
-    //const value "data"
-    char subchunk2Id[4];
+        // number of bytes for one sample including all channels
+        // numChannels * bitsPerSample/8
+        uint16_t blockAlign;
 
-    // numSamples * numChannels * bitsPerSample/8
-    uint32_t subchunk2Size; 
+        uint16_t bitsPerSample;
 
-}wavheader_t;
+        //const value "data"
+        char subchunk2Id[4];
+
+        // numSamples * numChannels * bitsPerSample/8
+        uint32_t subchunk2Size;
+
+} wavheader_t;
 
 void waveform_callback (void* userdata, uint8_t* stream, int len);
 

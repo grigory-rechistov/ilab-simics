@@ -74,13 +74,14 @@ lang_void *init_object(conf_object_t *obj, lang_void *data) {
         want.samples = 4096;
         want.callback = waveform_callback;
         want.userdata = (void*)&snd->audio_params;
-        
+
         /*parametres for dumping to wav file*/
         snd->out_file = NULL;
         snd->audio_params.wav_enable = 0;
         snd->audio_params.out_fd = -1;
         snd->audio_params.data_size = 0;
-        
+        snd->out_file_wr = 0;
+
         snd->audio_params.sample_freq = want.freq;
         snd->audio_params.sample_len = 1.0d / want.freq;
         snd->audiodev = SDL_OpenAudioDevice(NULL, 0, &want, NULL, 0);
@@ -92,7 +93,7 @@ lang_void *init_object(conf_object_t *obj, lang_void *data) {
 
 int delete_instance (conf_object_t *obj) {
         snd16_t *snd = (snd16_t*)obj;
-        
+
         if (snd->audiodev)
                 SDL_CloseAudioDevice(snd->audiodev);
         return 1;
@@ -165,15 +166,17 @@ operation (conf_object_t *obj, generic_transaction_t *mop, map_info_t info) {
                                 SIM_event_cancel_time(queue_obj, pause_snd_event, &snd->obj, NULL, NULL);
                                 if (snd->audio_params.signal_freq == 0)
                                         SDL_PauseAudioDevice(snd->audiodev, 1);
-                                else { 
-                                        if (snd->audio_params.wav_enable){
+                                else {
+                                        if (snd->audio_params.wav_enable) {
                                                 int out = open(snd->out_file, O_CREAT | O_RDWR, 0777);
-                                                if (out == -1)
-                                                        {SIM_LOG_INFO(1, obj, 0, "Can't open file for dumping sound");
-                                                        snd->audio_params.wav_enable = 0;}
-                                                else {
-                                                snd->audio_params.out_fd = out;
-                                                write_wav_header(&(snd->audio_params));}}
+                                                if (out == -1) {
+                                                        SIM_LOG_INFO(1, obj, 0, "Can't open file for dumping sound");
+                                                        snd->audio_params.wav_enable = 0;
+                                                } else {
+                                                        snd->audio_params.out_fd = out;
+                                                        write_wav_header(&(snd->audio_params));
+                                                }
+                                        }
                                         // here should be launch of sound generating
                                         SDL_PauseAudioDevice(snd->audiodev, 0);
                                         // SDL_Delay(snd->mop_var);
@@ -328,11 +331,41 @@ get_wav_enable (void *arg, conf_object_t *obj, attr_value_t *idx) {
 
 static set_error_t
 set_wav_enable (void *arg, conf_object_t *obj,
-                    attr_value_t *val, attr_value_t *idx) {
+                attr_value_t *val, attr_value_t *idx) {
         snd16_t *snd = (snd16_t *)obj;
         bool new_set = SIM_attr_boolean(*val);
         set_error_t ret = Sim_Set_Ok;
         snd->audio_params.wav_enable = new_set;
+        if (new_set == 1) {
+                if (snd->out_file == NULL) {
+                        SIM_LOG_INFO(1, obj, 0, "The name of out file is not set");
+                        snd->audio_params.wav_enable = 0;
+                } else if (snd->out_file_wr == 1) {
+                        int out = open(snd->out_file, O_RDWR, 0777);
+                        if (out == -1) {
+                                SIM_LOG_INFO(1, obj, 0, "Can't open file for dumping sound");
+                                snd->audio_params.wav_enable = 0;
+                        } else {
+                                snd->audio_params.out_fd = out;
+                                audio_params->data_size = get_data_size_from_wav(&(snd->audio_params));
+                        }
+                } else if (snd->out_file_wr == 0) {
+                        int out = open(snd->out_file, O_CREAT | O_RDWR, 0777);
+                        if (out == -1) {
+                                SIM_LOG_INFO(1, obj, 0, "Can't open file for dumping sound");
+                                snd->audio_params.wav_enable = 0;
+                        } else {
+                        	snd->out_file_wr = 1;
+                                snd->audio_params.out_fd = out;
+                                snd->audio_params.data_size = 0;
+                                write_wav_header(&(snd->audio_params));     
+                        }
+                }
+        }
+        else if (new_set == 0 && snd->audio_params.wav_enable == 1){
+                write_wav_header(&(snd->audio_params));
+                close(snd->audio_params.out_fd);        
+        }
         return ret;
 }
 
@@ -351,8 +384,17 @@ set_out_file (void *arg, conf_object_t *obj, attr_value_t *val, attr_value_t *id
         int name_size = strlen(SIM_attr_string(*val));
         char* new_file_name = (char*) calloc(name_size+1, sizeof(char));
         strcpy (new_file_name, SIM_attr_string(*val));
-        set_error_t ret = Sim_Set_Ok;
+        if (snd->audio_params.wav_enable == 1){
+        	attr_value_t mop_var_attr = SIM_make_attr_boolean(0);
+        	set_wav_enable (NULL, &snd->obj, &mop_var_attr, NULL);
+        	snd->out_file_wr = 0;	
+        }
+        if (snd->audio_params.wav_enable == 0){
+        	snd->out_file_wr = 0;
+        }
         snd->out_file = new_file_name;
+        
+        set_error_t ret = Sim_Set_Ok;
         return ret;
 }
 
@@ -360,10 +402,7 @@ set_out_file (void *arg, conf_object_t *obj, attr_value_t *val, attr_value_t *id
 static void snd_mute (conf_object_t *obj, void *param) {
         snd16_t *snd = (snd16_t *)obj;
         SDL_PauseAudioDevice(snd->audiodev, 1);
-        if (snd->audio_params.wav_enable){
-        write_wav_header(&(snd->audio_params));
-                close(snd->audio_params.out_fd);}
-        
+
         SIM_LOG_INFO (4, obj, 0, "sdl_mute was called");
 }
 //------------------------------------------------------------------------------
@@ -422,7 +461,7 @@ void init_local (void) {
                 Sim_Attr_Optional,
                 "i", NULL,
                 "Limit - maximum sample for this waveform.");
-                
+
         SIM_register_typed_attribute(
                 class, "wav_enable",
                 get_wav_enable, NULL,
@@ -452,15 +491,14 @@ void init_local (void) {
         ASSERT (pause_snd_event != NULL);
 }
 
-int write_wav_header(audio_params_t * ap)
-{
+int write_wav_header(audio_params_t * ap) {
         ASSERT (ap);
         wavheader_t header;
         strncpy (header.chunkId, "RIFF", 4);
         strncpy (header.format, "WAVE", 4);
         strncpy (header.subchunk1Id, "fmt ", 4);
         header.subchunk1Size = 16;
-        header.subchunk2Size = ap->data_size;        
+        header.subchunk2Size = ap->data_size;
         header.chunkSize = 4 + (8 + header.subchunk1Size) + (8 + header.subchunk2Size);
         header.audioFormat = 1;
         header.numChannels = 1;
@@ -469,21 +507,32 @@ int write_wav_header(audio_params_t * ap)
         header.byteRate = header.sampleRate * header.bitsPerSample / 8;
         header.blockAlign = 2;
         strncpy (header.subchunk2Id, "data", 4);
- 
+
         lseek(ap->out_fd, 0, SEEK_SET);
         if (write(ap->out_fd, &header, sizeof(wavheader_t)) == -1)
                 return -1;
         SIM_printf ("#FINAL Dump for waveform header.subchunk2Size=%u \n", ap->data_size);
- /*
-        FILE * f_dump;
-        f_dump = fopen ("logs/dump_wav.txt", "a");
-        fprintf (f_dump, "ChunkID: %c%c%c%c\n",header.chunkId[0], header.chunkId[1], header.chunkId[2], header.chunkId[3]) ;
-        fprintf (f_dump, "Format: %c%c%c%c\n",header.format[0], header.format[1], header.format[2], header.format[3]) ;
-        fprintf (f_dump, "ChunkSize: %u size:%lu\n", header.chunkSize, sizeof (header.chunkSize));
-        fprintf (f_dump, "Subchunk2Size: %u size:%lu\n", header.subchunk2Size, sizeof (header.subchunk2Size));
-        fprintf (f_dump, "sampleRate: %u size:%lu\n", header.sampleRate, sizeof (header.sampleRate));
-        fprintf (f_dump, "byteRate: %u size:%lu\n", header.byteRate, sizeof (header.byteRate));
-        fclose (f_dump);       */
- 
+        /*
+               FILE * f_dump;
+               f_dump = fopen ("logs/dump_wav.txt", "a");
+               fprintf (f_dump, "ChunkID: %c%c%c%c\n",header.chunkId[0], header.chunkId[1], header.chunkId[2], header.chunkId[3]) ;
+               fprintf (f_dump, "Format: %c%c%c%c\n",header.format[0], header.format[1], header.format[2], header.format[3]) ;
+               fprintf (f_dump, "ChunkSize: %u size:%lu\n", header.chunkSize, sizeof (header.chunkSize));
+               fprintf (f_dump, "Subchunk2Size: %u size:%lu\n", header.subchunk2Size, sizeof (header.subchunk2Size));
+               fprintf (f_dump, "sampleRate: %u size:%lu\n", header.sampleRate, sizeof (header.sampleRate));
+               fprintf (f_dump, "byteRate: %u size:%lu\n", header.byteRate, sizeof (header.byteRate));
+               fclose (f_dump);       */
+
         return 0;
 }
+int get_data_size_from_wav(audio_params_t * ap) {
+        ASSERT (ap);
+        wavheader_t header;
+        int data_size = 0;
+        lseek(ap->out_fd, 0, SEEK_SET);
+        if (read(ap->out_fd, &header, sizeof(wavheader_t)) == -1)
+                return -1;
+        data_size = header.subchunk2Size;
+        return data_size;
+}
+

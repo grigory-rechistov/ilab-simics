@@ -26,9 +26,9 @@ typedef struct snd16 {
 
         SDL_AudioDeviceID audiodev; // an audiodevice opened
         audio_params_t audio_params; // parameters to control waveform
-        
+
         char* out_file; //name of out wav file
-        bool file_was_written;
+        bool out_file_wr; //value that shows if we wrote to this file before or not
 } snd16_t;
 
 

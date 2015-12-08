@@ -146,8 +146,8 @@ dump_waveform(audio_params_t * ap, const int16_t * stream, int len) {
                 SIM_printf ("# I write n bytes of samples %d\n", n);
         ap->data_size += sizeof(int16_t)*len;
         SIM_printf ("# Dump for waveform header.subchunk2Size=%u \n", ap->data_size);
-        
-     
+
+
 }
 // Callback used by SDL when it needs a new portion of waveform.
 // IN:  userdata        - converted to audio_params, current phase and signal parameters
