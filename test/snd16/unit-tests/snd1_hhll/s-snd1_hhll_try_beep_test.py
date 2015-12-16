@@ -8,8 +8,8 @@ cli.run_command("enable-real-time-mode")
 def test_snd1_hhll_availability(cpu, snd):
         paddr = 0
         cpu.pc = paddr
-        snd.wav_enable = 1
         snd.out_file = "logs/snd1.wav"
+        snd.wav_enable = 1
 
         # SND1_HHLL
         # play 500Hz tone for 0x64=100 ms

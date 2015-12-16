@@ -18,6 +18,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <errno.h>
 
 #define SDL_VOL       16000
 #define SND_WAVE_TYPE Audio_Meandre
@@ -55,6 +56,7 @@ set_out_file (void *arg, conf_object_t *obj, attr_value_t *val, attr_value_t *id
 static event_class_t* pause_snd_event;
 static void snd_mute (conf_object_t *obj, void *param);
 int write_wav_header(audio_params_t * ap);
+int get_data_size_from_wav(audio_params_t * ap);
 
 /* Allocate memory for the object. */
 static conf_object_t *
@@ -81,7 +83,7 @@ lang_void *init_object(conf_object_t *obj, lang_void *data) {
         snd->audio_params.out_fd = -1;
         snd->audio_params.data_size = 0;
         snd->out_file_wr = 0;
-
+        
         snd->audio_params.sample_freq = want.freq;
         snd->audio_params.sample_len = 1.0d / want.freq;
         snd->audiodev = SDL_OpenAudioDevice(NULL, 0, &want, NULL, 0);
@@ -167,16 +169,6 @@ operation (conf_object_t *obj, generic_transaction_t *mop, map_info_t info) {
                                 if (snd->audio_params.signal_freq == 0)
                                         SDL_PauseAudioDevice(snd->audiodev, 1);
                                 else {
-                                        if (snd->audio_params.wav_enable) {
-                                                int out = open(snd->out_file, O_CREAT | O_RDWR, 0777);
-                                                if (out == -1) {
-                                                        SIM_LOG_INFO(1, obj, 0, "Can't open file for dumping sound");
-                                                        snd->audio_params.wav_enable = 0;
-                                                } else {
-                                                        snd->audio_params.out_fd = out;
-                                                        write_wav_header(&(snd->audio_params));
-                                                }
-                                        }
                                         // here should be launch of sound generating
                                         SDL_PauseAudioDevice(snd->audiodev, 0);
                                         // SDL_Delay(snd->mop_var);
@@ -338,21 +330,24 @@ set_wav_enable (void *arg, conf_object_t *obj,
         snd->audio_params.wav_enable = new_set;
         if (new_set == 1) {
                 if (snd->out_file == NULL) {
-                        SIM_LOG_INFO(1, obj, 0, "The name of out file is not set");
+                        SIM_LOG_INFO(1, obj, 0, "The name of out file is not set, set out_file attribute and after it set wav_enable again\n");
                         snd->audio_params.wav_enable = 0;
                 } else if (snd->out_file_wr == 1) {
-                        int out = open(snd->out_file, O_RDWR, 0777);
+                        int out = open(snd->out_file, O_CREAT | O_RDWR, 0777);
                         if (out == -1) {
-                                SIM_LOG_INFO(1, obj, 0, "Can't open file for dumping sound");
+                                SIM_LOG_ERROR(obj, 0, "Can't open file for dumping sound\n");
                                 snd->audio_params.wav_enable = 0;
                         } else {
                                 snd->audio_params.out_fd = out;
-                                audio_params->data_size = get_data_size_from_wav(&(snd->audio_params));
+                                snd->audio_params.data_size = get_data_size_from_wav(&(snd->audio_params));
                         }
                 } else if (snd->out_file_wr == 0) {
-                        int out = open(snd->out_file, O_CREAT | O_RDWR, 0777);
+                        int out = open(snd->out_file, O_CREAT | O_RDWR | O_EXCL, 0777);
                         if (out == -1) {
-                                SIM_LOG_INFO(1, obj, 0, "Can't open file for dumping sound");
+                        	if (errno == EEXIST)
+                        		SIM_LOG_INFO(1, obj, 0, "File with this name already exists, change name and after it set wav_enable again\n");
+                        	else 
+                                	SIM_LOG_INFO(1, obj, 0, "Can't open file for dumping sound\n");
                                 snd->audio_params.wav_enable = 0;
                         } else {
                         	snd->out_file_wr = 1;
@@ -371,30 +366,47 @@ set_wav_enable (void *arg, conf_object_t *obj,
 
 static attr_value_t
 get_out_file (void *arg, conf_object_t *obj, attr_value_t *idx) {
-        snd16_t *snd = (snd16_t *)obj;
-        int name_size = strlen (snd->out_file);
-        char* tmp = (char*) calloc(name_size+1, sizeof(char));
-        tmp = snd->out_file;
-        return SIM_make_attr_string(tmp);
+        snd16_t *snd = (snd16_t *)obj;        
+        if (snd->out_file != NULL){
+        	return SIM_make_attr_string(snd->out_file);
+        }
+        return SIM_make_attr_nil();
 }
 
 static set_error_t
 set_out_file (void *arg, conf_object_t *obj, attr_value_t *val, attr_value_t *idx) {
         snd16_t *snd = (snd16_t *)obj;
+        
         int name_size = strlen(SIM_attr_string(*val));
-        char* new_file_name = (char*) calloc(name_size+1, sizeof(char));
+        set_error_t ret = Sim_Set_Ok;
+        if (snd->out_file == NULL){
+        	char* new_file_name = MM_MALLOC(name_size+1, char);
+        	strcpy (new_file_name, SIM_attr_string(*val));
+        	snd->out_file_wr = 0;
+        	snd->out_file = new_file_name;
+        	return ret;
+        }
+        
+        if (!strcmp(snd->out_file,SIM_attr_string(*val) ))	//if we write the same name that it was
+        		return ret;
+        		
+        if (snd->out_file != NULL)
+        	MM_FREE(snd->out_file);
+        char* new_file_name = MM_MALLOC(name_size+1, char);
         strcpy (new_file_name, SIM_attr_string(*val));
-        if (snd->audio_params.wav_enable == 1){
+
+        if (snd->audio_params.wav_enable == 1){		//if we change file name, we close old file, and open our new file, or just open new file
         	attr_value_t mop_var_attr = SIM_make_attr_boolean(0);
         	set_wav_enable (NULL, &snd->obj, &mop_var_attr, NULL);
-        	snd->out_file_wr = 0;	
-        }
-        if (snd->audio_params.wav_enable == 0){
         	snd->out_file_wr = 0;
+        	snd->out_file = new_file_name;	
+        	mop_var_attr = SIM_make_attr_boolean(1);
+        	set_wav_enable (NULL, &snd->obj, &mop_var_attr, NULL);
         }
-        snd->out_file = new_file_name;
-        
-        set_error_t ret = Sim_Set_Ok;
+        else if (snd->audio_params.wav_enable == 0){
+        	snd->out_file_wr = 0;
+        	snd->out_file = new_file_name;
+        }
         return ret;
 }
 
@@ -402,7 +414,6 @@ set_out_file (void *arg, conf_object_t *obj, attr_value_t *val, attr_value_t *id
 static void snd_mute (conf_object_t *obj, void *param) {
         snd16_t *snd = (snd16_t *)obj;
         SDL_PauseAudioDevice(snd->audiodev, 1);
-
         SIM_LOG_INFO (4, obj, 0, "sdl_mute was called");
 }
 //------------------------------------------------------------------------------
@@ -474,8 +485,8 @@ void init_local (void) {
                 class, "out_file",
                 get_out_file, NULL,
                 set_out_file, NULL,
-                Sim_Attr_Optional,
-                "s", NULL,
+                Sim_Attr_Session,
+                "s|n", NULL,
                 "Out_file  - output .wav file name if wav_enable is set.");
 
         if (SDL_WasInit(SDL_INIT_AUDIO) == 0) {
