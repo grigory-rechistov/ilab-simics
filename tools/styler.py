@@ -101,14 +101,14 @@ def main():
                 bad_style += operate_on_file(fname, do_fix)
     else:
         # Get a list of files changed against remote master:
-        # git diff --name-status origin/master
+        # git diff --name-status master
         # M       modules/chip16/chip16.gi
         # D       test/chip16/unit-tests/subi/SUITEINFO
         # Note: the algorithm below is not foolproof:
         # files with spaces in names might cause an error
         gitdiff = subprocess.Popen(["git", "diff",
                                "--name-status",
-                               "origin/master",
+                               "master",
                                "--",
                                rootDir],
                                stderr=subprocess.PIPE,
