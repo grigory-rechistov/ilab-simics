@@ -15,7 +15,6 @@
 #include <limits.h>
 #include <simics/util/help-macros.h>
 #include <simics/simulator-api.h>
-
 #include "include/SDL2/SDL.h"
 #include "audio.h"
 
@@ -27,15 +26,12 @@
 // OUT: stream          - samples for waveform
 static void meandre (void* userdata, uint8_t* stream, int len_raw) {
         int len = len_raw / 2; /* 16 bit */
-
         assert (userdata);
         audio_params_t *ap = (audio_params_t*)userdata;
-
-        //assert (ap->limit > ap->phase);
         int16_t* buf = (int16_t*)stream;
-
         int16_t sign = (ap->sign != 0)? ap->sign: 1;
         assert (sign == 1 || sign == -1);
+
         for (int i = 0; i < len; i++) {
                 buf[i] = sign * ap->sdl_vol;
                 // Signal sign changes if time for this sample and next sample times
@@ -46,7 +42,6 @@ static void meandre (void* userdata, uint8_t* stream, int len_raw) {
                         sign *= -1;
                 ap->phase++;
         }
-
         // save flag for the next invocation
         ap->sign = sign;
 }
@@ -54,11 +49,8 @@ static void meandre (void* userdata, uint8_t* stream, int len_raw) {
 // fill stream with noise
 static void noise (void* userdata, uint8_t* stream, int len_raw) {
         int len = len_raw / 2; /* 16 bit */
-
         assert (userdata);
         audio_params_t *ap = (audio_params_t*)userdata;
-
-        // assert (ap->limit > ap->phase);
         int16_t* buf = (int16_t*)stream;
 
         // checking for future integers overflow
@@ -71,30 +63,23 @@ static void noise (void* userdata, uint8_t* stream, int len_raw) {
 
 static void sawtooth (void* userdata, uint8_t* stream, int len_raw) {
         int len = len_raw / 2; /* 16 bit */
-
         assert (userdata);
         audio_params_t* ap = (audio_params_t*)userdata;
         int16_t* buf = (int16_t*)stream;
 
         uint32_t slope = (uint32_t) (ap->sdl_vol * 2 * ap->signal_freq);    //slope of the sawtooth k = 2A/T;
         double delta = slope * ap->sample_len;
-
         double samples_per_period = (double)(ap->period / ap->sample_len);  //double number of samples in one period
         double init_phase = ap->phase;                                      //phase we need to calculate cur_vol
         init_phase -= (unsigned)(init_phase / samples_per_period) * samples_per_period;
-
         double cur_vol = ap->sample_len * init_phase * slope - ap->sdl_vol;
-
-
 
         for (int i = 0; i < len; i++) {
                 buf[i] = (int16_t)cur_vol;
                 cur_vol += delta;
-
                 if ( (uint64_t)(ap->sample_len * (ap->phase+1)* ap->signal_freq ) !=
                                 (uint64_t)(ap->sample_len *  ap->phase   * ap->signal_freq ))
                         cur_vol -= 2 * ap->sdl_vol;
-
                 ap->phase++;
         }
 
@@ -104,16 +89,14 @@ static void triangle (void* userdata, uint8_t* stream, int len_raw) {
         int len = len_raw / 2;  /*16 bit*/
         assert (userdata);
         audio_params_t *ap = (audio_params_t*)userdata;
-        //assert (ap->limit > ap->phase);
+        int16_t * buf = (int16_t*)stream;
+        int16_t sign = (ap->sign != 0)? ap->sign: 1;
+        int16_t volume = ap->sdl_vol;
 
-        int16_t * buf = (int16_t*)stream, \
-                        sign = (ap->sign != 0)? ap->sign: 1, \
-                               volume = ap->sdl_vol;
         double samples_per_slope = ap->period / 2 / ap->sample_len;//samples per half of triangle
         double init_phase = ap->phase;
         init_phase -= (unsigned)(init_phase / samples_per_slope) * samples_per_slope;
         uint32_t slope = (volume * 2.0) * (ap->signal_freq * 2); //slope of half of triangle
-
         double delta = slope * ap->sample_len;
         double cur_vol = sign * (ap->sample_len * init_phase * slope - volume);
 
@@ -135,20 +118,20 @@ static void triangle (void* userdata, uint8_t* stream, int len_raw) {
 // IN:  stream          - buffer to be dumped
 // IN:  len_raw         - length of buffer in ELEMENTS.
 // IN:  out             - file to dump in (needed to be initialized and closed outside)
-static void
-dump_waveform(audio_params_t * ap, const int16_t * stream, int len) {
+int dump_waveform(audio_params_t * ap, const int16_t * stream, int len) {
         assert (ap);
-        assert(ap->out_fd);
+        if (ap->out_fd == -1)
+        	return -1;
         int n = 0;
         lseek(ap->out_fd, 0, SEEK_END);
         n = write(ap->out_fd, stream, sizeof(int16_t)*len);
-        if (n<=0)
-                SIM_printf ("# I write n bytes of samples %d\n", n);
+        if (n == -1)
+                return -1;
         ap->data_size += sizeof(int16_t)*len;
-        SIM_printf ("# Dump for waveform header.subchunk2Size=%u \n", ap->data_size);
-
-
+        //SIM_printf ("# Dump for waveform header.subchunk2Size=%u \n", ap->data_size);
+        return 0;
 }
+
 // Callback used by SDL when it needs a new portion of waveform.
 // IN:  userdata        - converted to audio_params, current phase and signal parameters
 // IN:  len_raw         - length in bytes, NOT samples!
@@ -175,6 +158,7 @@ void waveform_callback(void* userdata, uint8_t* stream, int len_raw) {
                 assert (0 && "unimplemented waveform");
         }
         if (ap->wav_enable)
-                dump_waveform ((audio_params_t *)userdata, (int16_t *)stream, len_raw / 2);
+                if (dump_waveform ((audio_params_t *)userdata, (int16_t *)stream, len_raw / 2) == -1)
+                	SIM_printf ("snd0: dump to wav file error when recording sound");       	
 }
 

@@ -42,7 +42,6 @@ typedef struct audio_params {
         int out_fd;                 //file descriptor of output file
         uint32_t data_size;         //size of samples, that were played
 
-
 } audio_params_t;
 
 typedef struct wavheader {
