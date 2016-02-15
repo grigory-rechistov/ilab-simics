@@ -7,6 +7,7 @@ doc/
 doc-cache/
 simics
 simics-gui
+simics-eclipse
 linux64/
 
 .cproject
