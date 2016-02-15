@@ -28,8 +28,8 @@ typedef struct snd16 {
         audio_params_t audio_params; // parameters to control waveform
 
         char* out_file; //name of out wav file
-        double sil_time; // to dump some silent moments we need to know their time
-        bool sound_is_playing;
+        double sil_time; // to dump some silent moments we need to know time when they started
+        bool sound_is_playing; //for correct recording of sound and silence moments
 } snd16_t;
 
 

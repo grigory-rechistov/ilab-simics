@@ -364,10 +364,13 @@ set_out_file (void *arg, conf_object_t *obj, attr_value_t *val, attr_value_t *id
         snd->out_file = new_file_name;
         int out = open(snd->out_file, O_CREAT | O_RDWR | O_EXCL, 0777);
         if (out == -1) {
-                if (errno == EEXIST)
-                        SIM_LOG_ERROR(&snd->obj, 0, "File with this name already exists, change name and after it set wav_enable again\n");
+                if (errno == EEXIST){
+                        ret = Sim_Set_Illegal_Value;
+                        return ret;
+                }
                 else
                         SIM_LOG_ERROR(&snd->obj, 0, "Can't open file for dumping sound\n");
+
                 MM_FREE(snd->out_file);
                 snd->out_file = NULL;
                 snd->audio_params.wav_enable = 0;
@@ -470,6 +473,9 @@ void init_local (void) {
 
 int write_wav_header(audio_params_t * ap) {
         ASSERT (ap);
+        if (ap->out_fd == -1)
+        	return -1;
+
         wavheader_t header;
         strncpy (header.chunkId, "RIFF", 4);
         strncpy (header.format, "WAVE", 4);
@@ -494,6 +500,7 @@ int dump_silence(audio_params_t * ap, int silent_samples) {
         ASSERT (ap);
         if (ap->out_fd == -1)
         	return -1;
+
         int16_t * stream = MM_ZALLOC(silent_samples, int16_t);
         int n = 0;
         lseek(ap->out_fd, 0, SEEK_END);

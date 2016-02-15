@@ -5,6 +5,7 @@
 # Copyright 2010-2014 Intel Corporation
 
 import cli
+import os
 
 #
 # ------------------------ info -----------------------
@@ -26,23 +27,33 @@ def get_sample_status(obj):
 
 cli.new_status_command('snd16', get_sample_status)
 
+#
+# ------------------------ wav-file-start -----------------------
+#
 
+def wav_file_start_cmd(obj, output_file, overwrite):
+    try:
+    	obj.out_file = output_file
+    except SimExc_IllegalValue:
+        print "File with this name already exists, use -overwrite flag or change name \
+               and after it set wav_enable again\n"
 
-def wav_file_start_cmd(obj, output_file):
-    #try:
+    if overwrite:
+        os.remove(output_file)
         obj.out_file = output_file
-    #except Exception, ex:
-        #
-        
-
 
 cli.new_command("wav-file-start", wav_file_start_cmd,
-                [cli.arg(cli.str_t, "output_file")],
+                [cli.arg(cli.str_t, "output_file"), cli.arg(cli.flag_t, "overwrite")],
                 alias = "",
                 type  = "snd16 commands",
-                short = "simple example method",
+                short = "records sound to wav file",
                 namespace = "snd16",
-                doc = "Simple method used as a sample. Prints the argument.")
+                doc = "Creates wav file with given pathname. By default it returns an error \
+                if the file with this name already exists, but it could be changed with overwrite flag")
+
+#
+# ------------------------ wav-file-stop -----------------------
+#
                 
 def wav_file_stop_cmd(obj):
     obj.out_file = ""
@@ -51,6 +62,6 @@ cli.new_command("wav-file-stop", wav_file_stop_cmd,
                 [],
                 alias = "",
                 type  = "snd16 commands",
-                short = "simple example method",
+                short = "stops current sound recording",
                 namespace = "snd16",
-                doc = "Simple method used as a sample. Prints the argument.")
+                doc = "Stops current sound recording")
