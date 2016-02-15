@@ -91,6 +91,9 @@ const char *const reg_names[Num_Regs] = {
         [Reg_Idx_SP] = "sp"
 };
 
+const int sng_table [16] = {2, 8, 16, 24, 38, 56, 68, 80, 100, 250, 500,
+            800, 1000, 3000, 5000, 8000};
+ 
 static attr_value_t
 chip16_get_reg(void *reg, conf_object_t *obj, attr_value_t *idx)
 {

@@ -64,3 +64,16 @@ static inline uint16_t
 calc_uimm(uint16 hh, uint16 ll, chip16_t *core) {
         return (uint16_t) (hh<<8) | ll;
 }
+
+//This is the mapping of the constants expected in the SNG instruction to their reference values.
+extern const int sng_table[16];
+
+#define ATTACK_TO_MS(value)     (sng_table[value])
+#define DECAY_TO_MS(value)      (3 * sng_table[value])
+#define RELEASE_TO_MS(value)    (3 * sng_table[value])
+#define SNG_TYPE_TO_STR(type)   ((type == 0) ? "Meandre"    :\
+                                (type == 1) ? "Sawtooth"    :\
+                                (type == 2) ? "Triangle"    :\
+                                (type == 3) ? "Noise"       :\
+                                "***Unknown***")
+                                

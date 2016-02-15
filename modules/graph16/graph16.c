@@ -38,11 +38,13 @@ lang_void *init_object(conf_object_t *obj, lang_void *data)
 {
         graph16_t *sample = (graph16_t *)obj;
 
-        sample->bg      = 0;
-        sample->spritew = 0;
-        sample->spriteh = 0;
-        sample->hflip   = 0;
-        sample->vflip   = 0;
+        sample->bg       = 0;
+        sample->spritew  = 0;
+        sample->spriteh  = 0;
+        sample->hflip    = 0;
+        sample->vflip    = 0;
+
+        sample->winscale = 1;
 
         int i = 0;
 
@@ -57,15 +59,27 @@ lang_void *init_object(conf_object_t *obj, lang_void *data)
                 sample->temp[i] = 0;
         }
 
+        const char *window_prefix = "CHIP16 monitor on ";
+        const char *sim_name = SIM_object_name(obj);
+
+        char *window_name = MM_ZALLOC(1/* terminating Zero */
+                                    + strlen(window_prefix)
+                                    + strlen(sim_name), char);
+        ASSERT(window_name);
+        strcpy(window_name, window_prefix);
+        strcat(window_name, sim_name);
 
         sample->window = SDL_CreateWindow (
-                "CHIP16 monitor",                  // window title, TODO include SIM_object_name output
+                window_name,
                 SDL_WINDOWPOS_UNDEFINED,           // initial x position
                 SDL_WINDOWPOS_UNDEFINED,           // initial y position
                 SCREEN_W,                          // width, in pixels
                 SCREEN_H,                          // height, in pixels
                 SDL_WINDOW_SHOWN                   // flags
         );
+
+        MM_FREE(window_name);
+
         if (sample->window == NULL) {
                 SIM_LOG_INFO(1, obj, 0, "Failed to create SDL window: %s", SDL_GetError());
                 goto end;
@@ -530,6 +544,48 @@ get_palette_attribute(void *arg, conf_object_t *obj, attr_value_t *idx)
         return res;
 }
 
+/*
+ * window scale attribute functions
+ */
+static set_error_t
+set_window_scale_attribute(void *arg, conf_object_t *obj,
+                    attr_value_t *val, attr_value_t *idx)//TODO case 0 : fullscreen
+{
+        graph16_t *sample = (graph16_t *)obj;
+
+        uint8 scale = (uint8) SIM_attr_integer(*val);
+
+        switch(scale)// remember to add new cases explanation to Help in attribute registration
+        {
+            case 1:
+            break;
+
+            case 2:
+            break;
+
+            case 3:
+            break;
+
+            default:
+            return Sim_Set_Illegal_Value;
+        }
+
+        sample->winscale = scale;
+
+        SDL_SetWindowSize(sample->window, SCREEN_W * scale, SCREEN_H * scale);
+        SDL_RenderSetScale(sample->renderer, scale, scale);
+
+        return Sim_Set_Ok;
+}
+
+static attr_value_t
+get_window_scale_attribute(void *arg, conf_object_t *obj, attr_value_t *idx)
+{
+        graph16_t *sample = (graph16_t *)obj;
+
+        return SIM_make_attr_int64(sample->winscale);
+}
+
 /* called once when the device module is loaded into Simics */
 void
 init_local(void)
@@ -620,6 +676,12 @@ init_local(void)
                 get_palette_attribute, NULL, set_palette_attribute, NULL,
                 Sim_Attr_Optional, "[i*]", NULL,
                 "The <i>palette</i>.");
+
+        SIM_register_typed_attribute(
+                class, "winscale",
+                get_window_scale_attribute, NULL, set_window_scale_attribute, NULL,
+                Sim_Attr_Optional, "i", NULL,
+                "Sets window scale. Value = { 1, 2, 3 }");
 
         SDL_Init(SDL_INIT_VIDEO);
 } // init_local()
@@ -886,6 +948,8 @@ graph16_refresh_screen(void *arg)
         while (core->refresh_active) {
                 while (SDL_PollEvent(&event));
                 SDL_Delay(1000);
+                SDL_RenderPresent(core->renderer);
+                SDL_Delay(100);
         }
 
         SIM_log_info (4, graph16_to_conf(core), 0, "Screen refreshing thread: shutting down...\n");
