@@ -1,4 +1,4 @@
-; Example programm. It finds the summ of a massive
+; Example program. It finds the sum of array
 
 ; iLab, 2016
 
@@ -10,33 +10,23 @@
 _start:
     
     ; set massive pointer
-    ldi     r0, massive
-
+    ldi     r0, array
     ; clear register with summ
     xor     r1, r1
-
     ; clear test value register
     xor     r2, r2
-
     ; get first value
     ldm     r2, r0
-
     cmpi    r2, 0
     jz      final_loop
     
 
 summ_loop:
-
-    add     r1, r2
-                
+    add     r1, r2        
     addi    r0, 2
-    
     ldm     r2, r0
-
     cmpi    r2, 0
-
     jnz     summ_loop
-
 
 ; MUST HAVE:
 ;    r1 == 55
@@ -48,4 +38,4 @@ final_loop:
 ; Data
 ;-------------------------------------------------------------------------------
 
-massive:    dw 1 2 3 4 5 6 7 8 9 10 0
+array:      dw 1 2 3 4 5 6 7 8 9 10 0
