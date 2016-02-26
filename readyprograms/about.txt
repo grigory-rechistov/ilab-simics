@@ -2,14 +2,14 @@
 This folder contains example programms for chip16
 ##################################################
 
-mas_summ.asm
-    Finds a summ of an array of 16 integers, terminated with zero
+arr_sum.asm
+    Finds the sum of an array of 16-bit integers, terminated with zero
 
 ##################################################
 Compile
 ##################################################
 
-"tchip16" - executable file - chip16 compiler (see tchip16_readme.md)
+"tchip16" - executable file - chip16 compiler
 
 Source:
 https://github.com/grigory-rechistov/tchip16
