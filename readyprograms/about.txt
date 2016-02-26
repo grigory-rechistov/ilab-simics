@@ -1,0 +1,15 @@
+##################################################
+This folder contains example programms for chip16
+##################################################
+
+mas_summ.asm
+    Finds a summ for a massive of 16 integers, terminated with zero
+
+##################################################
+Compile
+##################################################
+
+"tchip16" - executable file - chip16 compiler (see tchip16_readme.md)
+
+Source:
+github.com/chip16/chip16
