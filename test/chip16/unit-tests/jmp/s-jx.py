@@ -28,7 +28,7 @@ def test_one_availability(cpu):
         cpu.flags = 0
         chip16_write_phys_memory_BE(cpu, 0, 0x12090110, 4)
         SIM_continue(1)
-        stest.expect_equal(cpu.pc, 0)
+        stest.expect_equal(cpu.pc, 4)
         print "Not jump (success)"
 
 test_one_availability(conf.chip0)

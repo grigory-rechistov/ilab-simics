@@ -543,9 +543,9 @@ if (chip16_check_conditional_code(core, x)){
         chip16_get_pc(core));
     chip16_set_sp(core, chip16_get_sp(core) + 2);
     chip16_set_pc(core, uimm);
+}
 else
     chip16_update_pc_fallthrough(core);
-}
 endinstruction
 
 instruction: CALL_X
