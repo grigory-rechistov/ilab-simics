@@ -476,6 +476,8 @@ mnemonic: "jmc %#06x", uimm
 attributes: branch
 if (core->flags.map.C)
     chip16_set_pc(core, uimm);
+else
+    chip16_update_pc_fallthrough(core);
 endinstruction
 
 instruction: Jx_HHLL
@@ -484,6 +486,8 @@ mnemonic: "j%s %#06x", conditional_types[x], uimm
 attributes: branch
 if (chip16_check_conditional_code(core, x))
     chip16_set_pc(core, uimm);
+else
+    chip16_update_pc_fallthrough(core);
 endinstruction
 
 instruction: JME_XY_HHLL
@@ -492,6 +496,8 @@ mnemonic: "jme r%d, r%d, %#06x", x, y, uimm
 attributes: branch
 if (core->chip16_reg[x] == core->chip16_reg[y])
     chip16_set_pc(core, uimm);
+else
+    chip16_update_pc_fallthrough(core);
 endinstruction
 
 instruction: CALL_HHLL
@@ -538,6 +544,8 @@ if (chip16_check_conditional_code(core, x)){
     chip16_set_sp(core, chip16_get_sp(core) + 2);
     chip16_set_pc(core, uimm);
 }
+else
+    chip16_update_pc_fallthrough(core);
 endinstruction
 
 instruction: CALL_X

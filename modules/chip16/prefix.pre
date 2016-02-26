@@ -65,6 +65,11 @@ calc_uimm(uint16 hh, uint16 ll, chip16_t *core) {
         return (uint16_t) (hh<<8) | ll;
 }
 
+static inline void 
+chip16_update_pc_fallthrough(chip16_t *core) {
+        chip16_set_pc(core, chip16_get_pc(core) + 4);
+}
+
 //This is the mapping of the constants expected in the SNG instruction to their reference values.
 extern const int sng_table[16];
 

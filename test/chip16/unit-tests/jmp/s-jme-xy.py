@@ -18,7 +18,7 @@ def test_one_availability(cpu):
         # JME r1, r2, 0x10aa
         chip16_write_phys_memory_BE(cpu, 0, 0x132110aa, 4)
         SIM_continue(1)
-        stest.expect_equal(cpu.pc, 0)
+        stest.expect_equal(cpu.pc, 4)
 
         print "JME_XY_HHLL success"
 
