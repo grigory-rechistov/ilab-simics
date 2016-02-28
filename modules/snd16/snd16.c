@@ -48,8 +48,10 @@ set_out_file (void *arg, conf_object_t *obj, attr_value_t *val, attr_value_t *id
 /* THREAD_SAFE_GLOBAL: pause_snd_event init */
 static event_class_t* pause_snd_event;
 static void snd_mute (conf_object_t *obj, void *param);
-int write_wav_header(audio_params_t * ap);
-int dump_silence(audio_params_t * ap, int silent_samples);
+
+/* Functions for dumping sound to the file */
+static int write_wav_header(audio_params_t * ap);
+static int dump_silence(audio_params_t * ap, int silent_samples);
 
 /* Allocate memory for the object. */
 static conf_object_t *
@@ -165,14 +167,17 @@ operation (conf_object_t *obj, generic_transaction_t *mop, map_info_t info) {
                                         SDL_PauseAudioDevice(snd->audiodev, 1);
                                 else {
                                         // here should be launch of sound generating
-                                        
+
                                         //if we dumping sound we should dump silence from the moment
-                                        //when we switch wav-file-start command on or from the moment when sound stopped
+                                        //when we switch on wav-file-start command or from the moment when sound stopped
                                         if (snd->audio_params.wav_enable) {
                                                 snd->sil_time = SIM_time(obj) - snd->sil_time;
                                                 int silent_samples = (int) (snd->sil_time * snd->audio_params.sample_freq);
-                                                if (dump_silence(&(snd->audio_params), silent_samples) == -1)
-                                                	SIM_LOG_ERROR(&snd->obj, 0, "snd0: dump to wav file error when recording silence");
+                                                if (dump_silence(&(snd->audio_params), silent_samples) == -1) {
+                                                        SIM_LOG_ERROR(&snd->obj, 0, "snd0: dump to wav file error when recording silence");
+                                                        attr_value_t tmp_str = SIM_make_attr_string("");
+                                                        set_out_file(NULL, &snd->obj, &tmp_str, NULL);
+                                                }
                                                 snd->sound_is_playing = 1;
                                         }
                                         SDL_PauseAudioDevice(snd->audiodev, 0);
@@ -337,22 +342,24 @@ set_out_file (void *arg, conf_object_t *obj, attr_value_t *val, attr_value_t *id
         int name_size = strlen(SIM_attr_string(*val));
         if (name_size == 0) {
                 if (snd->out_file != NULL) {
-                	snd->audio_params.wav_enable = 0;
-                	if (snd->sound_is_playing == 0)
-                        {snd->sil_time = SIM_time(obj) - snd->sil_time;
-                        int silent_samples = (int) (snd->sil_time * snd->audio_params.sample_freq);
-                        if (dump_silence(&(snd->audio_params), silent_samples) == -1)
-                        	SIM_LOG_ERROR(&snd->obj, 0, "snd0: dump to wav file error when recording silence");}
+                        snd->audio_params.wav_enable = 0;
+                        if (snd->sound_is_playing == 0) {
+                                snd->sil_time = SIM_time(obj) - snd->sil_time;
+                                int silent_samples = (int) (snd->sil_time * snd->audio_params.sample_freq);
+                                if (dump_silence(&(snd->audio_params), silent_samples) == -1)
+                                        SIM_LOG_ERROR(&snd->obj, 0, "snd0: dump to wav file error when recording silence");
+                        }
                         if (write_wav_header(&(snd->audio_params)) == -1)
-                        	SIM_LOG_ERROR(&snd->obj, 0, "snd0: dump to wav file error when writing header to file");
-			close(snd->audio_params.out_fd);
+                                SIM_LOG_ERROR(&snd->obj, 0, "snd0: dump to wav file error when writing header to file");
+                        close(snd->audio_params.out_fd);
                         snd->audio_params.data_size = 0;
                         snd->audio_params.out_fd = -1;
+                        snd->sound_is_playing = 0;
                         MM_FREE(snd->out_file);
+                        snd->out_file = NULL;
                 }
-                snd->out_file = NULL;
                 return ret;
-        }      
+        }
 
         if (snd->out_file != NULL) {
                 SIM_LOG_ERROR(obj, 0, "The sound is recording now. Stop recording with wav-file-stop and try again\n");
@@ -361,25 +368,25 @@ set_out_file (void *arg, conf_object_t *obj, attr_value_t *val, attr_value_t *id
 
         char* new_file_name = MM_MALLOC(name_size+1, char);
         strcpy (new_file_name, SIM_attr_string(*val));
-        snd->out_file = new_file_name;
-        int out = open(snd->out_file, O_CREAT | O_RDWR | O_EXCL, 0777);
+
+        int out = open(new_file_name, O_CREAT | O_RDWR | O_EXCL, 0777);
         if (out == -1) {
-                if (errno == EEXIST){
+                MM_FREE(new_file_name);
+                if (errno == EEXIST)
                         ret = Sim_Set_Illegal_Value;
-                        return ret;
-                }
                 else
                         SIM_LOG_ERROR(&snd->obj, 0, "Can't open file for dumping sound\n");
 
-                MM_FREE(snd->out_file);
-                snd->out_file = NULL;
-                snd->audio_params.wav_enable = 0;
         } else {
+                snd->out_file = new_file_name;
                 snd->audio_params.out_fd = out;
                 snd->audio_params.data_size = 0;
                 snd->audio_params.wav_enable = 1;
-                if (write_wav_header(&(snd->audio_params)) == -1)
-                        	SIM_LOG_ERROR(&snd->obj, 0, "snd0: dump to wav file error when writing header to file");
+                if (write_wav_header(&(snd->audio_params)) == -1) {
+                        SIM_LOG_ERROR(&snd->obj, 0, "snd0: dump to wav file error when writing header to file");
+                        attr_value_t tmp_str = SIM_make_attr_string("");
+                        set_out_file(NULL, &snd->obj, &tmp_str, NULL);
+                }
                 snd->sil_time = SIM_time(obj);
         }
         return ret;
@@ -471,11 +478,10 @@ void init_local (void) {
         ASSERT (pause_snd_event != NULL);
 }
 
-int write_wav_header(audio_params_t * ap) {
+static int write_wav_header(audio_params_t * ap) {
         ASSERT (ap);
         if (ap->out_fd == -1)
-        	return -1;
-
+                return -1;
         wavheader_t header;
         strncpy (header.chunkId, "RIFF", 4);
         strncpy (header.format, "WAVE", 4);
@@ -496,10 +502,10 @@ int write_wav_header(audio_params_t * ap) {
                 return -1;
         return 0;
 }
-int dump_silence(audio_params_t * ap, int silent_samples) {
+static int dump_silence(audio_params_t * ap, int silent_samples) {
         ASSERT (ap);
         if (ap->out_fd == -1)
-        	return -1;
+                return -1;
 
         int16_t * stream = MM_ZALLOC(silent_samples, int16_t);
         int n = 0;
@@ -507,6 +513,7 @@ int dump_silence(audio_params_t * ap, int silent_samples) {
         n = write(ap->out_fd, stream, sizeof(int16_t)*silent_samples);
         if (n == -1)
                 return -1;
+        MM_FREE(stream);
         ap->data_size += sizeof(int16_t)*silent_samples;
         return 0;
 }

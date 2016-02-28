@@ -8,11 +8,9 @@ cli.run_command("enable-real-time-mode")
 def test_snd1_hhll_availability(cpu, snd):
         paddr = 0
         cpu.pc = paddr
-        snd.out_file = "logs/snd1.wav"
-        snd.wav_enable = 1
 
         # SND1_HHLL
-        # play 500Hz tone for 0x64=100 ms
+        # play 500Hz tone for 0x3E8=1000 ms
         chip16_write_phys_memory_BE(cpu, paddr, 0x0A00E803, 4)
         SIM_continue(1)
         cpu.core_enabled = False

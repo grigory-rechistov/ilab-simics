@@ -38,7 +38,7 @@ static void meandre (void* userdata, uint8_t* stream, int len_raw) {
                 // are across a  boundary of period.
                 // Detect boundary as a floor value of current time divied by period
                 if ( (uint64_t)(ap->sample_len * (ap->phase+1)* ap->freq ) !=
-                     (uint64_t)(ap->sample_len *  ap->phase   * ap->freq ))
+                                (uint64_t)(ap->sample_len *  ap->phase   * ap->freq ))
                         sign *= -1;
                 ap->phase++;
         }
@@ -79,7 +79,7 @@ static void sawtooth (void* userdata, uint8_t* stream, int len_raw) {
                 cur_vol += delta;
 
                 if ( (uint64_t)(ap->sample_len * (ap->phase+1)* ap->freq ) !=
-                     (uint64_t)(ap->sample_len *  ap->phase   * ap->freq ))
+                                (uint64_t)(ap->sample_len *  ap->phase   * ap->freq ))
                         cur_vol -= 2 * ap->signal_vol;
                 ap->phase++;
         }
@@ -114,22 +114,20 @@ static void triangle (void* userdata, uint8_t* stream, int len_raw) {
         ap->sign = sign;
 }
 
-// Dump just generated sound buffer to textual representation for debug purposes.
-// IN:  userdata        - for current phase and parameters
+// Dump sound buffer to wav file for snd wav-file-start command
+// IN:  ap              -
 // IN:  stream          - buffer to be dumped
-// IN:  len_raw         - length of buffer in ELEMENTS.
-// IN:  out             - file to dump in (needed to be initialized and closed outside)
-int dump_waveform(audio_params_t * ap, const int16_t * stream, int len) {
+// IN:  len             - length of buffer in ELEMENTS.
+static int dump_waveform(audio_params_t * ap, const int16_t * stream, int len) {
         assert (ap);
         if (ap->out_fd == -1)
-        	return -1;
+                return -1;
         int n = 0;
         lseek(ap->out_fd, 0, SEEK_END);
         n = write(ap->out_fd, stream, sizeof(int16_t)*len);
         if (n == -1)
                 return -1;
         ap->data_size += sizeof(int16_t)*len;
-        //SIM_printf ("# Dump for waveform header.subchunk2Size=%u \n", ap->data_size);
         return 0;
 }
 
@@ -141,7 +139,6 @@ int dump_waveform(audio_params_t * ap, const int16_t * stream, int len) {
 void waveform_callback(void* userdata, uint8_t* stream, int len_raw) {
         assert (userdata);
         const audio_params_t *ap = (audio_params_t*)userdata;
-
         switch (ap->wave_type) {
         case Audio_Meandre:
                 meandre (userdata, stream, len_raw);
@@ -160,6 +157,6 @@ void waveform_callback(void* userdata, uint8_t* stream, int len_raw) {
         }
         if (ap->wav_enable)
                 if (dump_waveform ((audio_params_t *)userdata, (int16_t *)stream, len_raw / 2) == -1)
-                	SIM_printf ("snd0: dump to wav file error when recording sound");       	
+                        SIM_printf ("snd0: dump to wav file error when recording sound");
 }
 
