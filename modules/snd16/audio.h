@@ -5,7 +5,10 @@
 #define CHIP16_AUDIO_H
 
 #include <stdint.h>
-
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 // Wavetypes supported by CHIP16
 typedef enum {
@@ -31,8 +34,58 @@ typedef struct audio_params {
         uint64_t    limit;          // maximum sample for this waveform
 
         // waveform-specific parameters
-        int sign;
+        int sign; // for meandre
+
+        //dump to wav file parameters
+        bool wav_enable;
+        int out_fd;                 //file descriptor of output file
+        uint32_t data_size;         //size of samples, that were played
 } audio_params_t;
+
+#pragma pack (push, 1)
+typedef struct wavheader {
+        //const value "RIFF"
+        uint8_t chunkId[4];
+
+        //chunkSize = 4 + (8 + subchunk1Size) + (8 + subchunk2Size)
+        uint32_t chunkSize;
+
+        //const value "WAVE"
+        uint8_t format[4];
+
+        //const value "fmt "
+        uint8_t subchunk1Id[4];
+
+        //This is the size of the rest of the Subchunk which follows this number
+        //const value 16
+        uint32_t subchunk1Size;
+
+        //const value 1
+        uint16_t audioFormat;
+
+        //Mono sound now
+        uint16_t numChannels;
+
+        //Sample frequency
+        uint32_t sampleRate;
+
+        // sampleRate * numChannels * bitsPerSample/8
+        uint32_t byteRate;
+
+        // number of bytes for one sample including all channels
+        // numChannels * bitsPerSample/8
+        uint16_t blockAlign;
+
+        uint16_t bitsPerSample;
+
+        //const value "data"
+        uint8_t subchunk2Id[4];
+
+        // numSamples * numChannels * bitsPerSample/8
+        uint32_t subchunk2Size;
+
+} wavheader_t;
+#pragma pack (pop)
 
 void waveform_callback (void* userdata, uint8_t* stream, int len);
 

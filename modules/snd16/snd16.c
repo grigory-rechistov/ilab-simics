@@ -14,14 +14,16 @@
 #include "include/SDL2/SDL.h"
 #include "audio.h"
 #include "snd16.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <errno.h>
 
 #define SDL_VOL       16000
 #define SND_WAVE_TYPE Audio_Meandre
-//#define SND_DEGUG
-
 #define SND 0x0002
 #define SNG 0x0102
-
 
 static attr_value_t
 get_wave_type (void *arg, conf_object_t *obj, attr_value_t *idx);
@@ -38,9 +40,18 @@ get_waveform_limit (void *arg, conf_object_t *obj, attr_value_t *idx);
 static set_error_t
 set_waveform_limit (void *arg, conf_object_t *obj, attr_value_t *val, attr_value_t *idx);
 
+static attr_value_t
+get_out_file (void *arg, conf_object_t *obj, attr_value_t *idx);
+static set_error_t
+set_out_file (void *arg, conf_object_t *obj, attr_value_t *val, attr_value_t *idx);
+
 /* THREAD_SAFE_GLOBAL: pause_snd_event init */
 static event_class_t* pause_snd_event;
 static void snd_mute (conf_object_t *obj, void *param);
+
+/* Functions for dumping sound to the file */
+static int write_wav_header(audio_params_t * ap);
+static int dump_silence(audio_params_t * ap, int silent_samples);
 
 /* Allocate memory for the object. */
 static conf_object_t *
@@ -61,20 +72,27 @@ lang_void *init_object(conf_object_t *obj, lang_void *data) {
         want.callback = waveform_callback;
         want.userdata = (void*)&snd->audio_params;
 
+        /*parametres for dumping to wav file*/
+        snd->out_file = NULL;
+        snd->audio_params.wav_enable = 0;
+        snd->audio_params.out_fd = -1;
+        snd->audio_params.data_size = 0;
+        snd->sil_time = 0;
+        snd->sound_is_playing = 0;
+
         snd->audio_params.sample_freq = want.freq;
         snd->audio_params.sample_len = 1.0d / want.freq;
         snd->audiodev = SDL_OpenAudioDevice(NULL, 0, &want, NULL, 0);
         if (snd->audiodev == 0)
                 SIM_LOG_INFO(1, obj, 0, "Failed to open audio device: %s", SDL_GetError());
-#ifdef SND_DEGUG
-        remove("logs/dump.txt");
-#endif
         //SIM_LOG_INFO(1, obj, 0, "Audio device is %s", SDL_GetAudioDeviceName(0, 0)); // incorrect, don't know if possible at all // GGG
         return obj;
 }
 
 int delete_instance (conf_object_t *obj) {
         snd16_t *snd = (snd16_t*)obj;
+        attr_value_t tmp_str = SIM_make_attr_string("");
+        set_out_file(NULL, &snd->obj, &tmp_str, NULL);
         if (snd->audiodev)
                 SDL_CloseAudioDevice(snd->audiodev);
         return 1;
@@ -149,6 +167,19 @@ operation (conf_object_t *obj, generic_transaction_t *mop, map_info_t info) {
                                         SDL_PauseAudioDevice(snd->audiodev, 1);
                                 else {
                                         // here should be launch of sound generating
+
+                                        //if we dumping sound we should dump silence from the moment
+                                        //when we switch on wav-file-start command or from the moment when sound stopped
+                                        if (snd->audio_params.wav_enable) {
+                                                snd->sil_time = SIM_time(obj) - snd->sil_time;
+                                                int silent_samples = (int) (snd->sil_time * snd->audio_params.sample_freq);
+                                                if (dump_silence(&(snd->audio_params), silent_samples) == -1) {
+                                                        SIM_LOG_ERROR(&snd->obj, 0, "snd0: dump to wav file error when recording silence");
+                                                        attr_value_t tmp_str = SIM_make_attr_string("");
+                                                        set_out_file(NULL, &snd->obj, &tmp_str, NULL);
+                                                }
+                                                snd->sound_is_playing = 1;
+                                        }
                                         SDL_PauseAudioDevice(snd->audiodev, 0);
                                         // SDL_Delay(snd->mop_var);
                                         // SDL_PauseAudioDevice(snd->audiodev, 1);
@@ -294,9 +325,87 @@ set_waveform_limit (void *arg, conf_object_t *obj,
         return ret;
 }
 
+static attr_value_t
+get_out_file (void *arg, conf_object_t *obj, attr_value_t *idx) {
+        snd16_t *snd = (snd16_t *)obj;
+        if (snd->out_file != NULL) {
+                return SIM_make_attr_string(snd->out_file);
+        }
+        return SIM_make_attr_string("");
+}
+
+static set_error_t
+set_out_file (void *arg, conf_object_t *obj, attr_value_t *val, attr_value_t *idx) {
+        snd16_t *snd = (snd16_t *)obj;
+        set_error_t ret = Sim_Set_Ok;
+
+        int name_size = strlen(SIM_attr_string(*val));
+        if (name_size == 0) {
+                if (snd->out_file != NULL) {
+                        snd->audio_params.wav_enable = 0;
+                        if (snd->sound_is_playing == 0) {
+                                snd->sil_time = SIM_time(obj) - snd->sil_time;
+                                int silent_samples = (int) (snd->sil_time * snd->audio_params.sample_freq);
+                                if (dump_silence(&(snd->audio_params), silent_samples) == -1)
+                                        SIM_LOG_ERROR(&snd->obj, 0, "snd0: dump to wav file error when recording silence");
+                        }
+                        if (write_wav_header(&(snd->audio_params)) == -1)
+                                SIM_LOG_ERROR(&snd->obj, 0, "snd0: dump to wav file error when writing header to file");
+                        close(snd->audio_params.out_fd);
+                        snd->audio_params.data_size = 0;
+                        snd->audio_params.out_fd = -1;
+                        snd->sound_is_playing = 0;
+                        MM_FREE(snd->out_file);
+                        snd->out_file = NULL;
+                }
+                return ret;
+        }
+
+        if (snd->out_file != NULL) {
+                SIM_LOG_ERROR(obj, 0, "The sound is already being recorded. Stop recording with wav-file-stop and try again");
+                ret = Sim_Set_Illegal_Value;
+                return ret;
+        }
+
+        char* new_file_name = MM_MALLOC(name_size+1, char);
+        if (new_file_name == NULL) {
+                SIM_LOG_ERROR(&snd->obj, 0, "Can't allocate memory to out_file\n");
+                ret = Sim_Set_Illegal_Value;
+        }
+        strcpy (new_file_name, SIM_attr_string(*val));
+
+        int out = open(new_file_name, O_CREAT | O_RDWR | O_EXCL, 0777);
+        if (out == -1) {
+                MM_FREE(new_file_name);
+                if (errno == EEXIST) {
+                        SIM_LOG_INFO(4, &snd->obj, 0, "File with this name already exists\n");
+                        ret = Sim_Set_Illegal_Value;
+                } else {
+                        SIM_LOG_ERROR(&snd->obj, 0, "Can't open file for dumping sound\n");
+                        ret = Sim_Set_Illegal_Value;
+                }
+
+        } else {
+                snd->out_file = new_file_name;
+                snd->audio_params.out_fd = out;
+                snd->audio_params.data_size = 0;
+                snd->audio_params.wav_enable = 1;
+                if (write_wav_header(&(snd->audio_params)) == -1) {
+                        SIM_LOG_ERROR(&snd->obj, 0, "snd0: dump to wav file error when writing header to file");
+                        attr_value_t tmp_str = SIM_make_attr_string("");
+                        set_out_file(NULL, &snd->obj, &tmp_str, NULL);
+                }
+                snd->sil_time = SIM_time(obj);
+        }
+        return ret;
+}
+
+
 static void snd_mute (conf_object_t *obj, void *param) {
         snd16_t *snd = (snd16_t *)obj;
         SDL_PauseAudioDevice(snd->audiodev, 1);
+        snd->sound_is_playing = 0;
+        snd->sil_time = SIM_time(obj);
         SIM_LOG_INFO (4, obj, 0, "sdl_mute was called");
 }
 //------------------------------------------------------------------------------
@@ -356,6 +465,14 @@ void init_local (void) {
                 "i", NULL,
                 "Limit - maximum sample for this waveform.");
 
+        SIM_register_typed_attribute(
+                class, "out_file",
+                get_out_file, NULL,
+                set_out_file, NULL,
+                Sim_Attr_Session,
+                "s", NULL,
+                "Out_file  - output .wav file name if wav_enable is set.");
+
         if (SDL_WasInit(SDL_INIT_AUDIO) == 0) {
                 SIM_printf("SDL audio hasn't been initialized, doing it now\n");
                 SDL_InitSubSystem(SDL_INIT_AUDIO);
@@ -367,4 +484,44 @@ void init_local (void) {
                                   0 /*Sim_EC_Notsaved*/, snd_mute,
                                   0, 0, 0, 0);
         ASSERT (pause_snd_event != NULL);
+}
+
+static int write_wav_header(audio_params_t * ap) {
+        ASSERT (ap);
+        if (ap->out_fd == -1)
+                return -1;
+        wavheader_t header;
+        memcpy (header.chunkId, "RIFF", 4);
+        memcpy (header.format, "WAVE", 4);
+        memcpy (header.subchunk1Id, "fmt ", 4);
+        header.subchunk1Size = 16;
+        header.subchunk2Size = ap->data_size;
+        header.chunkSize = 4 + (8 + header.subchunk1Size) + (8 + header.subchunk2Size);
+        header.audioFormat = 1;
+        header.numChannels = 1;
+        header.sampleRate = ap->sample_freq;
+        header.bitsPerSample = 16;
+        header.byteRate = header.sampleRate * header.bitsPerSample / 8;
+        header.blockAlign = 2;
+        memcpy (header.subchunk2Id, "data", 4);
+
+        lseek(ap->out_fd, 0, SEEK_SET);
+        if (write(ap->out_fd, &header, sizeof(wavheader_t)) == -1)
+                return -1;
+        return 0;
+}
+static int dump_silence(audio_params_t * ap, int silent_samples) {
+        ASSERT (ap);
+        if (ap->out_fd == -1)
+                return -1;
+
+        int16_t * stream = MM_ZALLOC(silent_samples, int16_t);
+        int n = 0;
+        lseek(ap->out_fd, 0, SEEK_END);
+        n = write(ap->out_fd, stream, sizeof(int16_t)*silent_samples);
+        MM_FREE(stream);
+        if (n == -1)
+                return -1;
+        ap->data_size += sizeof(int16_t)*silent_samples;
+        return 0;
 }
