@@ -362,7 +362,7 @@ set_out_file (void *arg, conf_object_t *obj, attr_value_t *val, attr_value_t *id
         }
 
         if (snd->out_file != NULL) {
-                SIM_LOG_ERROR(obj, 0, "The sound is recording now. Stop recording with wav-file-stop and try again\n");
+                SIM_LOG_ERROR(obj, 0, "The sound is already being recorded. Stop recording with wav-file-stop and try again");
                 return ret;
         }
 
@@ -483,9 +483,9 @@ static int write_wav_header(audio_params_t * ap) {
         if (ap->out_fd == -1)
                 return -1;
         wavheader_t header;
-        strncpy (header.chunkId, "RIFF", 4);
-        strncpy (header.format, "WAVE", 4);
-        strncpy (header.subchunk1Id, "fmt ", 4);
+        memcpy (header.chunkId, "RIFF", 4);
+        memcpy (header.format, "WAVE", 4);
+        memcpy (header.subchunk1Id, "fmt ", 4);
         header.subchunk1Size = 16;
         header.subchunk2Size = ap->data_size;
         header.chunkSize = 4 + (8 + header.subchunk1Size) + (8 + header.subchunk2Size);
@@ -495,7 +495,7 @@ static int write_wav_header(audio_params_t * ap) {
         header.bitsPerSample = 16;
         header.byteRate = header.sampleRate * header.bitsPerSample / 8;
         header.blockAlign = 2;
-        strncpy (header.subchunk2Id, "data", 4);
+        memcpy (header.subchunk2Id, "data", 4);
 
         lseek(ap->out_fd, 0, SEEK_SET);
         if (write(ap->out_fd, &header, sizeof(wavheader_t)) == -1)
@@ -511,10 +511,9 @@ static int dump_silence(audio_params_t * ap, int silent_samples) {
         int n = 0;
         lseek(ap->out_fd, 0, SEEK_END);
         n = write(ap->out_fd, stream, sizeof(int16_t)*silent_samples);
+        MM_FREE(stream);
         if (n == -1)
                 return -1;
-        MM_FREE(stream);
         ap->data_size += sizeof(int16_t)*silent_samples;
         return 0;
 }
-

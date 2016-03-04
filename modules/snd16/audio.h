@@ -42,18 +42,19 @@ typedef struct audio_params {
         uint32_t data_size;         //size of samples, that were played
 } audio_params_t;
 
+#pragma pack (push, 1)
 typedef struct wavheader {
         //const value "RIFF"
-        char chunkId[4];
+        uint8_t chunkId[4];
 
         //chunkSize = 4 + (8 + subchunk1Size) + (8 + subchunk2Size)
         uint32_t chunkSize;
 
         //const value "WAVE"
-        char format[4];
+        uint8_t format[4];
 
         //const value "fmt "
-        char subchunk1Id[4];
+        uint8_t subchunk1Id[4];
 
         //This is the size of the rest of the Subchunk which follows this number
         //const value 16
@@ -78,12 +79,13 @@ typedef struct wavheader {
         uint16_t bitsPerSample;
 
         //const value "data"
-        char subchunk2Id[4];
+        uint8_t subchunk2Id[4];
 
         // numSamples * numChannels * bitsPerSample/8
         uint32_t subchunk2Size;
 
 } wavheader_t;
+#pragma pack (pop)
 
 void waveform_callback (void* userdata, uint8_t* stream, int len);
 
