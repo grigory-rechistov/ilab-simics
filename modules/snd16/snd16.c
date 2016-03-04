@@ -363,19 +363,27 @@ set_out_file (void *arg, conf_object_t *obj, attr_value_t *val, attr_value_t *id
 
         if (snd->out_file != NULL) {
                 SIM_LOG_ERROR(obj, 0, "The sound is already being recorded. Stop recording with wav-file-stop and try again");
+                ret = Sim_Set_Illegal_Value;
                 return ret;
         }
 
         char* new_file_name = MM_MALLOC(name_size+1, char);
+        if (new_file_name == NULL) {
+                SIM_LOG_ERROR(&snd->obj, 0, "Can't allocate memory to out_file\n");
+                ret = Sim_Set_Illegal_Value;
+        }
         strcpy (new_file_name, SIM_attr_string(*val));
 
         int out = open(new_file_name, O_CREAT | O_RDWR | O_EXCL, 0777);
         if (out == -1) {
                 MM_FREE(new_file_name);
-                if (errno == EEXIST)
+                if (errno == EEXIST) {
+                        SIM_LOG_INFO(4, &snd->obj, 0, "File with this name already exists\n");
                         ret = Sim_Set_Illegal_Value;
-                else
+                } else {
                         SIM_LOG_ERROR(&snd->obj, 0, "Can't open file for dumping sound\n");
+                        ret = Sim_Set_Illegal_Value;
+                }
 
         } else {
                 snd->out_file = new_file_name;

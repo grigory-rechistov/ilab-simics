@@ -36,7 +36,7 @@ def wav_file_start_cmd(obj, output_file, overwrite):
     try:
     	obj.out_file = output_file
     except simics.SimExc_IllegalValue:
-        if overwrite:
+        if (os.path.exists(output_file) and overwrite):
             os.remove(output_file)
             obj.out_file = output_file
         else:
