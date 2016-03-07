@@ -271,6 +271,15 @@ for (int i = 0; i < NUMB_OF_REGS; i++) {
 }
 endinstruction
 
+instruction: PUSHALL
+pattern: op32 == 0xc2000000
+mnemonic: "pushall"
+for (int i = NUMB_OF_REGS - 1; i >= 0; i--) {
+    chip16_write_memory (core, chip16_get_sp (core), 2, (uint8*)(&(core->chip16_reg[i])), 1);
+    chip16_set_sp (core, chip16_get_sp (core) + 2);
+}
+endinstruction
+
 instruction: DIV
 pattern: opcode == 0xa1 && uimm == 0
 mnemonic: "div r%d, r%d", x, y
@@ -521,7 +530,7 @@ chip16_set_sp(core, chip16_get_sp(core) - 2);
 uint16 tmp = chip16_read_memory16(core,
         chip16_get_sp(core),
         chip16_get_sp(core));
-chip16_set_pc(core, tmp);
+chip16_set_pc(core, tmp + 4);
 endinstruction
 
 instruction: JMP_X
@@ -581,11 +590,44 @@ chip16_read_memory(
     (uint8*)(&(core->chip16_reg[x])), 1);
 endinstruction
 
+instruction: PUSH
+pattern: opcode == 0xc0 && y == 0 && uimm == 0
+mnemonic: "push r%d", x
+chip16_write_memory(
+    core,
+    chip16_get_sp(core), 2,
+    (uint8*)(&(core->chip16_reg[x])), 1);
+chip16_set_sp(core, chip16_get_sp(core) + 2);
+endinstruction
+
 instruction: CMPI_X
 pattern: opcode == 0x53 && y == 0
 mnemonic: "cmpi r%d, %#06x", x, uimm
 uint16 X = core->chip16_reg[x];
 uint16 Y = uimm;
+uint32 Z = X - Y;
+if (BIT_16(Z) == 1)
+    SET_CARRY(core->flags);
+else
+    CLR_CARRY(core->flags);
+if (BIT_15(Z) == 1)
+    SET_NEG(core->flags);
+else
+    CLR_NEG(core->flags);
+if (X == Y) SET_ZERO(core->flags);
+else        CLR_ZERO(core->flags);
+if (((BIT_15(X) == 1) && (BIT_15(Y) == 0) && (BIT_15(Z) == 0)) ||
+    ((BIT_15(X) == 0) && (BIT_15(Y) == 1) && (BIT_15(Z) == 1)))
+    SET_OVRFLW(core->flags);
+else
+    CLR_OVRFLW(core->flags);
+endinstruction
+
+instruction: CMP_XY
+pattern: opcode == 0x54 && uimm == 0
+mnemonic: "cmpi r%d, r%d", x, y
+uint16 X = core->chip16_reg[x];
+uint16 Y = core->chip16_reg[y];
 uint32 Z = X - Y;
 if (BIT_16(Z) == 1)
     SET_CARRY(core->flags);

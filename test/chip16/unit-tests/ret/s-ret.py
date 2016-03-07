@@ -20,7 +20,7 @@ def test_one_availability(cpu):
         stest.expect_equal(cpu.sp, 0xfdf2)
         print "RET: (sp) success"
 
-        stest.expect_equal(cpu.pc, target)
+        stest.expect_equal(cpu.pc, target + 4)
         print "RET: (pc) success"
 
 test_one_availability(conf.chip0)
